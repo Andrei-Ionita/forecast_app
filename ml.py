@@ -204,7 +204,11 @@ def render_production_forecast():
 
 def render_forecast_page():
 
-	st.write("Forecast Page")
+	# Web App Title
+	st.markdown('''
+	# **The Forecast Section**
+
+	''')
 
 	# Allow the user to choose between Consumption and Production
 	forecast_type = st.radio("Choose Forecast Type:", options=["Consumption", "Production"])
