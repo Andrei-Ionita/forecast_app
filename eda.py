@@ -14,7 +14,7 @@ def render_eda_page():
 	''')
 
 	# Upload CSV data
-	with st.sidebar.header('1. Upload your CSV data'):
+	with st.sidebar.header('1. Upload your data'):
 		uploaded_file = st.sidebar.file_uploader("Upload your input file", type=["csv", "xlsx", "xls"])
 		st.sidebar.markdown("""
 [Example CSV input file](https://raw.githubusercontent.com/dataprofessor/data/master/delaney_solubility_with_descriptors.csv)
@@ -48,7 +48,7 @@ def render_eda_page():
 	    st.header('**Pandas Profiling Report**')
 	    st_profile_report(pr)
 	else:
-	  st.info('Awaiting for CSV file to be uploaded.')
+	  st.info('Awaiting for file to be uploaded.')
 	  if st.button('Press to use Example Dataset'):
 	    # Example data
 	    @st.cache_data
