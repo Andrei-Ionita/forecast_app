@@ -24,7 +24,7 @@ def render_eda_page():
 	if uploaded_file is not None:
 	  file_type = uploaded_file.type
 	  if file_type == "text/csv":
-	    @st.cache_data
+	    # @st.cache_data
 	    def load_csv():
 	        csv = pd.read_csv(uploaded_file)
 	        return csv
@@ -36,7 +36,7 @@ def render_eda_page():
 	    st.header('**Pandas Profiling Report**')
 	    st_profile_report(pr)
 	  elif file_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-	    @st.cache_data
+	    # @st.cache_data
 	    def load_excel():
 	        excel = pd.read_excel(uploaded_file)
 	        return excel
