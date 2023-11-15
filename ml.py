@@ -6,8 +6,11 @@ import base64
 import xgboost as xgb
 import joblib
 import xlsxwriter
+import os
+import time
+from datetime import datetime
 
-
+session_start_time = time.time()
 
 # Creating the holidays dataframe
 # Creating the dictionary of holidays
@@ -59,6 +62,14 @@ Public_Holiday = pd.DataFrame({"holiday": "Public Holiday",
 holidays = pd.concat((New_year_and_day_after, National_holiday, Christmas, St_Andrew, Ziua_Principatelor, Adormirea_Maicii_Domnului, Rusalii, Ziua_Copilului, Ziua_Muncii,
 											Pastele, Vinerea_Mare, Ziua_Unirii, Public_Holiday))
 
+file_path = "./Solina/Production/Results_Production_xgb.xlsx"
+def get_file_creation_date(file_path):
+    """Returns the creation date of the file."""
+    if os.path.exists(file_path):
+        creation_time = os.path.getctime(file_path)
+        return datetime.fromtimestamp(creation_time).strftime('%Y-%m-%d')
+    else:
+        return "File not found"
 
 def predicting_exporting(dataset):
 	xgb_loaded = joblib.load("./Solina/Production/rs_xgb_Solina_prod.pkl")
@@ -184,10 +195,9 @@ def render_production_forecast():
 
 			# Submit button
 			if st.button('Submit'):
-				# Replace this line with the code to generate and display the forecast
-				st.write('Generating forecast...')
+				st.write('Forecast Ready')
+				# Your code to generate the forecast
 				predicting_exporting(df)
-				# Assume the forecast data is already written to forecast_results.xlsx
 				file_path = './Solina/Production/Results_Production_xgb.xlsx'
 
 				with open(file_path, "rb") as f:
@@ -203,7 +213,7 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 
 def render_forecast_page():
-
+	
 	# Web App Title
 	st.markdown('''
 	# **The Forecast Section**
