@@ -195,7 +195,7 @@ def render_production_forecast():
 
 			# Submit button
 			if st.button('Submit'):
-				st.write('Forecast Ready')
+				st.success('Forecast Ready', icon="✅")
 				# Your code to generate the forecast
 				predicting_exporting(df)
 				file_path = './Solina/Production/Results_Production_xgb.xlsx'
