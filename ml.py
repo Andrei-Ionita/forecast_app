@@ -156,7 +156,7 @@ def render_consumption_forecast():
 			# Submit button
 			if st.button('Submit'):
 				# Replace this line with the code to generate and display the forecast
-				st.write('Generating forecast...')
+				st.success('Forecast Ready', icon="✅")
 				predicting_exporting_Consumption_Solina(df)
 				# Assume the forecast data is already written to forecast_results.xlsx
 				file_path = './Solina/Consumption/Results_Consumption.xlsx'
