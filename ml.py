@@ -71,13 +71,13 @@ def predicting_exporting_Transavia(dataset):
 	for CEF in CEFs:
 		print("Predicting for {}".format(CEF))
 		xgb_loaded = joblib.load("./Transavia/Production/Models/rs_xgb_{}.pkl".format(CEF))
-		# dataset_forecast = pd.read_excel("./Transavia/Production/Input_production.xlsx")
+		dataset_forecast = dataset
 		dataset_forecast = dataset_forecast[:][dataset_forecast.Centrala == CEF]
 		dataset_forecast["Month"] = dataset_forecast.Data.dt.month
 		if CEF in ["F24"]:
-		  df_forecast = dataset_forecast.drop(["Data", "Nori", "Centrala"], axis=1)
+			df_forecast = dataset_forecast.drop(["Data", "Nori", "Centrala"], axis=1)
 		else:
-		  df_forecast = dataset_forecast.drop(["Data", "Centrala"], axis=1)
+			df_forecast = dataset_forecast.drop(["Data", "Centrala"], axis=1)
 		preds = xgb_loaded.predict(df_forecast.values)
 		# Exporting Results to Excel
 		workbook = xlsxwriter.Workbook("./Transavia/Production/Results/Results_daily_{}.xlsx".format(CEF))
@@ -89,7 +89,6 @@ def predicting_exporting_Transavia(dataset):
 		date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
 		row = 1
 		col = 0
-
 		for value in preds:
 		  worksheet.write(row, col+2, value)
 		  row +=1
@@ -118,7 +117,7 @@ def predicting_exporting_consumption_Santimbru(dataset):
 			if holiday in holidays.ds.values:
 				datasets_forecast[IBD]["Holiday"][datasets_forecast[IBD]["Data"] == holiday] = 1
 		if len(datasets_forecast[IBD]["Flow_Chicks"].value_counts()) > 0 and len(datasets_forecast[IBD]["Radiatie"].value_counts()) > 0:
-		  	## Restructuring the dataset
+			## Restructuring the dataset
 			datasets_forecast[IBD] = datasets_forecast[IBD][["Month", "WeekDay","Holiday", "Interval", "Temperatura", "Flow_Chicks", "Radiatie"]]
 		elif len(datasets_forecast[IBD]["Flow_Chicks"].value_counts()) > 0:
 			datasets_forecast[IBD] = datasets_forecast[IBD][["Month", "WeekDay","Holiday", "Interval", "Temperatura", "Flow_Chicks"]]
@@ -258,7 +257,7 @@ def predicting_exporting_consumption_Brasov(dataset):
 		  predictions_PVPP[POD] = xgb_preds
 		  predictions_PVPP["Data"] = dataset_forecast["Data"]
 		  predictions_PVPP["Interval"] = dataset_forecast["Interval"]
-		# Exporting Results to Excel
+	# Exporting Results to Excel
 	workbook = xlsxwriter.Workbook("./Transavia/Consumption/Results/XGB/Results_IBDs_daily_Brasov.xlsx")
 	worksheet = workbook.add_worksheet("Prediction_Consumption")
 
@@ -291,7 +290,7 @@ def predicting_exporting_consumption_Brasov(dataset):
 		worksheet.write(row, col, datetime.date(data),date_format)
 		worksheet.write_formula(row, col+4, "=A"+ str(row+1) + "&" + "B"+ str(row+1) + "&" +  "D" + str(row+1))
 		row +=1
-		row = row - len(predictions["Data"])
+	row = row - len(predictions["Data"])
 	for interval in predictions["Interval"]:
 		worksheet.write(row, col+1, interval)
 		row +=1
@@ -336,6 +335,7 @@ def render_production_forecast_Transavia():
 				st.success('Forecast Ready', icon="✅")
 				# Your code to generate the forecast
 				predicting_exporting_Transavia(df)
+				print("Forecast is on going...")
 				# Creating the ZIP file with the Productions:
 				folder_path = './Transavia/Production/Results'
 				zip_name = 'Transavia_Production_Results.zip'
@@ -416,7 +416,7 @@ def render_Transavia_page():
 	elif forecast_type == "Production":
 		render_production_forecast_Transavia()
 
-#========================================================GENERAL FUNCTIONALITY========================================================
+#========================================================GENERAL FUNCTIONALITY==========================================================================================
 
 def predicting_exporting(dataset):
 	xgb_loaded = joblib.load("./Solina/Production/rs_xgb_Solina_prod.pkl")
@@ -564,6 +564,26 @@ def render_forecast_page():
 	# Web App Title
 	st.markdown('''
 	# **The Forecast Section**
+
+	''')
+
+	# Allow the user to choose between Consumption and Production
+	forecast_type = st.radio("Choose Forecast Type:", options=["Consumption", "Production", "Transavia"])
+
+	if forecast_type == "Consumption":
+		render_consumption_forecast()
+	elif forecast_type == "Production":
+		render_production_forecast()
+	elif forecast_type == "Transavia":
+		render_Transavia_page()
+
+#======================================================BALANGING MARKET===================================================================================================
+
+def render_balancing_market_page():
+	
+	# Web App Title
+	st.markdown('''
+	# **The Balancing Market Section**
 
 	''')
 
