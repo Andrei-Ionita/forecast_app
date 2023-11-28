@@ -10,6 +10,7 @@ import xlsxwriter
 # Importing apps
 from eda import render_eda_page
 from ml import render_forecast_page, render_balancing_market_page
+from assistant import render_assistant_page
 
 # Define rendering functions before the main function.
 slideshow_html = """
@@ -237,7 +238,7 @@ def main():
 	# Use session state to set default value for sidebar radio
 	page = st.sidebar.radio(
 			"Select a page:",
-			options=["Home", "Forecast", "EDA", "Balancing Market"],
+			options=["Home", "Forecast", "EDA", "Balancing Market", "Your AI BFF"],
 			index=None,
 			key="page_select"
 	)
@@ -256,6 +257,7 @@ def main():
 		render_forecast_page()
 	elif st.session_state['page'] == "EDA":
 		render_eda_page()
-
+	elif st.session_state['page'] == "Your AI BFF":
+		render_assistant_page()
 if __name__ == "__main__":
 		main()
