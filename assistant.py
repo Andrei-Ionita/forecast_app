@@ -1,3 +1,4 @@
+import streamlit as st
 from openai import OpenAI
 import shelve
 from dotenv import load_dotenv
@@ -18,7 +19,7 @@ def upload_file(path):
     return file
 
 
-file = upload_file("../data/airbnb-faq.pdf")
+file = upload_file("./docs/IPOL_STU(2023)740094_EN.pdf")
 
 
 # --------------------------------------------------------------
@@ -29,8 +30,8 @@ def create_assistant(file):
     You currently cannot set the temperature for Assistant via the API.
     """
     assistant = client.beta.assistants.create(
-        name="WhatsApp AirBnb Assistant",
-        instructions="You're a helpful WhatsApp assistant that can assist guests that are staying in our Paris AirBnb. Use your knowledge base to best respond to customer queries. If you don't know the answer, say simply that you cannot help with question and advice to contact the host directly. Be friendly and funny.",
+        name="EnergyMarketsAssistant",
+        instructions="You are an absolute Energy Markets guru and Power Trader. You provide detailed, accurate, and well-argued information about everything in the Energy field.",
         tools=[{"type": "retrieval"}],
         model="gpt-4-1106-preview",
         file_ids=[file.id],
@@ -38,39 +39,39 @@ def create_assistant(file):
     return assistant
 
 
-assistant = create_assistant(file)
+# assistant = create_assistant(file)
 
 
 # --------------------------------------------------------------
 # Thread management
 # --------------------------------------------------------------
-def check_if_thread_exists(wa_id):
+def check_if_thread_exists(user_id):
     with shelve.open("threads_db") as threads_shelf:
-        return threads_shelf.get(wa_id, None)
+        return threads_shelf.get(user_id, None)
 
 
-def store_thread(wa_id, thread_id):
+def store_thread(user_id, thread_id):
     with shelve.open("threads_db", writeback=True) as threads_shelf:
-        threads_shelf[wa_id] = thread_id
+        threads_shelf[user_id] = thread_id
 
 
 # --------------------------------------------------------------
 # Generate response
 # --------------------------------------------------------------
-def generate_response(message_body, wa_id, name):
+def generate_response(message_body, user_id, name):
     # Check if there is already a thread_id for the wa_id
-    thread_id = check_if_thread_exists(wa_id)
+    thread_id = check_if_thread_exists(user_id)
 
     # If a thread doesn't exist, create one and store it
     if thread_id is None:
-        print(f"Creating new thread for {name} with wa_id {wa_id}")
+        print(f"Creating new thread for {name} with wa_id {user_id}")
         thread = client.beta.threads.create()
-        store_thread(wa_id, thread.id)
+        store_thread(user_id, thread.id)
         thread_id = thread.id
 
     # Otherwise, retrieve the existing thread
     else:
-        print(f"Retrieving existing thread for {name} with wa_id {wa_id}")
+        print(f"Retrieving existing thread for {name} with user_id {user_id}")
         thread = client.beta.threads.retrieve(thread_id)
 
     # Add message to thread
@@ -91,7 +92,7 @@ def generate_response(message_body, wa_id, name):
 # --------------------------------------------------------------
 def run_assistant(thread):
     # Retrieve the Assistant
-    assistant = client.beta.assistants.retrieve("asst_7Wx2nQwoPWSf710jrdWTDlfE")
+    assistant = client.beta.assistants.retrieve("asst_hLMuf98Ed8lA2RFIiuDE2uuG")
 
     # Run the assistant
     run = client.beta.threads.runs.create(
@@ -116,26 +117,26 @@ def run_assistant(thread):
 # Test assistant
 # --------------------------------------------------------------
 
-new_message = generate_response("What's the check in time?", "123", "John")
+# new_message = generate_response("What's the check in time?", "123", "John")
 
-new_message = generate_response("What's the pin for the lockbox?", "456", "Sarah")
+# new_message = generate_response("What's the pin for the lockbox?", "456", "Sarah")
 
-new_message = generate_response("What was my previous question?", "123", "John")
+# new_message = generate_response("What was my previous question?", "123", "John")
 
-new_message = generate_response("What was my previous question?", "456", "Sarah")
+# new_message = generate_response("What was my previous question?", "456", "Sarah")
 
 def render_assistant_page():
     # Set page config for title and layout
-    st.set_page_config(page_title="OpenAI Assistant", layout="wide")
+    # st.set_page_config(page_title="OpenAI Assistant", layout="wide")
 
     # Styling (You can adjust these styles according to your app's theme)
-    st.markdown("""
-    <style>
-    .main {
-        background-color: #f5f5f5;  # Example background color
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # st.markdown("""
+    # <style>
+    # .main {
+    #     background-color: #f5f5f5;  # Example background color
+    # }
+    # </style>
+    # """, unsafe_allow_html=True)
 
     # Page Header
     st.title("OpenAI Assistant")
