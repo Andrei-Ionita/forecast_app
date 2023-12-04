@@ -126,17 +126,6 @@ def run_assistant(thread):
 # new_message = generate_response("What was my previous question?", "456", "Sarah")
 
 def render_assistant_page():
-    # Set page config for title and layout
-    # st.set_page_config(page_title="OpenAI Assistant", layout="wide")
-
-    # Styling (You can adjust these styles according to your app's theme)
-    # st.markdown("""
-    # <style>
-    # .main {
-    #     background-color: #f5f5f5;  # Example background color
-    # }
-    # </style>
-    # """, unsafe_allow_html=True)
 
     # Page Header
     st.title("OpenAI Assistant")
