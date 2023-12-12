@@ -164,16 +164,16 @@ def get_openai_response(user_input):
 	response = "OpenAI response to: " + user_input
 	return response
 
+# Initialize page in session state if not already initialized
+if "page" not in st.session_state:
+	st.session_state['page'] = "Home"
+
+# Initialize 'user_query' in session state if it's not already present
+if "user_query" not in st.session_state:
+	st.session_state.user_query = ""
+
 def render_assistant_page():
 
-	# Initialize 'user_query' in session state if it's not already present
-	if "user_query" not in st.session_state:
-		st.session_state.user_query = ""
-
-	# Initialize session state for conversation history
-	if 'conversation' not in st.session_state:
-		st.session_state['conversation'] = []
-	
 	st.title("OpenAI Assistant")
 
 	# File Uploader
@@ -203,11 +203,10 @@ def render_assistant_page():
 	st.write("Ask me anything about coding, programming, or AI.")
 	user_query = st.text_area("Your Query", value=st.session_state['user_query'], placeholder="Type your question here...", key="user_query")
 
-	if st.button("Submit Query", on_click=clear_input):
+	if st.button("Submit Query"):
 		if user_query.strip():
 			# Append user query to conversation
 			st.session_state['conversation'].append(f"You: {user_query}")
-
 			# Get response from OpenAI
 			response = generate_response(user_query, "123", "Andrei")
 			st.write("Analysis Result:")
@@ -215,7 +214,7 @@ def render_assistant_page():
 			st.session_state['conversation'].append(f"AI: {response}")
 
 			# Clear the input box after submission
-			st.session_state['user_query'] = ''
+			user_query = ''
 
 	# Combine conversation into a single string
 	conversation_text = "\n".join(st.session_state['conversation'])

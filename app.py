@@ -232,6 +232,14 @@ def main():
 	if "page" not in st.session_state:
 		st.session_state['page'] = "Home"
 
+	# Initialize 'user_query' in session state if it's not already present
+	if "user_query" not in st.session_state:
+		st.session_state.user_query = ""
+
+	# Initialize session state for conversation history
+	if 'conversation' not in st.session_state:
+		st.session_state['conversation'] = []
+		
 	# Determine the index for the default value of the sidebar radio
 	# default_index = 0 if st.session_state['page'] == "Home" else ["Forecast", "EDA"].index(st.session_state['page'])
 
