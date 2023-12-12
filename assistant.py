@@ -141,8 +141,8 @@ if 'conversation' not in st.session_state:
 	st.session_state['conversation'] = []
 
 # Initialize 'user_query' in session state if it's not already present
-if 'user_query' not in st.session_state:
-	st.session_state['user_query'] = ''
+if "user_query" not in st.session_state:
+	st.session_state["user_query"] = ""
 
 def get_openai_response(user_input):
 	# This is a placeholder function. Replace with actual OpenAI API call
