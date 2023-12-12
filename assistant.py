@@ -136,14 +136,6 @@ def run_assistant(thread):
 def clear_input():
 	st.session_state['user_query'] = ''
 
-# Initialize 'user_query' in session state if it's not already present
-if "user_query" not in st.session_state:
-	st.session_state.user_query = ""
-
-# Initialize session state for conversation history
-if 'conversation' not in st.session_state:
-	st.session_state['conversation'] = []
-
 
 def get_openai_response(user_input):
 	# This is a placeholder function. Replace with actual OpenAI API call
@@ -173,6 +165,15 @@ def get_openai_response(user_input):
 	return response
 
 def render_assistant_page():
+
+	# Initialize 'user_query' in session state if it's not already present
+	if "user_query" not in st.session_state:
+		st.session_state.user_query = ""
+
+	# Initialize session state for conversation history
+	if 'conversation' not in st.session_state:
+		st.session_state['conversation'] = []
+	
 	st.title("OpenAI Assistant")
 
 	# File Uploader
