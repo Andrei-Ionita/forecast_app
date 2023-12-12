@@ -63,7 +63,7 @@ Public_Holiday = pd.DataFrame({"holiday": "Public Holiday",
 holidays = pd.concat((New_year_and_day_after, National_holiday, Christmas, St_Andrew, Ziua_Principatelor, Adormirea_Maicii_Domnului, Rusalii, Ziua_Copilului, Ziua_Muncii,
 											Pastele, Vinerea_Mare, Ziua_Unirii, Public_Holiday))
 
-# ===============================================TRANSAVIA FORECAST=============================================================
+# ===============================================TRANSAVIA FORECAST=====================================================================================================
 def predicting_exporting_Transavia(dataset):
 	dataset_forecast = dataset
 	CEFs = dataset_forecast.Centrala.unique()
@@ -416,9 +416,9 @@ def render_Transavia_page():
 	elif forecast_type == "Production":
 		render_production_forecast_Transavia()
 
-#========================================================GENERAL FUNCTIONALITY==========================================================================================
+#================================================================================GENERAL FUNCTIONALITY==========================================================================================
 
-def predicting_exporting(dataset):
+def predicting_exporting_Solina(dataset):
 	xgb_loaded = joblib.load("./Solina/Production/rs_xgb_Solina_prod.pkl")
 	dataset_forecast = dataset.copy()
 	dataset_forecast["Month"] = dataset_forecast.Data.dt.month
@@ -480,6 +480,71 @@ def predicting_exporting_Consumption_Solina(forecast_dataset):
 
 	workbook.close()
 
+def predicting_exporting_RAAL(dataset):
+	xgb_loaded = joblib.load("./RAAL/Production/rs_xgb_RAAL_prod.pkl")
+	dataset_forecast = dataset.copy()
+	dataset_forecast["Month"] = dataset_forecast.Data.dt.month
+
+	dataset_forecast = dataset_forecast.drop("Data", axis=1)
+
+	preds = xgb_loaded.predict(dataset_forecast.values)
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./RAAL/Production/Results_Production_xgb_RAAL.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in preds:
+			worksheet.write(row, col + 2, value)
+			row +=1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+			worksheet.write(row, col + 0, Data, date_format)
+			worksheet.write(row, col + 1, Interval)
+			row +=1
+
+	workbook.close()
+
+def predicting_exporting_Consumption_RAAL(dataset):
+	# Predict on forecast data
+	forecast_dataset = dataset.copy()
+	st.write(forecast_dataset)
+	forecast_dataset["Month"] = forecast_dataset.Data.dt.month
+	forecast_dataset["WeekDay"] = forecast_dataset.Data.dt.weekday
+	forecast_dataset["Holiday"] = 0
+	for holiday in forecast_dataset["Data"].unique():
+	    if holiday in holidays.ds.values:
+	        forecast_dataset["Holiday"][forecast_dataset["Data"] == holiday] = 1
+
+	# Restructuring the dataset
+	forecast_dataset = forecast_dataset[["WeekDay", "Month", "Holiday", "Interval", "Temperatura"]]
+	# Loading the model
+	xgb_loaded = joblib.load("./RAAL/Consumption/XGB_Consumption_RAAL.pkl")
+	preds = xgb_loaded.predict(forecast_dataset.values)
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./RAAL/Consumption/Results_Consumption_RAAL.xlsx")
+	worksheet = workbook.add_worksheet("Consumption_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+	for value in preds:
+	    worksheet.write(row, col + 2, value)
+	    row +=1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+	    worksheet.write(row, col + 0, Data, date_format)
+	    worksheet.write(row, col + 1, Interval)
+	    row +=1
+
+	workbook.close()
+
 def render_consumption_forecast():
 	st.write("Consumption Forecast Section")
 	# ... (other content and functionality for consumption forecasting)
@@ -504,10 +569,14 @@ def render_consumption_forecast():
 			if st.button('Submit'):
 				# Replace this line with the code to generate and display the forecast
 				st.success('Forecast Ready', icon="✅")
-				predicting_exporting_Consumption_Solina(df)
-				# Assume the forecast data is already written to forecast_results.xlsx
-				file_path = './Solina/Consumption/Results_Consumption.xlsx'
-
+				if uploaded_file.name == "Input_consump_Solina.xlsx":
+					predicting_exporting_Consumption_Solina(df)
+					# Assume the forecast data is already written to forecast_results.xlsx
+					file_path = './Solina/Consumption/Results_Consumption.xlsx'
+				else:
+					predicting_exporting_Consumption_RAAL(df)
+					# Assume the forecast data is already written to forecast_results.xlsx
+					file_path = './RAAL/Consumption/Results_Consumption_RAAL.xlsx'
 				with open(file_path, "rb") as f:
 					excel_data = f.read()
 
@@ -544,9 +613,12 @@ def render_production_forecast():
 			if st.button('Submit'):
 				st.success('Forecast Ready', icon="✅")
 				# Your code to generate the forecast
-				predicting_exporting(df)
-				file_path = './Solina/Production/Results_Production_xgb.xlsx'
-
+				if uploaded_file.name == "Input.xlsx":
+					predicting_exporting_Solina(df)
+					file_path = './Solina/Production/Results_Production_xgb.xlsx'
+				else:
+					predicting_exporting_RAAL(df)
+					file_path = './RAAL/Production/Results_Production_xgb_RAAL.xlsx'
 				with open(file_path, "rb") as f:
 					excel_data = f.read()
 
