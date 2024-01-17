@@ -11,7 +11,6 @@ from io import BytesIO
 load_dotenv()
 OPEN_AI_API_KEY = os.getenv("OPEN_AI_API_KEY")
 client = OpenAI(api_key=OPEN_AI_API_KEY)
-print(OPEN_AI_API_KEY)
 
 # --------------------------------------------------------------
 # Upload file
@@ -209,8 +208,9 @@ def render_assistant_page():
 			st.session_state['conversation'].append(f"You: {user_query}")
 			# Get response from OpenAI
 			response = generate_response(user_query, "123", "Andrei")
-			st.write("Analysis Result:")
-			st.text_area("OpenAI Analysis", value=response, height=150, disabled=True)
+			while uploaded_file != None:
+				st.write("Analysis Result:")
+				st.text_area("OpenAI Analysis", value=response, height=150, disabled=True)
 			st.session_state['conversation'].append(f"AI: {response}")
 
 			# Clear the input box after submission
