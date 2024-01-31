@@ -7,8 +7,9 @@ import joblib
 import xlsxwriter
 
 
-# Importing apps
+# Importing apps and pages
 from eda import render_eda_page
+from data_eng import render_data_eng_page
 from ml import render_forecast_page, render_balancing_market_page
 from assistant import render_assistant_page
 
@@ -228,25 +229,17 @@ def main():
 
 	st.sidebar.title("Navigation")
 
-	# Initialize page in session state if not already initialized
-	if "page" not in st.session_state:
-		st.session_state['page'] = "Home"
-
-	# Initialize 'user_query' in session state if it's not already present
-	if "user_query" not in st.session_state:
-		st.session_state.user_query = ""
-
 	# Initialize session state for conversation history
 	if 'conversation' not in st.session_state:
 		st.session_state['conversation'] = []
-		
+
 	# Determine the index for the default value of the sidebar radio
 	# default_index = 0 if st.session_state['page'] == "Home" else ["Forecast", "EDA"].index(st.session_state['page'])
 
 	# Use session state to set default value for sidebar radio
 	page = st.sidebar.radio(
 			"Select a page:",
-			options=["Home", "Forecast", "EDA", "Balancing Market", "Your AI BFF"],
+			options=["Home", "Data Engineering", "EDA", "Forecast", "Balancing Market", "Your AI BFF"],
 			index=None,
 			key="page_select"
 	)
@@ -261,6 +254,8 @@ def main():
 	# Render the appropriate page based on session state
 	if st.session_state['page'] == "Home":
 		render_home_page()
+	elif st.session_state["page"] == "Data Engineering":
+		render_data_eng_page()
 	elif st.session_state['page'] == "Forecast":
 		render_forecast_page()
 	elif st.session_state['page'] == "EDA":
