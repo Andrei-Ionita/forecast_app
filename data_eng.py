@@ -14,9 +14,10 @@ import win32com.client as win32
 import pythoncom
 from pywintypes import com_error
 import os, os.path
-import win32com.client
+# import win32com.client
 import joblib
 import base64
+from pathlib import Path
 
 # Defining the functions
 def fetch_ghi_data_from_api(lat, lon, date, api_key):
@@ -195,6 +196,7 @@ def add_lookup_column_GHI():
 
     # Save the workbook
     workbook.save("./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx")
+
 #=======================================================================Preprocessing temps_clouds data======================================================================================
 
 # Setup for temps_clouds
@@ -220,14 +222,29 @@ def creating_weather_date_hour_columns():
     weather_df.insert(loc=weather_df.columns.get_loc('dt_txt') + 1, column='Data', value=weather_df['dt_txt'].dt.date)
     weather_df.insert(loc=weather_df.columns.get_loc('Data') + 1, column='Interval', value=weather_df['dt_txt'].dt.hour)
 
-
     # Save the modified DataFrame back to Excel
-    weather_df.to_excel('./RAAL/Production/Input/modified_weather.xlsx', index=False)
+    weather_df.to_excel('./RAAL/Production/Input/weather.xlsx', index=False)
+
+def change_date_format_weather_wb():
+    # Check if the named style already exists
+    weather_wb = openpyxl.open('./RAAL/Production/Input/weather.xlsx')
+    style_name = 'date_style'
+    if style_name not in weather_wb.named_styles:
+        # Create a new NamedStyle and add it to the workbook
+        date_style = NamedStyle(name=style_name, number_format='DD.MM.YYYY')
+        weather_wb.add_named_style(date_style)
+    else:
+        # If the style already exists, there's no need to add it again
+        print(f"Style '{style_name}' already exists in the workbook.")
+    # Now you can safely assign the style to cells without causing an error
+    for row in range(1, weather_wb.active.max_row + 1):
+        weather_wb.active.cell(row=row, column=6).style = date_style
+    weather_wb.save('./RAAL/Production/Input/weather.xlsx')
 
 # Defining the lookup column in the weather file
 def add_lookup_column_weather():
     # Load the workbook and sheet
-    workbook = load_workbook('./RAAL/Production/Input/modified_weather.xlsx')
+    workbook = load_workbook('./RAAL/Production/Input/weather.xlsx')
     sheet = workbook.active
 
     # Determine the last column with data
@@ -245,7 +262,7 @@ def add_lookup_column_weather():
         sheet[f"{lookup_col_letter}{row}"] = f"=F{row}&G{row}"
 
     # Save the workbook
-    workbook.save('./RAAL/Production/Input/modified_weather.xlsx')
+    workbook.save('./RAAL/Production/Input/weather.xlsx')
 
 #=======================================================================Creating Input file======================================================================================
 
@@ -272,25 +289,115 @@ def add_lookup_column_weather():
 
 # workbook.close()
 
-def run_vba_macro():
-    if os.path.exists(file_path):
-            pythoncom.CoInitialize()
-            xl=win32com.client.Dispatch("Excel.Application")
-            xl.Workbooks.Open(os.path.abspath(file_path), ReadOnly=1)
-            print("Workbook Opened")
-            try:
-                xl.Application.Run("Data_Eng.Building_Input_file")
-            except com_error as e:
-                print(f"COM error encountered: {e}")
-                # Handle or log the error as needed. Consider continuing if it's a known non-critical error.
-            print("Macro finished!")
-            # xl.Application.Save() # if you want to save then uncomment this line and change delete the ", ReadOnly=1" part from the open function.
-            # xl.Application.Quit() # Comment this out if your excel script closes
-            del xl
-            pythoncom.CoUninitialize()
+# def run_vba_macro():
+#     if os.path.exists(file_path):
+#             pythoncom.CoInitialize()
+#             xl=win32com.client.Dispatch("Excel.Application")
+#             xl.Workbooks.Open(os.path.abspath(file_path), ReadOnly=1)
+#             print("Workbook Opened")
+#             try:
+#                 xl.Application.Run("Data_Eng.Building_Input_file")
+#             except com_error as e:
+#                 print(f"COM error encountered: {e}")
+#                 # Handle or log the error as needed. Consider continuing if it's a known non-critical error.
+#             print("Macro finished!")
+#             # xl.Application.Save() # if you want to save then uncomment this line and change delete the ", ReadOnly=1" part from the open function.
+#             # xl.Application.Quit() # Comment this out if your excel script closes
+#             del xl
+#             pythoncom.CoUninitialize()
 
 # Example usage
 file_path = "./RAAL/Production/Input.xlsm"  # Update this path to your actual file path
+
+def building_input_file():
+    # Define file paths
+    # base_path = Path("./RAAL/Production").parent  # Adjust this path as necessary
+    ghi_file_path = "./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx"
+    weather_file_path = "./RAAL/Production/Input/weather.xlsx"
+    
+    # Load workbooks and sheets
+    ghi_wb = openpyxl.load_workbook(ghi_file_path, data_only=True)
+    weather_wb = openpyxl.load_workbook(weather_file_path, data_only=True)
+    from pathlib import Path
+    # Example for loading an existing workbook
+    workbook_path = Path("./RAAL/Production/Input.xlsx")  # Ensure this path is correct
+    if workbook_path.exists():
+        main_wb = openpyxl.load_workbook(workbook_path)
+        ws = main_wb.active  # or specify the sheet name directly if needed
+
+        # Check if the named style already exists
+        style_name = 'date_style'
+        if style_name not in main_wb.named_styles:
+            # Create a new NamedStyle and add it to the workbook
+            date_style = NamedStyle(name=style_name, number_format='DD.MM.YYYY')
+            main_wb.add_named_style(date_style)
+        else:
+            # If the style already exists, there's no need to add it again
+            print(f"Style '{style_name}' already exists in the workbook.")
+    else:
+        print(f"Workbook not found at {workbook_path}")
+    # Copying weather data
+    weather_ws = weather_wb.active  # Adjust the sheet if necessary
+    weather_data = pd.read_excel(weather_file_path, sheet_name=weather_ws.title)
+    dates_intervals = weather_data[['Data', 'Interval']]  # Adjust column names as necessary
+    for index, row in dates_intervals.iterrows():
+        # Make sure ws is defined
+        if ws is not None:
+            # Assuming 'Data' is the correct column name; adjust as needed
+            for index, row in dates_intervals.iterrows():
+                if 'Data' in row:  # Check if 'Data' column exists in row
+                    ws.cell(row=index + 2, column=1, value=row['Data'])
+                    ws.cell(row=index + 2, column=2, value=row['Interval'])
+                else:
+                    print(f"Column 'Data' not found in row {index + 2}")
+        else:
+            print("Worksheet not initialized.")
+    # Let's create the Lookup column in the main workbook
+    last_row = ws.max_row
+    ws.cell(1,6).value = "Lookup"
+    for row in range(2, last_row + 1):
+        # Concatenate the values of columns A and B for each row
+        ws.cell(row=row, column=6).value = f'=A{row}&B{row}'
+    # Assuming you have specific logic to match and insert formulas, here's a simplified example
+    # For GHI data
+    # last_row = ws.max_row
+    # for row in range(2, last_row + 1):
+    #     # Constructing the INDEX MATCH formula as a string
+    #     # Adjust the formula according to your specific Excel file names, sheet names, and column references
+    #     index_match_formula = (
+    #         f'=INDEX([Concatenated_Hourly_GHI.xlsx]Sheet1!$K:$K, '
+    #         f'MATCH(A{row}&B{row}, [Concatenated_Hourly_GHI.xlsx]Sheet1!$N:$N, 0))'
+    #     )
+
+    #     # Setting the formula for a specific cell, e.g., in the 'Radiatie' column (assuming column C)
+    #     ws.cell(row=row, column=3).value = index_match_formula
+    # Load your main data and the data to be matched against
+    # main_df = pd.read_excel(workbook_path)
+    # lookup_df = pd.read_excel(ghi_file_path)
+    # st.write(lookup_df)
+    # # Create a new column in both dataframes that concatenates the values of columns A and B
+    # # Assuming 'Interval' is in Unix timestamp format (integer), you can convert it to datetime
+    # main_df['Data'] = pd.to_datetime(main_df['Data'], unit='s')     
+
+    # # Now, you can format 'Data' and 'Interval' as needed and create the 'MatchKey' column
+    # main_df['Data'] = main_df['Data'].dt.strftime('%d.%m.%Y')
+
+    # # Create the 'MatchKey' column by concatenating the formatted 'Data' and 'Interval'
+    # main_df['MatchKey'] = main_df['Data'] +  main_df['Interval'].astype(str)
+    # # Adjust 'ColumnA' and 'ColumnB' to match your actual column names
+    # # main_df['MatchKey'] = main_df['Data'].astype(str) + main_df['Interval'].astype(str)
+    # lookup_df['MatchKey'] = lookup_df["Lookup"].astype(str)
+    # st.write(main_df)
+    # # Now, perform the match based on this new 'MatchKey' column and retrieve the desired value from the lookup dataframe
+    # # Adjust 'ValueColumn' to the actual name of the column you want to retrieve after matching
+    # main_df['Radiatie'] = main_df['MatchKey'].map(lookup_df.set_index('MatchKey')['cloudy_sky_ghi'])
+
+    # Similar steps for temperature and clouds from weather data, adjust the formula and columns as necessary
+    
+    # Save and close workbooks
+    main_wb.save("./RAAL/Production/Input.xlsx")  # Adjust the path as necessary
+    # No need to explicitly close in Python, as workbooks are closed when the program ends or when they're no longer referenced
+
 
 #===============================================================================Forcasting RAAL Production=================================================================
 
@@ -375,11 +482,13 @@ def render_data_eng_page():
         output_file_path = './RAAL/Production/Input/weather.xlsx'  # Replace with your desired output file path
         flatten_json_to_excel(json_file_path, output_file_path)
         creating_weather_date_hour_columns()
+        change_date_format_weather_wb()
         add_lookup_column_weather()
     # Now wee need to create the Input file
     if st.button("Build Input file"):
         # Running the macro
-        run_vba_macro()
+        # run_vba_macro()
+        building_input_file()
     # Forecasting RAAL Production
     # Check if the file exists
     if os.path.exists(file_path):
