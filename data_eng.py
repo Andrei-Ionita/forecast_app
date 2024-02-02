@@ -10,7 +10,7 @@ import openpyxl
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import NamedStyle, numbers
-import win32com.client as win32
+# import win32com.client as win32
 import pythoncom
 from pywintypes import com_error
 import os, os.path
