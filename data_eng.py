@@ -352,12 +352,6 @@ def building_input_file():
                     print(f"Column 'Data' not found in row {index + 2}")
         else:
             print("Worksheet not initialized.")
-    # Let's create the Lookup column in the main workbook
-    last_row = ws.max_row
-    ws.cell(1,6).value = "Lookup"
-    for row in range(2, last_row + 1):
-        # Concatenate the values of columns A and B for each row
-        ws.cell(row=row, column=6).value = f'=A{row}&B{row}'
     # Assuming you have specific logic to match and insert formulas, here's a simplified example
     # For GHI data
     # last_row = ws.max_row
@@ -373,41 +367,101 @@ def building_input_file():
     #     ws.cell(row=row, column=3).value = index_match_formula
     # Load your main data and the data to be matched against
     # main_df = pd.read_excel(workbook_path)
+    # st.write(main_df)
     # lookup_df = pd.read_excel(ghi_file_path)
-    # st.write(lookup_df)
-    # # Create a new column in both dataframes that concatenates the values of columns A and B
-    # # Assuming 'Interval' is in Unix timestamp format (integer), you can convert it to datetime
-    # main_df['Data'] = pd.to_datetime(main_df['Data'], unit='s')     
-
-    # # Now, you can format 'Data' and 'Interval' as needed and create the 'MatchKey' column
-    # main_df['Data'] = main_df['Data'].dt.strftime('%d.%m.%Y')
+    # # st.write(lookup_df)
+    # # # Create a new column in both dataframes that concatenates the values of columns A and B
 
     # # Create the 'MatchKey' column by concatenating the formatted 'Data' and 'Interval'
-    # main_df['MatchKey'] = main_df['Data'] +  main_df['Interval'].astype(str)
-    # # Adjust 'ColumnA' and 'ColumnB' to match your actual column names
-    # # main_df['MatchKey'] = main_df['Data'].astype(str) + main_df['Interval'].astype(str)
+    # Adjust 'ColumnA' and 'ColumnB' to match your actual column names
+    # main_df['MatchKey'] = main_df["Lookup"]
     # lookup_df['MatchKey'] = lookup_df["Lookup"].astype(str)
-    # st.write(main_df)
+    # st.write(lookup_df)
     # # Now, perform the match based on this new 'MatchKey' column and retrieve the desired value from the lookup dataframe
     # # Adjust 'ValueColumn' to the actual name of the column you want to retrieve after matching
     # main_df['Radiatie'] = main_df['MatchKey'].map(lookup_df.set_index('MatchKey')['cloudy_sky_ghi'])
 
-    # Similar steps for temperature and clouds from weather data, adjust the formula and columns as necessary
+    # # Similar steps for temperature and clouds from weather data, adjust the formula and columns as necessary
     
-    # Save and close workbooks
+    # # Save and close workbooks
     main_wb.save("./RAAL/Production/Input.xlsx")  # Adjust the path as necessary
     # No need to explicitly close in Python, as workbooks are closed when the program ends or when they're no longer referenced
 
+# Adding the Lookup column to the Input file
+def add_lookup_column_Input():
 
+    # # Let's create the Lookup column in the main workbook
+    # last_row = ws.max_row
+    # ws.cell(1,6).value = "Lookup"
+    # for row in range(2, last_row + 1):
+    #     # Concatenate the values of columns A and B for each row
+    #     ws.cell(row=row, column=6).value = f'=A{row}&B{row}'
+    # Load the workbook and sheet
+    workbook = load_workbook('./RAAL/Production/Input.xlsx')
+    sheet = workbook.active
+
+    # Determine the last column with data
+    last_col = 5
+    
+    # Create a new column header 'Lookup' in the next column
+    lookup_col_letter = get_column_letter(last_col + 1)
+    sheet[f"{lookup_col_letter}1"] = 'Lookup'
+    
+    # Determine the last row with data in column F
+    last_row = max((c.row for c in sheet['A'] if c.value is not None))
+
+    # Starting from the second row, insert the formula
+    for row in range(2, last_row + 1):
+        sheet[f"{lookup_col_letter}{row}"] = f"=A{row}&B{row}"
+
+    # Save the workbook
+    workbook.save('./RAAL/Production/Input.xlsx')
+
+# Lookuping the GHI values
+def lookup_ghi_values():
+    main_df = pd.read_excel("./RAAL/Production/Input.xlsx")
+    main_df["Lookup"] = main_df["Lookup"].astype(str)
+    lookup_df = pd.read_excel("./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx")
+    lookup_df["Lookup"] = lookup_df["Lookup"].astype(str)
+    # Create a dictionary from lookup_df for efficient lookup
+    lookup_dict = lookup_df.set_index("Lookup")["cloudy_sky_ghi"].to_dict()
+    # Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
+    main_df['Radiatie'] = main_df['Lookup'].map(lookup_dict)
+    # Check the result
+    # print(main_df[['Lookup', 'Radiatie']])
+    # Save the updated DataFrame to an Excel file
+    main_df.to_excel('./RAAL/Production/Input.xlsx', index=False)
+
+# Lookuping the temperatures and clouds
+def lookup_weather_values():
+    main_df = pd.read_excel("./RAAL/Production/Input.xlsx")
+    main_df["Lookup"] = main_df["Lookup"].astype(str)
+    lookup_df = pd.read_excel("./RAAL/Production/Input/weather.xlsx")
+    lookup_df["Lookup"] = lookup_df["Lookup"].astype(str)
+    # Temperatures values
+    # Create a dictionary from lookup_df for efficient lookup
+    lookup_dict = lookup_df.set_index("Lookup")["main.temp"].to_dict()
+    # Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
+    main_df['Temperatura'] = main_df['Lookup'].map(lookup_dict)
+    # Check the result
+    # print(main_df[['Lookup', 'Radiatie']])
+    # Save the updated DataFrame to an Excel file
+    # Clouds values
+    # Create a dictionary from lookup_df for efficient lookup
+    lookup_dict = lookup_df.set_index("Lookup")["clouds.all"].to_dict()
+    # Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
+    main_df['Nori'] = main_df['Lookup'].map(lookup_dict)
+    main_df.to_excel('./RAAL/Production/Input.xlsx', index=False)
 #===============================================================================Forcasting RAAL Production=================================================================
 
 def predicting_exporting_RAAL(dataset):
     xgb_loaded = joblib.load("./RAAL/Production/rs_xgb_RAAL_prod.pkl")
     dataset_forecast = dataset.copy()
+    dataset_forecast = dataset_forecast[["Data", "Interval", "Radiatie", "Temperatura", "Nori"]]
     dataset_forecast["Month"] = dataset_forecast.Data.dt.month
 
     dataset_forecast = dataset_forecast.drop("Data", axis=1)
-
+    st.write(dataset_forecast)
     preds = xgb_loaded.predict(dataset_forecast.values)
     #Exporting Results to Excel
     workbook = xlsxwriter.Workbook("./RAAL/Production/Results_Production_xgb_RAAL_wm.xlsx")
@@ -489,12 +543,15 @@ def render_data_eng_page():
         # Running the macro
         # run_vba_macro()
         building_input_file()
+        add_lookup_column_Input()
+        lookup_ghi_values()
+        lookup_weather_values()
     # Forecasting RAAL Production
     # Check if the file exists
     if os.path.exists(file_path):
         # If the file exists, show the button
         if st.button("Run Forecast"):
-            df = pd.read_excel("./RAAL/Production/Input.xlsm")
+            df = pd.read_excel("./RAAL/Production/Input.xlsx")
             predicting_exporting_RAAL(df)
             file_path_results = './RAAL/Production/Results_Production_xgb_RAAL_wm.xlsx'
             with open(file_path_results, "rb") as f:
