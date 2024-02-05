@@ -140,8 +140,8 @@ def concatenate_ghi_data():
 #=======================================================================Preprocessing GHI data======================================================================================
 
 # Setup for GHI
-lat = 46.073272
-lon = 24.724419
+lat = 47.2229
+lon = 24.7244
 
 api_key = "f62968d774964bad9bee981406d43d8e"
 date = datetime.now().strftime('%Y-%m-%d')
@@ -196,6 +196,21 @@ def add_lookup_column_GHI():
 
     # Save the workbook
     workbook.save("./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx")
+
+
+def prepare_lookup_column(file_path, date_col_name='Data', interval_col_name='Interval'):
+    # Load the Excel file into a DataFrame
+    df = pd.read_excel(file_path)
+    
+    # Ensure the 'Data' column is in datetime format
+    df[date_col_name] = pd.to_datetime(df[date_col_name])
+    
+    # Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+    # Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+    df['Lookup'] = df[date_col_name].dt.strftime('%d.%m.%Y') + df[interval_col_name].astype(str)
+    df.to_excel(file_path, index=False)
+    return df
+
 
 #=======================================================================Preprocessing temps_clouds data======================================================================================
 
@@ -263,7 +278,22 @@ def add_lookup_column_weather():
 
     # Save the workbook
     workbook.save('./RAAL/Production/Input/weather.xlsx')
+    weather_df = pd.read_excel('./RAAL/Production/Input/weather.xlsx')
+    weather_df["Lookup_python"] = weather_df["Data"].astype(str) + weather_df["Interval"].astype(str)
+    weather_df.to_excel('./RAAL/Production/Input/weather.xlsx')
 
+def prepare_lookup_column(file_path, date_col_name='Data', interval_col_name='Interval'):
+    # Load the Excel file into a DataFrame
+    df = pd.read_excel(file_path)
+    
+    # Ensure the 'Data' column is in datetime format
+    df[date_col_name] = pd.to_datetime(df[date_col_name])
+    
+    # Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+    # Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+    df['Lookup'] = df[date_col_name].dt.strftime('%d.%m.%Y') + df[interval_col_name].astype(str)
+    df.to_excel(file_path, index=False)
+    return df
 #=======================================================================Creating Input file======================================================================================
 
 # Creating the Input file
@@ -401,36 +431,85 @@ def add_lookup_column_Input():
     sheet = workbook.active
 
     # Determine the last column with data
-    last_col = 5
+    # last_col = 5
     
     # Create a new column header 'Lookup' in the next column
-    lookup_col_letter = get_column_letter(last_col + 1)
-    sheet[f"{lookup_col_letter}1"] = 'Lookup'
+    # lookup_col_letter = get_column_letter(last_col + 1)
+    sheet["E1"] = 'Lookup'
     
     # Determine the last row with data in column F
     last_row = max((c.row for c in sheet['A'] if c.value is not None))
 
     # Starting from the second row, insert the formula
     for row in range(2, last_row + 1):
-        sheet[f"{lookup_col_letter}{row}"] = f"=A{row}&B{row}"
+        sheet[f"E{row}"] = f"=A{row}&B{row}"
 
     # Save the workbook
     workbook.save('./RAAL/Production/Input.xlsx')
 
+def add_lookup_column_input_xlsxwriter():
+    # Reading the weather file with openpyxl
+    weather_df = pd.read_excel("./RAAL/Production/Input/weather.xlsx")
+    st.write(weather_df)
+    wb = xlsxwriter.Workbook("./RAAL/Production/Input_xlsxwriter.xlsx")
+    ws = wb.add_worksheet("forecast_dataset")
+    # Adding the columns
+    ws.write(0,0,"Data")
+    ws.write(0,1,"Interval")
+    ws.write(0,2,"Radiatie")
+    ws.write(0,3,"Temperatura")
+    ws.write(0,4,"Nori")
+    ws.write(0,5,"Lookup")
+    date_format = wb.add_format({'num_format':'dd.mm.yyyy'})
+    # Writing the dates
+    for row, data in enumerate(weather_df["Data"], start=1):
+        # Convert the string to datetime object
+        # This assumes your date format in the DataFrame is consistent and recognized by strptime
+        date_obj = datetime.strptime(str(data), "%Y-%m-%d %H:%M:%S")
+        ws.write_datetime(row, 0, date_obj, date_format)
+    # Writing the dates intervals
+    for row, interval in enumerate(weather_df["Interval"], start=1):
+        ws.write(row,1,interval)
+    # row=1
+    # col=0
+    # # Creating the Lookup column
+    # for data in weather_df["Data"].values:
+    #     ws.write_formula(row, col+5, "=A"+ str(row+1) + "&" + "B"+ str(row+1))
+    #     row +=1
+    row = 1  # Starting row (after headers)
+    for index, data in weather_df.iterrows():
+        # Write the original data in columns A and B
+        ws.write(row, 0, data['Data'], date_format)
+        ws.write(row, 1, data['Interval'])
+
+        # Creating the Lookup formula in column F (index 5)
+        formula = f'=A{row+1}&B{row+1}'
+        ws.write_formula(row, 5, formula)
+        
+        # Also, write the expected result of the formula as a string in another column (for example, column G)
+        # This replicates the formula's action in Python and writes it as a string
+        concatenated_result = str(data['Data']) + str(data['Interval'])
+        ws.write(row, 6, concatenated_result)
+        
+        row += 1
+    wb.close()
+
 # Lookuping the GHI values
-def lookup_ghi_values():
-    main_df = pd.read_excel("./RAAL/Production/Input.xlsx")
-    main_df["Lookup"] = main_df["Lookup"].astype(str)
-    lookup_df = pd.read_excel("./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx")
-    lookup_df["Lookup"] = lookup_df["Lookup"].astype(str)
-    # Create a dictionary from lookup_df for efficient lookup
-    lookup_dict = lookup_df.set_index("Lookup")["cloudy_sky_ghi"].to_dict()
-    # Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
-    main_df['Radiatie'] = main_df['Lookup'].map(lookup_dict)
-    # Check the result
-    # print(main_df[['Lookup', 'Radiatie']])
-    # Save the updated DataFrame to an Excel file
-    main_df.to_excel('./RAAL/Production/Input.xlsx', index=False)
+# def lookup_ghi_values():
+#     main_df = pd.read_excel("./RAAL/Production/Input.xlsx")
+#     st.write(main_df)
+#     main_df["Lookup"] = main_df["Lookup"].astype(str)
+#     lookup_df = pd.read_excel("./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx")
+#     lookup_df["Lookup"] = lookup_df["Lookup"].astype(str)
+#     st.write(lookup_df)
+#     # Create a dictionary from lookup_df for efficient lookup
+#     lookup_dict = lookup_df.set_index("Lookup")["cloudy_sky_ghi"].to_dict()
+#     # Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
+#     main_df['Radiatie'] = main_df['Lookup'].map(lookup_dict)
+#     # Check the result
+#     print(main_df[['Lookup', 'Radiatie']])
+#     # Save the updated DataFrame to an Excel file
+#     main_df.to_excel('./RAAL/Production/Input.xlsx', index=False)
 
 # Lookuping the temperatures and clouds
 def lookup_weather_values():
@@ -452,6 +531,29 @@ def lookup_weather_values():
     # Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
     main_df['Nori'] = main_df['Lookup'].map(lookup_dict)
     main_df.to_excel('./RAAL/Production/Input.xlsx', index=False)
+
+def lookup_ghi_values(input_df, ghi_df):
+    # Create a dictionary from the GHI DataFrame for efficient lookup
+    ghi_dict = ghi_df.set_index('Lookup')['cloudy_sky_ghi'].to_dict()
+    
+    # Map the 'Lookup' values from the input DataFrame to get the 'cloudy_sky_ghi' values
+    input_df['Radiatie'] = input_df['Lookup'].map(ghi_dict)
+    input_df.to_excel("./RAAL/Production/Input.xlsx", index=False)
+    return input_df
+
+def lookup_weather_values(input_df, weather_df):
+    # Create a dictionary from the main.temp DataFrame for efficient lookup
+    weather_dict = weather_df.set_index('Lookup')['main.temp'].to_dict()
+    
+    # Map the 'Lookup' values from the input DataFrame to get the 'temperatures' values
+    input_df['Temperatura'] = input_df['Lookup'].map(weather_dict)
+    # Create a dictionary from the main.temp DataFrame for efficient lookup
+    weather_dict = weather_df.set_index('Lookup')['clouds.all'].to_dict()
+    
+    # Map the 'Lookup' values from the input DataFrame to get the 'temperatures' values
+    input_df['Nori'] = input_df['Lookup'].map(weather_dict)
+    input_df.to_excel("./RAAL/Production/Input.xlsx", index=False)
+    return input_df
 #===============================================================================Forcasting RAAL Production=================================================================
 
 def predicting_exporting_RAAL(dataset):
@@ -490,12 +592,22 @@ def render_data_eng_page():
     
     # Web App Title
     st.markdown('''
-    # **Forecast RAAL Production**
+    # **Forecast Production**
 
     ''')
 
     # Streamlit interface
+    location = st.radio(
+    "Select location",
+    ["Alba Iulia", "Prundu Bargaului"],
+    captions = ["***Solina***", "***RAAL***"])
 
+    if location == "Prundu Bargaului":
+        lat = 47.2229
+        lon = 24.7244
+    else:
+        lat = 46.073272
+        lon = 23.580489
     # User inputs for start and end dates
     start_date = st.date_input("Start Date", datetime.today().date())
     end_date = st.date_input("End Date", datetime.today().date())
@@ -518,7 +630,11 @@ def render_data_eng_page():
         ghi_file_path = "./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx"
         process_and_save_excel(ghi_file_path)
         # Adding the lookup column
-        add_lookup_column_GHI()
+        # add_lookup_column_GHI()
+        file_path = "./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx"
+        date_col_name = "date"
+        interval_col_name = "hour"
+        ghi_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
     # Fetching and processing the Weather data
     if st.button("Fetch and Process Weather Data"):
         # Fetching the data
@@ -536,19 +652,35 @@ def render_data_eng_page():
         output_file_path = './RAAL/Production/Input/weather.xlsx'  # Replace with your desired output file path
         flatten_json_to_excel(json_file_path, output_file_path)
         creating_weather_date_hour_columns()
-        change_date_format_weather_wb()
-        add_lookup_column_weather()
+        # change_date_format_weather_wb()
+        # add_lookup_column_weather()
+        file_path = "./RAAL/Production/Input/weather.xlsx"
+        date_col_name = "Data"
+        interval_col_name = "Interval"
+        weather_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
     # Now wee need to create the Input file
     if st.button("Build Input file"):
         # Running the macro
         # run_vba_macro()
         building_input_file()
-        add_lookup_column_Input()
-        lookup_ghi_values()
-        lookup_weather_values()
+        # add_lookup_column_Input()
+        # add_lookup_column_input_xlsxwriter()
+        file_path = "./RAAL/Production/Input.xlsx"
+        date_col_name = "Data"
+        interval_col_name = "Interval"
+        input_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+        # lookup_ghi_values()
+        # lookup_weather_values()
+        # Lookuping the GHI values
+        input_df = pd.read_excel("./RAAL/Production/Input.xlsx")
+        ghi_df = pd.read_excel("./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx")
+        lookup_ghi_values(input_df, ghi_df)
+        # Lookupinh the temperatures and clouds values
+        weather_df = pd.read_excel("./RAAL/Production/Input/weather.xlsx")
+        lookup_weather_values(input_df, weather_df)
     # Forecasting RAAL Production
     # Check if the file exists
-    if os.path.exists(file_path):
+    if os.path.exists("./RAAL/Production/Input.xlsx"):
         # If the file exists, show the button
         if st.button("Run Forecast"):
             df = pd.read_excel("./RAAL/Production/Input.xlsx")
