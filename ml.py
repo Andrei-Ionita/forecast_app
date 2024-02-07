@@ -431,6 +431,8 @@ def predicting_exporting_Solina(dataset):
 	workbook = xlsxwriter.Workbook("./Solina/Production/Results_Production_xgb.xlsx")
 	worksheet = workbook.add_worksheet("Production_Predictions")
 	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
 	row = 1
 	col = 0
 	worksheet.write(0,0,"Data")
@@ -438,7 +440,7 @@ def predicting_exporting_Solina(dataset):
 	worksheet.write(0,2,"Prediction")
 
 	for value in preds:
-			worksheet.write(row, col + 2, value)
+			worksheet.write(row, col + 2, value, decimal_format)
 			row +=1
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):
@@ -465,6 +467,8 @@ def predicting_exporting_Consumption_Solina(forecast_dataset):
 	#Exporting Results to Excel
 	workbook = xlsxwriter.Workbook("./Solina/Consumption/Results_Consumption.xlsx")
 	worksheet = workbook.add_worksheet("Prediction_Consumption")
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
 
 	row = 1
 	col = 0
@@ -472,7 +476,7 @@ def predicting_exporting_Consumption_Solina(forecast_dataset):
 	# worksheet.write(0,1,"Real")
 
 	for value in preds:
-			worksheet.write(row, col, value)
+			worksheet.write(row, col, value, decimal_format)
 			row +=1
 	# row = 1
 	# for value in y_test:
@@ -493,6 +497,8 @@ def predicting_exporting_RAAL(dataset):
 	workbook = xlsxwriter.Workbook("./RAAL/Production/Results_Production_xgb_RAAL.xlsx")
 	worksheet = workbook.add_worksheet("Production_Predictions")
 	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
 	row = 1
 	col = 0
 	worksheet.write(0,0,"Data")
@@ -500,7 +506,7 @@ def predicting_exporting_RAAL(dataset):
 	worksheet.write(0,2,"Prediction")
 
 	for value in preds:
-			worksheet.write(row, col + 2, value)
+			worksheet.write(row, col + 2, value, decimal_format)
 			row +=1
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):
@@ -530,13 +536,15 @@ def predicting_exporting_Consumption_RAAL(dataset):
 	workbook = xlsxwriter.Workbook("./RAAL/Consumption/Results_Consumption_RAAL.xlsx")
 	worksheet = workbook.add_worksheet("Consumption_Predictions")
 	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
 	row = 1
 	col = 0
 	worksheet.write(0,0,"Data")
 	worksheet.write(0,1,"Interval")
 	worksheet.write(0,2,"Prediction")
 	for value in preds:
-	    worksheet.write(row, col + 2, value)
+	    worksheet.write(row, col + 2, value, decimal_format)
 	    row +=1
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):

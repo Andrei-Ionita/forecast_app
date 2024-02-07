@@ -159,20 +159,20 @@ function currentSlide(n) {
 }
 
 function showSlides() {
-	let i;
-	let slides = document.getElementsByClassName("mySlides");
-	let dots = document.getElementsByClassName("dot");
-	for (i = 0; i < slides.length; i++) {
-		slides[i].style.display = "none";  
-	}
-	slideIndex++;
-	if (slideIndex > slides.length) {slideIndex = 1}    
-	for (i = 0; i < dots.length; i++) {
-		dots[i].className = dots[i].className.replace(" active", "");
-	}
-	slides[slideIndex-1].style.display = "block";  
-	dots[slideIndex-1].className += " active";
-	setTimeout(showSlides, 10000); // Change image every 10 seconds
+    let i;
+    let slides = document.getElementsByClassName("mySlides");
+    let dots = document.getElementsByClassName("dot");
+    for (i = 0; i < slides.length; i++) {
+        slides[i].style.display = "none";  
+    }
+    slideIndex++;
+    if (slideIndex > slides.length) {slideIndex = 1}
+    for (i = 0; i < dots.length; i++) {
+        dots[i].className = dots[i].className.replace(" active", "");
+    }
+    slides[slideIndex-1].style.display = "block";  
+    dots[slideIndex-1].className += " active";
+    setTimeout(showSlides, 10000); // Change image every 10 seconds
 }
 
 function showSlide() {
@@ -239,7 +239,7 @@ def main():
 	# Use session state to set default value for sidebar radio
 	page = st.sidebar.radio(
 			"Select a page:",
-			options=["Home", "Data Engineering", "EDA", "Forecast", "Balancing Market", "Your AI BFF"],
+			options=["Home", "Forecast WeatherMap", "EDA", "Forecast", "Balancing Market", "Your AI BFF"],
 			index=None,
 			key="page_select"
 	)
@@ -254,7 +254,7 @@ def main():
 	# Render the appropriate page based on session state
 	if st.session_state['page'] == "Home":
 		render_home_page()
-	elif st.session_state["page"] == "Data Engineering":
+	elif st.session_state["page"] == "Forecast WeatherMap":
 		render_data_eng_page()
 	elif st.session_state['page'] == "Forecast":
 		render_forecast_page()

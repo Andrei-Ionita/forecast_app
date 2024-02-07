@@ -108,8 +108,8 @@ def flatten_json_to_excel(json_file_path, output_file_path):
     # Saving to Excel
     flattened_list_data.to_excel(output_file_path, index=False)
 
-def concatenate_ghi_data():
-    folder_path = './RAAL/Production/Input/'  # Replace with your folder path
+def concatenate_ghi_data(CEF):
+    folder_path = './{}/Production/Input/'.format(CEF)  # Replace with your folder path
     specific_string = 'GHI_'  # Replace with the string you want to check for
     all_files = [f for f in os.listdir(folder_path) if specific_string in f]
 
@@ -132,7 +132,7 @@ def concatenate_ghi_data():
 
     # Optionally, save the concatenated DataFrames to new Excel files
     # concatenated_daily_df.to_excel('Concatenated_Daily_GHI.xlsx', index=False)
-    concatenated_hourly_df.to_excel('./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx', index=False)
+    concatenated_hourly_df.to_excel('./{}/Production/Input/Concatenated_Hourly_GHI.xlsx'.format(CEF), index=False)
 
     print("All files concatenated into Concatenated_Daily_GHI.xlsx and Concatenated_Hourly_GHI.xlsx")
 
@@ -226,9 +226,9 @@ date = datetime.now().strftime('%Y-%m-%d')
 # output_file_path = './RAAL/Weather_data/temps_clouds_{}.xlsx'.format(date)  # Replace with your desired output file path
 
 # First, we need to do some preprocessing of the weather and GHI file
-def creating_weather_date_hour_columns():
+def creating_weather_date_hour_columns(CEF):
     # Load the data
-    weather_df = pd.read_excel('./RAAL/Production/Input/weather.xlsx')
+    weather_df = pd.read_excel('./{}/Production/Input/weather.xlsx'.format(CEF))
 
     # Ensure the column 'E' is in datetime format
     weather_df['dt_txt'] = pd.to_datetime(weather_df['dt_txt'])
@@ -238,11 +238,11 @@ def creating_weather_date_hour_columns():
     weather_df.insert(loc=weather_df.columns.get_loc('Data') + 1, column='Interval', value=weather_df['dt_txt'].dt.hour)
 
     # Save the modified DataFrame back to Excel
-    weather_df.to_excel('./RAAL/Production/Input/weather.xlsx', index=False)
+    weather_df.to_excel('./{}/Production/Input/weather.xlsx'.format(CEF), index=False)
 
-def change_date_format_weather_wb():
+def change_date_format_weather_wb(CEF):
     # Check if the named style already exists
-    weather_wb = openpyxl.open('./RAAL/Production/Input/weather.xlsx')
+    weather_wb = openpyxl.open('./{}/Production/Input/weather.xlsx'.format(CEF))
     style_name = 'date_style'
     if style_name not in weather_wb.named_styles:
         # Create a new NamedStyle and add it to the workbook
@@ -254,12 +254,12 @@ def change_date_format_weather_wb():
     # Now you can safely assign the style to cells without causing an error
     for row in range(1, weather_wb.active.max_row + 1):
         weather_wb.active.cell(row=row, column=6).style = date_style
-    weather_wb.save('./RAAL/Production/Input/weather.xlsx')
+    weather_wb.save('./{}/Production/Input/weather.xlsx'.format(CEF))
 
 # Defining the lookup column in the weather file
-def add_lookup_column_weather():
+def add_lookup_column_weather(CEF):
     # Load the workbook and sheet
-    workbook = load_workbook('./RAAL/Production/Input/weather.xlsx')
+    workbook = load_workbook('./{}/Production/Input/weather.xlsx'.format(CEF))
     sheet = workbook.active
 
     # Determine the last column with data
@@ -277,15 +277,15 @@ def add_lookup_column_weather():
         sheet[f"{lookup_col_letter}{row}"] = f"=F{row}&G{row}"
 
     # Save the workbook
-    workbook.save('./RAAL/Production/Input/weather.xlsx')
-    weather_df = pd.read_excel('./RAAL/Production/Input/weather.xlsx')
+    workbook.save('./{}/Production/Input/weather.xlsx'.format(CEF))
+    weather_df = pd.read_excel('./{}/Production/Input/weather.xlsx'.format(CEF))
     weather_df["Lookup_python"] = weather_df["Data"].astype(str) + weather_df["Interval"].astype(str)
-    weather_df.to_excel('./RAAL/Production/Input/weather.xlsx')
+    weather_df.to_excel('./{}/Production/Input/weather.xlsx'.format(CEF))
 
 def prepare_lookup_column(file_path, date_col_name='Data', interval_col_name='Interval'):
     # Load the Excel file into a DataFrame
     df = pd.read_excel(file_path)
-    
+
     # Ensure the 'Data' column is in datetime format
     df[date_col_name] = pd.to_datetime(df[date_col_name])
     
@@ -339,18 +339,18 @@ def prepare_lookup_column(file_path, date_col_name='Data', interval_col_name='In
 # Example usage
 file_path = "./RAAL/Production/Input.xlsm"  # Update this path to your actual file path
 
-def building_input_file():
+def building_input_file(CEF):
     # Define file paths
     # base_path = Path("./RAAL/Production").parent  # Adjust this path as necessary
-    ghi_file_path = "./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx"
-    weather_file_path = "./RAAL/Production/Input/weather.xlsx"
+    ghi_file_path = "./{}/Production/Input/Concatenated_Hourly_GHI.xlsx".format(CEF)
+    weather_file_path = "./{}/Production/Input/weather.xlsx".format(CEF)
     
     # Load workbooks and sheets
     ghi_wb = openpyxl.load_workbook(ghi_file_path, data_only=True)
     weather_wb = openpyxl.load_workbook(weather_file_path, data_only=True)
     from pathlib import Path
     # Example for loading an existing workbook
-    workbook_path = Path("./RAAL/Production/Input.xlsx")  # Ensure this path is correct
+    workbook_path = Path("./{}/Production/Input.xlsx".format(CEF))  # Ensure this path is correct
     if workbook_path.exists():
         main_wb = openpyxl.load_workbook(workbook_path)
         ws = main_wb.active  # or specify the sheet name directly if needed
@@ -414,7 +414,7 @@ def building_input_file():
     # # Similar steps for temperature and clouds from weather data, adjust the formula and columns as necessary
     
     # # Save and close workbooks
-    main_wb.save("./RAAL/Production/Input.xlsx")  # Adjust the path as necessary
+    main_wb.save("./{}/Production/Input.xlsx".format(CEF))  # Adjust the path as necessary
     # No need to explicitly close in Python, as workbooks are closed when the program ends or when they're no longer referenced
 
 # Adding the Lookup column to the Input file
@@ -532,16 +532,16 @@ def lookup_weather_values():
     main_df['Nori'] = main_df['Lookup'].map(lookup_dict)
     main_df.to_excel('./RAAL/Production/Input.xlsx', index=False)
 
-def lookup_ghi_values(input_df, ghi_df):
+def lookup_ghi_values(CEF, input_df, ghi_df):
     # Create a dictionary from the GHI DataFrame for efficient lookup
     ghi_dict = ghi_df.set_index('Lookup')['cloudy_sky_ghi'].to_dict()
     
     # Map the 'Lookup' values from the input DataFrame to get the 'cloudy_sky_ghi' values
     input_df['Radiatie'] = input_df['Lookup'].map(ghi_dict)
-    input_df.to_excel("./RAAL/Production/Input.xlsx", index=False)
+    input_df.to_excel("./{}/Production/Input.xlsx".format(CEF), index=False)
     return input_df
 
-def lookup_weather_values(input_df, weather_df):
+def lookup_weather_values(CEF, input_df, weather_df):
     # Create a dictionary from the main.temp DataFrame for efficient lookup
     weather_dict = weather_df.set_index('Lookup')['main.temp'].to_dict()
     
@@ -552,7 +552,7 @@ def lookup_weather_values(input_df, weather_df):
     
     # Map the 'Lookup' values from the input DataFrame to get the 'temperatures' values
     input_df['Nori'] = input_df['Lookup'].map(weather_dict)
-    input_df.to_excel("./RAAL/Production/Input.xlsx", index=False)
+    input_df.to_excel("./{}/Production/Input.xlsx".format(CEF), index=False)
     return input_df
 #===============================================================================Forcasting RAAL Production=================================================================
 
@@ -569,6 +569,8 @@ def predicting_exporting_RAAL(dataset):
     workbook = xlsxwriter.Workbook("./RAAL/Production/Results_Production_xgb_RAAL_wm.xlsx")
     worksheet = workbook.add_worksheet("Production_Predictions")
     date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+    # Define a format for cells with three decimal places
+    decimal_format = workbook.add_format({'num_format': '0.000'})
     row = 1
     col = 0
     worksheet.write(0,0,"Data")
@@ -576,7 +578,7 @@ def predicting_exporting_RAAL(dataset):
     worksheet.write(0,2,"Prediction")
 
     for value in preds:
-            worksheet.write(row, col + 2, value)
+            worksheet.write(row, col + 2, value, decimal_format)
             row +=1
     row = 1
     for Data, Interval in zip(dataset.Data, dataset.Interval):
@@ -586,6 +588,40 @@ def predicting_exporting_RAAL(dataset):
 
     workbook.close()
 
+#===============================================================================Forcasting Solina Production=================================================================
+
+def predicting_exporting_Solina(dataset):
+    xgb_loaded = joblib.load("./Solina/Production/rs_xgb_Solina_prod.pkl")
+    dataset_forecast = dataset.copy()
+    dataset.dropna(inplace=True)
+    dataset_forecast = dataset_forecast[["Data", "Interval", "Radiatie", "Temperatura", "Nori"]]
+    dataset_forecast["Month"] = dataset_forecast.Data.dt.month
+
+    dataset_forecast = dataset_forecast.drop("Data", axis=1)
+
+    preds = xgb_loaded.predict(dataset_forecast.values)
+    #Exporting Results to Excel
+    workbook = xlsxwriter.Workbook('./Solina/Production/Results_Production_xgb_Solina_wm.xlsx')
+    worksheet = workbook.add_worksheet("Production_Predictions")
+    date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+    # Define a format for cells with three decimal places
+    decimal_format = workbook.add_format({'num_format': '0.000'})
+    row = 1
+    col = 0
+    worksheet.write(0,0,"Data")
+    worksheet.write(0,1,"Interval")
+    worksheet.write(0,2,"Prediction")
+
+    for value in preds:
+            worksheet.write(row, col + 2, value, decimal_format)
+            row +=1
+    row = 1
+    for Data, Interval in zip(dataset.Data, dataset.Interval):
+            worksheet.write(row, col + 0, Data, date_format)
+            worksheet.write(row, col + 1, Interval)
+            row +=1
+
+    workbook.close()
 #===============================================================================Rendering the Data Engineering page=================================================================
 
 def render_data_eng_page():
@@ -611,93 +647,177 @@ def render_data_eng_page():
     # User inputs for start and end dates
     start_date = st.date_input("Start Date", datetime.today().date())
     end_date = st.date_input("End Date", datetime.today().date())
-
-    if st.button("Fetch and Process GHI Data"):
-        # Iterate from start_date to end_date, day by day
+        
+    if st.button("Run Forecast"):
         current_date = start_date
-        while current_date <= end_date:
-            print(current_date.strftime('%Y-%m-%d'))
-            # Fetching data for the date
-            ghi_data = fetch_ghi_data_from_api(lat, lon, current_date.strftime('%Y-%m-%d'), api_key)
-            # Processing GHI data
-            output_file_path = './RAAL/Production/Input/GHI_{}.xlsx'.format(current_date.strftime('%Y-%m-%d'))  # Replace with your desired output file path
-            ghi_json_to_excel(ghi_data, output_file_path)
-            # Increment the date by one day
-            current_date += timedelta(days=1)
-        # Concatenating the GHI data into one file
-        concatenate_ghi_data()
-        # Formatting the date column
-        ghi_file_path = "./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx"
-        process_and_save_excel(ghi_file_path)
-        # Adding the lookup column
-        # add_lookup_column_GHI()
-        file_path = "./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx"
-        date_col_name = "date"
-        interval_col_name = "hour"
-        ghi_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
-    # Fetching and processing the Weather data
-    if st.button("Fetch and Process Weather Data"):
-        # Fetching the data
-        nr_days = ((end_date - start_date).days + 2)*24
-        print(nr_days)
-        temps_clouds_data = fetch_temps_clouds_data_from_api(lat,lon,api_key,nr_days)
-        print(temps_clouds_data)
-        # Saving the json file
-        json_data = temps_clouds_data  # Replace with your JSON data
-        folder_path = "./RAAL/Production/Input/"  # Replace with your folder path
-        file_name = "weather.json"  # Replace with your desired file name
-        save_json_to_file(json_data, folder_path, file_name)
-        # Processing the data
-        json_file_path = './RAAL/Production/Input/weather.json'  # Replace with your JSON file path
-        output_file_path = './RAAL/Production/Input/weather.xlsx'  # Replace with your desired output file path
-        flatten_json_to_excel(json_file_path, output_file_path)
-        creating_weather_date_hour_columns()
-        # change_date_format_weather_wb()
-        # add_lookup_column_weather()
-        file_path = "./RAAL/Production/Input/weather.xlsx"
-        date_col_name = "Data"
-        interval_col_name = "Interval"
-        weather_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
-    # Now wee need to create the Input file
-    if st.button("Build Input file"):
-        # Running the macro
-        # run_vba_macro()
-        building_input_file()
-        # add_lookup_column_Input()
-        # add_lookup_column_input_xlsxwriter()
-        file_path = "./RAAL/Production/Input.xlsx"
-        date_col_name = "Data"
-        interval_col_name = "Interval"
-        input_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
-        # lookup_ghi_values()
-        # lookup_weather_values()
-        # Lookuping the GHI values
-        input_df = pd.read_excel("./RAAL/Production/Input.xlsx")
-        ghi_df = pd.read_excel("./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx")
-        lookup_ghi_values(input_df, ghi_df)
-        # Lookupinh the temperatures and clouds values
-        weather_df = pd.read_excel("./RAAL/Production/Input/weather.xlsx")
-        lookup_weather_values(input_df, weather_df)
-    # Forecasting RAAL Production
-    # Check if the file exists
-    if os.path.exists("./RAAL/Production/Input.xlsx"):
-        # If the file exists, show the button
-        if st.button("Run Forecast"):
-            df = pd.read_excel("./RAAL/Production/Input.xlsx")
-            predicting_exporting_RAAL(df)
-            file_path_results = './RAAL/Production/Results_Production_xgb_RAAL_wm.xlsx'
-            with open(file_path_results, "rb") as f:
-                excel_data = f.read()
+        # FORECASTING RAAL PRODUCTION
+        # Check if the file exists
+        if location == "Prundu Bargaului":
+            CEF = "RAAL"
+            # 1. Building the Input file
+            # Iterate from start_date to end_date, day by day
+            while current_date <= end_date:
+                print(current_date.strftime('%Y-%m-%d'))
+                # Fetching data for the date
+                ghi_data = fetch_ghi_data_from_api(lat, lon, current_date.strftime('%Y-%m-%d'), api_key)
+                # Processing GHI data
+                output_file_path = './RAAL/Production/Input/GHI_{}.xlsx'.format(current_date.strftime('%Y-%m-%d'))  # Replace with your desired output file path
+                ghi_json_to_excel(ghi_data, output_file_path)
+                # Increment the date by one day
+                current_date += timedelta(days=1)
+            # Concatenating the GHI data into one file
+            concatenate_ghi_data(CEF)
+            # Formatting the date column
+            ghi_file_path = "./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx"
+            process_and_save_excel(ghi_file_path)
+            # Adding the lookup column
+            # add_lookup_column_GHI()
+            file_path = "./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx"
+            date_col_name = "date"
+            interval_col_name = "hour"
+            ghi_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
 
-            # Create a download link
-            b64 = base64.b64encode(excel_data).decode()
-            button_html = f"""
-                 <a download="Production_Forecast.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-                 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-                 </a> 
-                 """
-            st.markdown(button_html, unsafe_allow_html=True)
-    else:
-        # If the file does not exist, display a message
-        st.error("Input file does not exist. Please ensure the file is in the correct location before proceeding.")
+            # Fetching the weather data
+            nr_days = ((end_date - start_date).days + 2)*24
+            print(nr_days)
+            temps_clouds_data = fetch_temps_clouds_data_from_api(lat,lon,api_key,nr_days)
+            print(temps_clouds_data)
+            # Saving the json file
+            json_data = temps_clouds_data  # Replace with your JSON data
+            folder_path = "./RAAL/Production/Input/"  # Replace with your folder path
+            file_name = "weather.json"  # Replace with your desired file name
+            save_json_to_file(json_data, folder_path, file_name)
+            # Processing the weather data
+            json_file_path = './RAAL/Production/Input/weather.json'  # Replace with your JSON file path
+            output_file_path = './RAAL/Production/Input/weather.xlsx'  # Replace with your desired output file path
+            flatten_json_to_excel(json_file_path, output_file_path)
+            creating_weather_date_hour_columns(CEF)
+            # change_date_format_weather_wb()
+            # add_lookup_column_weather()
+            file_path = "./RAAL/Production/Input/weather.xlsx"
+            date_col_name = "Data"
+            interval_col_name = "Interval"
+            weather_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+
+            # Vuilding the Input file
+            building_input_file(CEF)
+            # add_lookup_column_Input()
+            # add_lookup_column_input_xlsxwriter()
+            file_path = "./RAAL/Production/Input.xlsx"
+            date_col_name = "Data"
+            interval_col_name = "Interval"
+            input_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+            # lookup_ghi_values()
+            # lookup_weather_values()
+            # Lookuping the GHI values
+            input_df = pd.read_excel("./RAAL/Production/Input.xlsx")
+            ghi_df = pd.read_excel("./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx")
+            lookup_ghi_values(CEF, input_df, ghi_df)
+            # Lookupinh the temperatures and clouds values
+            weather_df = pd.read_excel("./RAAL/Production/Input/weather.xlsx")
+            lookup_weather_values(CEF, input_df, weather_df)
+            # Predicting the Production
+            if os.path.exists("./RAAL/Production/Input.xlsx"):
+                # If the file exists, show the button
+                df = pd.read_excel("./RAAL/Production/Input.xlsx")
+                predicting_exporting_RAAL(df)
+                file_path_results = './RAAL/Production/Results_Production_xgb_RAAL_wm.xlsx'
+                with open(file_path_results, "rb") as f:
+                    excel_data = f.read()
+
+                # Create a download link
+                b64 = base64.b64encode(excel_data).decode()
+                button_html = f"""
+                     <a download="Production_Forecast_RAAL_WM_{current_date}.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+                     <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+                     </a> 
+                     """
+                st.markdown(button_html, unsafe_allow_html=True)
+            else:
+                # If the file does not exist, display a message
+                st.error("Input file does not exist. Please ensure the file is in the correct location before proceeding.")
+        # Forecasting Solina Production
+        elif location == "Alba Iulia":
+            CEF = "Solina"
+            # Iterate from start_date to end_date, day by day
+            current_date = start_date
+            while current_date <= end_date:
+                print(current_date.strftime('%Y-%m-%d'))
+                # Fetching data for the date
+                ghi_data = fetch_ghi_data_from_api(lat, lon, current_date.strftime('%Y-%m-%d'), api_key)
+                # Processing GHI data
+                output_file_path = './Solina/Production/Input/GHI_{}.xlsx'.format(current_date.strftime('%Y-%m-%d'))  # Replace with your desired output file path
+                ghi_json_to_excel(ghi_data, output_file_path)
+                # Increment the date by one day
+                current_date += timedelta(days=1)
+            # Concatenating the GHI data into one file
+            concatenate_ghi_data(CEF)
+            # Formatting the date column
+            ghi_file_path = "./Solina/Production/Input/Concatenated_Hourly_GHI.xlsx"
+            process_and_save_excel(ghi_file_path)
+            # Adding the lookup column
+            # add_lookup_column_GHI()
+            file_path = "./Solina/Production/Input/Concatenated_Hourly_GHI.xlsx"
+            date_col_name = "date"
+            interval_col_name = "hour"
+            ghi_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+
+            # Fetching the weather data
+            nr_days = ((end_date - start_date).days + 2)*24
+            print(nr_days)
+            temps_clouds_data = fetch_temps_clouds_data_from_api(lat,lon,api_key,nr_days)
+            print(temps_clouds_data)
+            # Saving the json file
+            json_data = temps_clouds_data  # Replace with your JSON data
+            folder_path = "./Solina/Production/Input/"  # Replace with your folder path
+            file_name = "weather.json"  # Replace with your desired file name
+            save_json_to_file(json_data, folder_path, file_name)
+            # Processing the weather data
+            json_file_path = './Solina/Production/Input/weather.json'  # Replace with your JSON file path
+            output_file_path = './Solina/Production/Input/weather.xlsx'  # Replace with your desired output file path
+            flatten_json_to_excel(json_file_path, output_file_path)
+            creating_weather_date_hour_columns(CEF)
+            # change_date_format_weather_wb()
+            # add_lookup_column_weather()
+            file_path = "./Solina/Production/Input/weather.xlsx"
+            date_col_name = "Data"
+            interval_col_name = "Interval"
+            weather_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+
+            # Building the Input file
+            building_input_file(CEF)
+            # add_lookup_column_Input()
+            # add_lookup_column_input_xlsxwriter()
+            file_path = "./Solina/Production/Input.xlsx"
+            date_col_name = "Data"
+            interval_col_name = "Interval"
+            input_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+            # lookup_ghi_values()
+            # lookup_weather_values()
+            # Lookuping the GHI values
+            input_df = pd.read_excel("./Solina/Production/Input.xlsx")
+            ghi_df = pd.read_excel("./Solina/Production/Input/Concatenated_Hourly_GHI.xlsx")
+            lookup_ghi_values(CEF, input_df, ghi_df)
+            # Lookupinh the temperatures and clouds values
+            weather_df = pd.read_excel("./Solina/Production/Input/weather.xlsx")
+            lookup_weather_values(CEF, input_df, weather_df)
+            if os.path.exists("./Solina/Production/Input.xlsx"):
+            # Check if the file exists
+                df = pd.read_excel("./Solina/Production/Input.xlsx")
+                predicting_exporting_Solina(df)
+                file_path_results = './Solina/Production/Results_Production_xgb_Solina_wm.xlsx'
+                with open(file_path_results, "rb") as f:
+                    excel_data = f.read()
+
+                # Create a download link
+                b64 = base64.b64encode(excel_data).decode()
+                button_html = f"""
+                     <a download="Production_Forecast_Solina_WM_{current_date}.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+                     <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+                     </a> 
+                     """
+                st.markdown(button_html, unsafe_allow_html=True)
+            else:
+                # If the file does not exist, display a message
+                st.error("Input file does not exist. Please ensure the file is in the correct location before proceeding.")
         
