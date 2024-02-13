@@ -570,15 +570,17 @@ def predicting_exporting_RAAL(dataset):
     worksheet = workbook.add_worksheet("Production_Predictions")
     date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
     # Define a format for cells with three decimal places
-    decimal_format = workbook.add_format({'num_format': '0.000'})
+    # decimal_format = workbook.add_format({'num_format': '0.000'})
     row = 1
     col = 0
     worksheet.write(0,0,"Data")
     worksheet.write(0,1,"Interval")
     worksheet.write(0,2,"Prediction")
-
-    for value in preds:
-            worksheet.write(row, col + 2, value, decimal_format)
+    # Rounded values
+    rounded_preds = [round(val, 3) for val in preds]
+    for value in rounded_preds:
+            # Convert the rounded value to a string
+            worksheet.write(row, col + 2, value)
             row +=1
     row = 1
     for Data, Interval in zip(dataset.Data, dataset.Interval):
@@ -605,15 +607,16 @@ def predicting_exporting_Solina(dataset):
     worksheet = workbook.add_worksheet("Production_Predictions")
     date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
     # Define a format for cells with three decimal places
-    decimal_format = workbook.add_format({'num_format': '0.000'})
+    # decimal_format = workbook.add_format({'num_format': '0.000'})
     row = 1
     col = 0
     worksheet.write(0,0,"Data")
     worksheet.write(0,1,"Interval")
     worksheet.write(0,2,"Prediction")
-
-    for value in preds:
-            worksheet.write(row, col + 2, value, decimal_format)
+    # Rounded values
+    rounded_preds = [round(val, 3) for val in preds]
+    for value in rounded_preds:
+            worksheet.write(row, col + 2, value, value)
             row +=1
     row = 1
     for Data, Interval in zip(dataset.Data, dataset.Interval):
