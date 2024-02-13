@@ -561,7 +561,7 @@ def predicting_exporting_RAAL(dataset):
     dataset_forecast = dataset.copy()
     dataset_forecast = dataset_forecast[["Data", "Interval", "Radiatie", "Temperatura"]]
     dataset_forecast["Month"] = dataset_forecast.Data.dt.month
-
+    dataset_forecast.dropna(inplace=True)
     dataset_forecast = dataset_forecast.drop("Data", axis=1)
     st.write(dataset_forecast)
     preds = xgb_loaded.predict(dataset_forecast.values)
@@ -812,7 +812,7 @@ def render_data_eng_page():
                 # Create a download link
                 b64 = base64.b64encode(excel_data).decode()
                 button_html = f"""
-                     <a download="Production_Forecast_Solina_WM_{current_date}.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+                     <a download="Production_Forecast_Solina_WM_{end_date}.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
                      <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
                      </a> 
                      """
