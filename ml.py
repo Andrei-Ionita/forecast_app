@@ -489,7 +489,7 @@ def predicting_exporting_RAAL(dataset):
 	xgb_loaded = joblib.load("./RAAL/Production/rs_xgb_RAAL_prod.pkl")
 	dataset_forecast = dataset.copy()
 	dataset_forecast["Month"] = dataset_forecast.Data.dt.month
-
+	dataset_forecast.drop("Nori", axis=1, inplace=True)
 	dataset_forecast = dataset_forecast.drop("Data", axis=1)
 
 	preds = xgb_loaded.predict(dataset_forecast.values)

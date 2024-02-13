@@ -559,7 +559,7 @@ def lookup_weather_values(CEF, input_df, weather_df):
 def predicting_exporting_RAAL(dataset):
     xgb_loaded = joblib.load("./RAAL/Production/rs_xgb_RAAL_prod.pkl")
     dataset_forecast = dataset.copy()
-    dataset_forecast = dataset_forecast[["Data", "Interval", "Radiatie", "Temperatura", "Nori"]]
+    dataset_forecast = dataset_forecast[["Data", "Interval", "Radiatie", "Temperatura"]]
     dataset_forecast["Month"] = dataset_forecast.Data.dt.month
 
     dataset_forecast = dataset_forecast.drop("Data", axis=1)
@@ -591,10 +591,10 @@ def predicting_exporting_RAAL(dataset):
 #===============================================================================Forcasting Solina Production=================================================================
 
 def predicting_exporting_Solina(dataset):
-    xgb_loaded = joblib.load("./Solina/Production/rs_xgb_Solina_prod.pkl")
+    xgb_loaded = joblib.load("./Solina/Production/rs_xgb_Solina_prod_WM.pkl")
     dataset_forecast = dataset.copy()
     dataset.dropna(inplace=True)
-    dataset_forecast = dataset_forecast[["Data", "Interval", "Radiatie", "Temperatura", "Nori"]]
+    dataset_forecast = dataset_forecast[["Data", "Interval", "Radiatie", "Temperatura"]]
     dataset_forecast["Month"] = dataset_forecast.Data.dt.month
 
     dataset_forecast = dataset_forecast.drop("Data", axis=1)
