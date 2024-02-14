@@ -20,7 +20,7 @@ New_year_and_day_after = pd.DataFrame({"holiday": "Anul Nou & A doua zi",
 																									"2019-01-02", "2018-01-01", "2018-01-02", "2020-01-01", "2020-01-02", "2021-01-01", "2021-01-02",
 																									"2022-01-01", "2022-01-02", "2023-01-01", "2023-01-02","2024-01-01", "2024-01-02"]),
 														"lower_window": -1,
-														"upper_window": 1})
+														"upper_window": 1})	
 
 National_holiday = pd.DataFrame({"holiday": "Ziua Nationala",
 																 "ds": pd.to_datetime(["2016-12-01", "2015-12-01", "2014-12-01", "2018-12-01", "2019-12-01", "2020-12-01", "2021-12-01", "2022-12-01", "2023-12-01", "2024-12-01"]),
@@ -71,7 +71,7 @@ def predicting_exporting_Transavia(dataset):
 	datasets_forecast = {elem : pd.DataFrame for elem in CEFs}
 	for CEF in CEFs:
 		print("Predicting for {}".format(CEF))
-		xgb_loaded = joblib.load("./Transavia/Production/Models/rs_xgb_{}.pkl".format(CEF))
+		xgb_loaded = joblib.load("./Transavia/Production/Models_PVPP/rs_xgb_{}.pkl".format(CEF))
 		dataset_forecast = dataset
 		dataset_forecast = dataset_forecast[:][dataset_forecast.Centrala == CEF]
 		dataset_forecast["Month"] = dataset_forecast.Data.dt.month
@@ -135,7 +135,7 @@ def predicting_exporting_consumption_Santimbru(dataset):
 	predictions = {}
 	for IBD in datasets_forecast.keys():
 		if IBD in IBDs_PVPP:
-		  xgb_loaded = joblib.load("./Transavia/Consumption/Models/rs_xgb_{}.pkl".format(IBD))
+		  xgb_loaded = joblib.load("./Transavia/Consumption/Models_PVPP/rs_xgb_{}.pkl".format(IBD))
 		  print("Predicting for {}".format(IBD))
 		  # print(datasets_forecast[IBD])
 		  xgb_preds = xgb_loaded.predict(datasets_forecast[IBD].drop("PVPP", axis=1).values)
@@ -143,7 +143,7 @@ def predicting_exporting_consumption_Santimbru(dataset):
 		  predictions["Data"] = dataset_forecast["Data"]
 		  predictions["Interval"] = dataset_forecast["Interval"]
 		else:
-			xgb_loaded = joblib.load("./Transavia/Consumption/Models/rs_xgb_{}.pkl".format(IBD))
+			xgb_loaded = joblib.load("./Transavia/Consumption/Models_PVPP/rs_xgb_{}.pkl".format(IBD))
 			print("Predicting for {}".format(IBD))
 			# print(datasets_forecast[IBD])
 			xgb_preds = xgb_loaded.predict(datasets_forecast[IBD].values)
@@ -154,8 +154,8 @@ def predicting_exporting_consumption_Santimbru(dataset):
 	predictions_PVPP = {}
 	for IBD in datasets_forecast.keys():
 		if IBD in IBDs_PVPP:
-			if os.path.isfile("./Transavia/Consumption/Models/rs_xgb_{}_PVPP.pkl".format(IBD)):
-				xgb_loaded = joblib.load("./Transavia/Consumption/Models/rs_xgb_{}_PVPP.pkl".format(IBD))
+			if os.path.isfile("./Transavia/Consumption/Models_PVPP/rs_xgb_{}_PVPP.pkl".format(IBD)):
+				xgb_loaded = joblib.load("./Transavia/Consumption/Models_PVPP/rs_xgb_{}_PVPP.pkl".format(IBD))
 				print("Predicting for {}".format(IBD))
 				# print(datasets_forecast[IBD])
 				xgb_preds = xgb_loaded.predict(datasets_forecast[IBD].drop("Radiatie", axis=1).values)
@@ -232,15 +232,15 @@ def predicting_exporting_consumption_Brasov(dataset):
 	predictions = {}
 	for POD in datasets_forecast.keys():
 		if "PVPP" in datasets_forecast[POD].columns:
-		  xgb_loaded = joblib.load("./Transavia/Consumption/Models/Brasov_Models/rs_xgb_{}.pkl".format(POD))
+		  xgb_loaded = joblib.load("./Transavia/Consumption/Models_PVPP/Brasov_Models/rs_xgb_{}.pkl".format(POD))
 		  print("Predicting for {}".format(POD))
 		  # print(datasets_forecast[POD])
-		  xgb_preds = xgb_loaded.predict(datasets_forecast[POD].drop("PVPP", axis=1).values)
+		  xgb_preds = xgb_loaded.predict(datasets_forecast[POD].values)
 		  predictions[POD] = xgb_preds
 		  predictions["Data"] = dataset_forecast["Data"]
 		  predictions["Interval"] = dataset_forecast["Interval"]
 		else:
-		  xgb_loaded = joblib.load("./Transavia/Consumption/Models/Brasov_Models/rs_xgb_{}.pkl".format(POD))
+		  xgb_loaded = joblib.load("./Transavia/Consumption/Models_PVPP/Brasov_Models/rs_xgb_{}.pkl".format(POD))
 		  print("Predicting for {}".format(POD))
 		  # print(datasets_forecast[POD])
 		  xgb_preds = xgb_loaded.predict(datasets_forecast[POD].values)
