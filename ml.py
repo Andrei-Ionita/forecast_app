@@ -71,7 +71,7 @@ def predicting_exporting_Transavia(dataset):
 	datasets_forecast = {elem : pd.DataFrame for elem in CEFs}
 	for CEF in CEFs:
 		print("Predicting for {}".format(CEF))
-		xgb_loaded = joblib.load("./Transavia/Production/Models_PVPP/rs_xgb_{}.pkl".format(CEF))
+		xgb_loaded = joblib.load("./Transavia/Production/Models/rs_xgb_{}.pkl".format(CEF))
 		dataset_forecast = dataset
 		dataset_forecast = dataset_forecast[:][dataset_forecast.Centrala == CEF]
 		dataset_forecast["Month"] = dataset_forecast.Data.dt.month
