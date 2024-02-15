@@ -172,6 +172,9 @@ if "user_query" not in st.session_state:
 	st.session_state.user_query = ""
 
 def render_assistant_page():
+	# Initialize 'user_query' in session state if it's not already present
+	if "user_query" not in st.session_state:
+		st.session_state.user_query = ""
 	# st.write(st.session_state)
 	st.title("OpenAI Assistant")
 
