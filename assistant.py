@@ -15,20 +15,37 @@ client = OpenAI(api_key=OPEN_AI_API_KEY)
 # --------------------------------------------------------------
 # Upload file
 # --------------------------------------------------------------
+file_id_array = []
+file_array = []
 def upload_file(uploaded_file):
-	file_contents = BytesIO(uploaded_file.getvalue())
-	# Upload a file with an "assistants" purpose
-	file = client.files.create(file=file_contents, purpose="assistants")
-	return file
-
+	for file in file_array:
+		file = client.files.create(
+			file = file,
+			purpose = "assistants"
+		)
+		file_id_array.append(file.id)
 # file = upload_file("./docs/IPOL_STU(2023)740094_EN.pdf")
 
-def file_exists(file_name):
-	files = openai.File.list()
-	for file in files.data:
-		if file.filename == file_name:
-			return True
-	return False
+# def file_exists(file_name):
+# 	try:
+# 		# Set initial parameters for pagination
+# 		next_cursor = None
+# 		while True:
+# 			# Fetch a list of files, respecting pagination
+# 			files_response = openai.File.list(cursor=next_cursor)
+# 			for file in files_response.data:
+# 				print(file)
+# 				if file.filename == file_name:
+# 					return True
+# 			# Update the cursor for the next page, if any
+# 			next_cursor = files_response.get('next_cursor')
+# 			if not next_cursor:
+# 				break
+# 		return False
+# 	except Exception as e:
+# 		print(f"An error occurred: {e}")
+# 		return False
+
 
 # --------------------------------------------------------------
 # Create assistant
@@ -40,9 +57,10 @@ def create_assistant(file):
 	assistant = client.beta.assistants.create(
 		name="EnergyMarketsAssistant",
 		instructions="You are an absolute Energy Markets guru and Power Trader. You provide detailed, accurate, and well-argued information about everything in the Energy field.",
-		tools=[{"type": "retrieval, code_interpreter"}],
-		model="gpt-4-1106-preview",
-		file_ids=[file.id],
+		# tools=[{"type": "retrieval, code_interpreter"}],
+		tools=[{"type": "code_interpreter"}],
+		model="gpt-4-1106-preview"
+		# file_ids=[file.id],
 	)
 	return assistant
 
@@ -86,6 +104,7 @@ def generate_response(message_body, user_id, name):
 		thread_id=thread_id,
 		role="user",
 		content=message_body,
+		file_ids = file_id_array
 	)
 
 	# Run the assistant and get the new message
@@ -183,19 +202,21 @@ def render_assistant_page():
 
 	# Process file upload
 	if uploaded_file != None:
+		#Adding the file to the array files
+		file_array.append(uploaded_file)
 		upload_file(uploaded_file)
 
 		# st.subheader("OpenAI Assistant for Data Analysis")
 
 		# Read the file based on its type
-		if uploaded_file.type == "text/csv":
+		if uploaded_file.type == "csv":
 			df = pd.read_csv(uploaded_file)
 		elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
 			df = pd.read_excel(uploaded_file)
 
 		# Display the uploaded data (optional)
-		st.write("Uploaded Data:")
-		st.write(df)
+		# st.write("Uploaded Data:")
+		# st.write(df)
 
 		# Process the data with OpenAI (placeholder function)
 		# response = generate_response(user_query, "123", "Andrei")
