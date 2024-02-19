@@ -558,6 +558,7 @@ def lookup_weather_values(CEF, input_df, weather_df):
 
 def predicting_exporting_RAAL(dataset):
     xgb_loaded = joblib.load("./RAAL/Production/rs_xgb_RAAL_prod.pkl")
+    dataset.dropna(inplace=True)
     dataset_forecast = dataset.copy()
     dataset_forecast = dataset_forecast[["Data", "Interval", "Radiatie", "Temperatura"]]
     dataset_forecast["Month"] = dataset_forecast.Data.dt.month

@@ -83,6 +83,44 @@ def store_thread(user_id, thread_id):
 # # --------------------------------------------------------------
 # # Generate response
 # # --------------------------------------------------------------
+def generate_response_files(message_body, user_id, name, file_id_array):
+	try:
+		# Ensure file_id_array does not exceed 10 items
+		if len(file_id_array) > 10:
+			print("Error: You can only include up to 10 file IDs per request.")
+			# Optionally, split the array and handle in batches, or just use the first 10
+			file_id_array = file_id_array[:10]  # Using only the first 10 items if more than 10
+
+		# Check if there is already a thread_id for the user_id
+		thread_id = check_if_thread_exists(user_id)
+
+		# If a thread doesn't exist, create one and store it
+		if thread_id is None:
+			print(f"Creating new thread for {name} with user_id {user_id}")
+			thread = client.beta.threads.create()
+			store_thread(user_id, thread.id)
+			thread_id = thread.id
+		else:
+			# Retrieving existing thread for the user
+			print(f"Retrieving existing thread for {name} with user_id {user_id}")
+			thread = client.beta.threads.retrieve(thread_id)
+
+		# Add message to thread with file_ids, ensuring it doesn't exceed the limit
+		message = client.beta.threads.messages.create(
+			thread_id=thread_id,
+			role="user",
+			content=message_body,
+			file_ids=file_id_array
+		)
+
+		# Run the assistant and get the new message
+		new_message = run_assistant(thread)
+		print(f"To {name}:", new_message)
+		return new_message
+	except Exception as e:
+		print(f"An error occurred: {e}")
+
+
 def generate_response(message_body, user_id, name):
 	# Check if there is already a thread_id for the wa_id
 	thread_id = check_if_thread_exists(user_id)
@@ -103,15 +141,13 @@ def generate_response(message_body, user_id, name):
 	message = client.beta.threads.messages.create(
 		thread_id=thread_id,
 		role="user",
-		content=message_body,
-		file_ids = file_id_array
+		content=message_body
 	)
 
 	# Run the assistant and get the new message
 	new_message = run_assistant(thread)
 	print(f"To {name}:", new_message)
 	return new_message
-
 
 # # --------------------------------------------------------------
 # # Run assistant
@@ -190,6 +226,13 @@ if "page" not in st.session_state:
 if "user_query" not in st.session_state:
 	st.session_state.user_query = ""
 
+if 'file_array' not in st.session_state:
+	st.session_state.file_array = []
+
+# Use st.session_state.file_array for operations
+if 'file_array' not in st.session_state:
+	st.session_state.file_array = []
+
 def render_assistant_page():
 	# Initialize 'user_query' in session state if it's not already present
 	if "user_query" not in st.session_state:
@@ -203,10 +246,10 @@ def render_assistant_page():
 	# Process file upload
 	if uploaded_file != None:
 		#Adding the file to the array files
-		file_array.append(uploaded_file)
-		upload_file(uploaded_file)
-
-		# st.subheader("OpenAI Assistant for Data Analysis")
+		if uploaded_file not in file_array:
+			file_array.append(uploaded_file)
+			upload_file(uploaded_file)
+		st.subheader("OpenAI Assistant for Data Analysis")
 
 		# Read the file based on its type
 		if uploaded_file.type == "csv":
@@ -231,14 +274,18 @@ def render_assistant_page():
 			# Append user query to conversation
 			st.session_state['conversation'].append(f"You: {user_query}")
 			# Get response from OpenAI
-			response = generate_response(user_query, "123", "Andrei")
+			if len(file_id_array) > 0:
+				print("No files")
+				response = generate_response_files(user_query, "123", "Andrei", file_id_array)
+			else:
+				response = generate_response(user_query, "123", "Andrei")
 			while uploaded_file != None:
 				st.write("Analysis Result:")
 				st.text_area("OpenAI Analysis", value=response, height=150, disabled=True)
 			st.session_state['conversation'].append(f"AI: {response}")
 
-			# Clear the input box after submission
-			user_query = ''
+		# Clear the input box after submission
+		user_query = ''
 
 	# Combine conversation into a single string
 	conversation_text = "\n".join(st.session_state['conversation'])
