@@ -114,78 +114,68 @@ img {vertical-align: middle; max-height: 700px; width: auto; max-width: 100%;}
 <div class="slideshow-container">
 
 <div class="mySlides fade">
-	<img src="https://drive.google.com/uc?export=view&id=1JlJjOEuenPbYiQBuqo2wFH6EcLQkFqW0">
+	<img src="./assets/AI_pics/20230607PHT95601_original.jpg">
 </div>
 
 <div class="mySlides fade">
-	<img src="https://drive.google.com/uc?export=view&id=1ayrXoiHly0bLYGtSZ2MLX7ije097vJcO">
+	<img src="./assets/AI_pics/ai_face2.png">
 </div>
 
 <div class="mySlides fade">
-	<img src="https://drive.google.com/uc?export=view&id=1DgOto2L2UAxevzy0tLvTribS8vGMzp8U">
+	<img src="./assets/AI_pics/real-ai.jpg">
 </div>
 
 <div class="mySlides fade">
-	<img src="https://drive.google.com/uc?export=view&id=1_bSenEsBxF_YauUxr7RTxpfwjKwchZM2">
+	<img src="./assets/AI_pics/ia_face9.jpg">
 </div>
 
 <div class="mySlides fade">
-	<img src="https://drive.google.com/uc?export=view&id=1K56emhtwnfhTcty4L6DkZS7vadfdavEE">
+	<img src="./assets/AI_pics/ai_face5.png">
 </div>
 
 </div>
 <br>
 
 <div style="text-align:center">
-	<span class="dot" onclick="currentSlide(1)"></span> 
-	<span class="dot" onclick="currentSlide(2)"></span> 
-	<span class="dot" onclick="currentSlide(3)"></span> 
+  <span class="dot" onclick="currentSlide(1)"></span> 
+  <span class="dot" onclick="currentSlide(2)"></span> 
+  <span class="dot" onclick="currentSlide(3)"></span>
+  <span class="dot" onclick="currentSlide(4)"></span> 
+  <span class="dot" onclick="currentSlide(5)"></span>
 </div>
 
 <script>
-let slideIndex = 0;
-showSlides();
+let slideIndex = 1; // Start from the first slide
+showSlides(slideIndex); // Initialize the slideshow
 
 function plusSlides(n) {
-	slideIndex += n;
-	if (slideIndex > slides.length - 1) slideIndex = 0;
-	if (slideIndex < 0) slideIndex = slides.length - 1;
-	showSlide();
+  slideIndex += n;
+  if (slideIndex > slides.length) {slideIndex = 1}    
+  if (slideIndex < 1) {slideIndex = slides.length}
+  showSlides(slideIndex);
 }
 
 function currentSlide(n) {
-	slideIndex = n;
-	showSlide();
+  showSlides(slideIndex = n);
 }
 
-function showSlides() {
-    let i;
-    let slides = document.getElementsByClassName("mySlides");
-    let dots = document.getElementsByClassName("dot");
-    for (i = 0; i < slides.length; i++) {
-        slides[i].style.display = "none";  
-    }
-    slideIndex++;
-    if (slideIndex > slides.length) {slideIndex = 1}
-    for (i = 0; i < dots.length; i++) {
-        dots[i].className = dots[i].className.replace(" active", "");
-    }
-    slides[slideIndex-1].style.display = "block";  
-    dots[slideIndex-1].className += " active";
-    setTimeout(showSlides, 10000); // Change image every 10 seconds
-}
-
-function showSlide() {
-	let i;
-	let slides = document.getElementsByClassName("mySlides");
-	let dots = document.getElementsByClassName("dot");
-	for (i = 0; i < slides.length; i++) {
-		slides[i].style.display = "none";  
-	}
-	slides[slideIndex].style.display = "block";  
-	dots[slideIndex].className += " active";
+function showSlides(n) {
+  let i;
+  let slides = document.getElementsByClassName("mySlides");
+  let dots = document.getElementsByClassName("dot");
+  if (n > slides.length) {slideIndex = 1}    
+  if (n < 1) {slideIndex = slides.length}
+  for (i = 0; i < slides.length; i++) {
+      slides[i].style.display = "none";  
+  }
+  for (i = 0; i < dots.length; i++) {
+      dots[i].className = dots[i].className.replace(" active", "");
+  }
+  slides[slideIndex-1].style.display = "block";  
+  dots[slideIndex-1].className += " active";
 }
 </script>
+
 </body>
 """
 
@@ -198,12 +188,50 @@ custom_styles = """
 		}
 </style>
 """
+simple_slideshow = """
 
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.mySlides {display: none;}
+</style>
+</head>
+<body>
+
+<div class="mySlides">
+  <img src="https://emarsys.com/app/uploads/2020/03/real-ai.jpg">
+
+<div class="mySlides">
+  <img src="https://s7d1.scene7.com/is/image/dmqualcommprod/getting-personal-with-on-device-ai?$QC_Responsive$&fmt=png-alpha&wid=500">
+</div>
+
+<script>
+var slideIndex = 0;
+showSlides();
+
+function showSlides() {
+  var i;
+  var slides = document.getElementsByClassName("mySlides");
+  for (i = 0; i < slides.length; i++) {
+    slides[i].style.display = "none";  
+  }
+  slideIndex++;
+  if (slideIndex > slides.length) {slideIndex = 1}
+  slides[slideIndex-1].style.display = "block";
+  setTimeout(showSlides, 2000); // Change image every 2 seconds
+}
+</script>
+
+</body>
+</html>
+
+"""
 def render_home_page():
 
 	st.title("nextE@AI Forecasting")
 	st.subheader("Forecast and analyze renewable energy production and consumption")
-	stc.html(slideshow_html, height=700)
+	stc.html(simple_slideshow, height=700)
 	st.markdown("""
 	<style>
 			.divider {

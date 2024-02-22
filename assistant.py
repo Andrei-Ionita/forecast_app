@@ -17,13 +17,14 @@ client = OpenAI(api_key=OPEN_AI_API_KEY)
 # --------------------------------------------------------------
 file_id_array = []
 file_array = []
-def upload_file(uploaded_file):
-	for file in file_array:
-		file = client.files.create(
-			file = file,
-			purpose = "assistants"
-		)
-		file_id_array.append(file.id)
+
+def upload_file(filepath):
+	# for file in file_array:
+	file = client.files.create(
+		file = open(filepath, "rb"),
+		purpose = "assistants"
+	)
+	file_id_array.append(file.id)
 # file = upload_file("./docs/IPOL_STU(2023)740094_EN.pdf")
 
 # def file_exists(file_name):
@@ -50,7 +51,7 @@ def upload_file(uploaded_file):
 # --------------------------------------------------------------
 # Create assistant
 # --------------------------------------------------------------
-def create_assistant(file):
+def create_assistant():
 	"""
 	You currently cannot set the temperature for Assistant via the API.
 	"""
@@ -58,9 +59,8 @@ def create_assistant(file):
 		name="EnergyMarketsAssistant",
 		instructions="You are an absolute Energy Markets guru and Power Trader. You provide detailed, accurate, and well-argued information about everything in the Energy field.",
 		# tools=[{"type": "retrieval, code_interpreter"}],
-		tools=[{"type": "code_interpreter"}],
-		model="gpt-4-1106-preview"
-		# file_ids=[file.id],
+		tools=[{"type": "code_interpreter"}, {"type": "retrieval"}],
+		model="gpt-4-1106-preview",
 	)
 	return assistant
 
@@ -110,7 +110,7 @@ def generate_response_files(message_body, user_id, name, file_id_array):
 			thread_id=thread_id,
 			role="user",
 			content=message_body,
-			file_ids=file_id_array
+			file_ids=[file_id_array]
 		)
 
 		# Run the assistant and get the new message
@@ -121,33 +121,33 @@ def generate_response_files(message_body, user_id, name, file_id_array):
 		print(f"An error occurred: {e}")
 
 
-def generate_response(message_body, user_id, name):
-	# Check if there is already a thread_id for the wa_id
-	thread_id = check_if_thread_exists(user_id)
+# def generate_response(message_body, user_id, name):
+# 	# Check if there is already a thread_id for the wa_id
+# 	thread_id = check_if_thread_exists(user_id)
 
-	# If a thread doesn't exist, create one and store it
-	if thread_id is None:
-		print(f"Creating new thread for {name} with user_id {user_id}")
-		thread = client.beta.threads.create()
-		store_thread(user_id, thread.id)
-		thread_id = thread.id
+# 	# If a thread doesn't exist, create one and store it
+# 	if thread_id is None:
+# 		print(f"Creating new thread for {name} with user_id {user_id}")
+# 		thread = client.beta.threads.create()
+# 		store_thread(user_id, thread.id)
+# 		thread_id = thread.id
 
-	# Otherwise, retrieve the existing thread
-	else:
-		print(f"Retrieving existing thread for {name} with user_id {user_id}")
-		thread = client.beta.threads.retrieve(thread_id)
+# 	# Otherwise, retrieve the existing thread
+# 	else:
+# 		print(f"Retrieving existing thread for {name} with user_id {user_id}")
+# 		thread = client.beta.threads.retrieve(thread_id)
 
-	# Add message to thread
-	message = client.beta.threads.messages.create(
-		thread_id=thread_id,
-		role="user",
-		content=message_body
-	)
+# 	# Add message to thread
+# 	message = client.beta.threads.messages.create(
+# 		thread_id=thread_id,
+# 		role="user",
+# 		content=message_body,
+# 	)
 
-	# Run the assistant and get the new message
-	new_message = run_assistant(thread)
-	print(f"To {name}:", new_message)
-	return new_message
+# 	# Run the assistant and get the new message
+# 	new_message = run_assistant(thread)
+# 	print(f"To {name}:", new_message)
+# 	return new_message
 
 # # --------------------------------------------------------------
 # # Run assistant
@@ -218,6 +218,95 @@ def get_openai_response(user_input):
 	response = "OpenAI response to: " + user_input
 	return response
 
+#===============================================================================OpenAI Assistant functions========================================================================================
+
+# Uploading the document to the Assistant
+
+# file = client.files.create(
+#   file=open("./docs/IPOL_STU(2023)740094_EN.pdf", "rb"),
+#   purpose='assistants'
+# )
+
+
+
+def generate_response_files(user_query, file_id, name="Andrei"):
+	thread = client.beta.threads.create(
+	  messages=[
+		{
+		  "role": "user",
+		  "content": "{}".format(user_query),
+		  "file_ids": [file_id]
+		}
+	  ]
+	)
+
+	# run = client.beta.threads.runs.create(
+	#   thread_id=thread.id,
+	#   assistant_id=assistant.id
+	# )
+
+	# Add message to thread
+	message = client.beta.threads.messages.create(
+		thread_id=thread.id,
+		role="user",
+		content=user_query,
+	)
+
+	# Run the assistant and get the new message
+	new_message = run_assistant(thread)
+	print(f"To {name}:", new_message)
+	return new_message, thread.id
+
+def generate_response(user_query,name="Andrei"):
+	thread = client.beta.threads.create(
+	  messages=[
+		{
+		  "role": "user",
+		  "content": "{}".format(user_query),
+		}
+	  ]
+	)
+
+	# run = client.beta.threads.runs.create(
+	#   thread_id=thread.id,
+	#   assistant_id=assistant.id
+	# )
+
+	# Add message to thread
+	message = client.beta.threads.messages.create(
+		thread_id=thread.id,
+		role="user",
+		content=user_query,
+	)
+
+	# Run the assistant and get the new message
+	new_message = run_assistant(thread)
+	print(f"To {name}:", new_message)
+	return new_message, thread.id
+
+# Managing files=================
+files_dict = {}
+def file_upload(uploaded_file):
+	file = client.files.create(
+		  file=uploaded_file,
+		  purpose='assistants'
+		)
+	# The response object contains the file ID
+	file_id = file.id
+	file_name = uploaded_file.name
+	return file.id, file_name
+
+# Listing all files==============
+def listing_files():
+	thread_files = client.files.list()
+	return thread_files
+def retrieving_file(file_id):
+	client.files.retrieve(file_id)
+
+def deleting_files(file_id):
+	client.files.delete(file_id)
+#=================================================================================Rendering Assistant Page============================================================================
+
 # Initialize page in session state if not already initialized
 if "page" not in st.session_state:
 	st.session_state['page'] = "Home"
@@ -242,25 +331,36 @@ def render_assistant_page():
 
 	# File Uploader
 	uploaded_file = st.file_uploader("Choose a file", type=["pdf", "txt", "docx", "csv", "xlsx"], key="file_uploader")
-
+	# filepath = "./docs/IPOL_STU(2023)740094_EN.pdf"
+	# upload_file(filepath)
+	# st.write(file_id_array)
 	# Process file upload
 	if uploaded_file != None:
 		#Adding the file to the array files
-		if uploaded_file not in file_array:
-			file_array.append(uploaded_file)
-			upload_file(uploaded_file)
+		file_id, file_name = file_upload(uploaded_file)
+		files_dict[uploaded_file.name] = {}
+		files_dict[uploaded_file.name]["file_id"] = file_id
+		files_dict[uploaded_file.name]["file_name"] = file_name
+		st.write(files_dict)
 		st.subheader("OpenAI Assistant for Data Analysis")
-
 		# Read the file based on its type
 		if uploaded_file.type == "csv":
 			df = pd.read_csv(uploaded_file)
+			st.write(df)
 		elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
 			df = pd.read_excel(uploaded_file)
-
-		# Display the uploaded data (optional)
-		# st.write("Uploaded Data:")
-		# st.write(df)
-
+			st.write(df)
+		# Delete the uploaded files in the thread
+		if st.button("Delete Files in current thread"):
+			for file in files_dict.keys():
+				file_id = file.file_id
+				deleting_files(file_id)
+		# Delete all files uploaded in all threads
+		if st.button("Delete all Files"):
+			thread_files = listing_files()
+			file_list = list(thread_files)  # Convert to list, if applicable
+			for item in file_list:
+				deleting_files(item.id)
 		# Process the data with OpenAI (placeholder function)
 		# response = generate_response(user_query, "123", "Andrei")
 		
@@ -274,14 +374,32 @@ def render_assistant_page():
 			# Append user query to conversation
 			st.session_state['conversation'].append(f"You: {user_query}")
 			# Get response from OpenAI
-			if len(file_id_array) > 0:
+			# Updating the Asistant if there are no files uploaded to the thread level or to the Assistant level
+			if len(files_dict) == 0:
 				print("No files")
-				response = generate_response_files(user_query, "123", "Andrei", file_id_array)
+				my_updated_assistant = client.beta.assistants.update(
+				  "asst_hLMuf98Ed8lA2RFIiuDE2uuG",
+				  	name="EnergyMarketsAssistant",
+					instructions="You are an absolute Energy Markets guru and Power Trader. You provide detailed, accurate, and well-argued information about everything in the Energy field.",
+					tools=[],
+					model="gpt-4-1106-preview",
+				)
+				print(my_updated_assistant)
+				response, thread = generate_response(user_query)
+				print(thread)
 			else:
-				response = generate_response(user_query, "123", "Andrei")
-			while uploaded_file != None:
-				st.write("Analysis Result:")
-				st.text_area("OpenAI Analysis", value=response, height=150, disabled=True)
+				my_updated_assistant = client.beta.assistants.update(
+				  "asst_hLMuf98Ed8lA2RFIiuDE2uuG",
+				  	name="EnergyMarketsAssistant",
+					instructions="You are an absolute Energy Markets guru and Power Trader. You provide detailed, accurate, and well-argued information about everything in the Energy field.",
+					model="gpt-4-1106-preview",
+					tools=[{"type": "code_interpreter"}, {"type": "retrieval"}]
+				)
+				response, thread = generate_response_files(user_query, file_id)
+				print(thread)
+			# while uploaded_file != None:
+			# 	st.write("Analysis Result:")
+				# st.text_area("OpenAI Analysis", value=response, height=150, disabled=True)
 			st.session_state['conversation'].append(f"AI: {response}")
 
 		# Clear the input box after submission
@@ -292,3 +410,8 @@ def render_assistant_page():
 
 	# Display conversation in a text area
 	st.text_area("Conversation", value=conversation_text, height=300, disabled=True)
+
+	if st.button("Retrieve Thread"):
+		print(thread)
+		my_thread = client.beta.threads.retrieve(thread.id)
+		print(my_thread)

@@ -599,9 +599,8 @@ def predicting_exporting_Solina(dataset):
     dataset.dropna(inplace=True)
     dataset_forecast = dataset_forecast[["Data", "Interval", "Radiatie", "Temperatura"]]
     dataset_forecast["Month"] = dataset_forecast.Data.dt.month
-
     dataset_forecast = dataset_forecast.drop("Data", axis=1)
-
+    dataset_forecast.dropna(inplace=True)
     preds = xgb_loaded.predict(dataset_forecast.values)
     #Exporting Results to Excel
     workbook = xlsxwriter.Workbook('./Solina/Production/Results_Production_xgb_Solina_wm.xlsx')
