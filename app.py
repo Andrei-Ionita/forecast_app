@@ -5,7 +5,7 @@ import numpy as np
 import xgboost as xgb
 import joblib
 import xlsxwriter
-
+import base64
 
 # Importing apps and pages
 from eda import render_eda_page
@@ -188,50 +188,85 @@ custom_styles = """
 		}
 </style>
 """
-simple_slideshow = """
+def get_base64_encoded_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode('utf-8')
 
+encoded_image_1 = get_base64_encoded_image("./assets/AI_pics/ai_face2.png")
+encoded_image_2 = get_base64_encoded_image("./assets/AI_pics/ai_face3.png")
+encoded_image_3 = get_base64_encoded_image("./assets/AI_pics/ai_face4.png")
+encoded_image_4 = get_base64_encoded_image("./assets/AI_pics/ai_face5.png")
+encoded_image_5 = get_base64_encoded_image("./assets/AI_pics/ai_face6.png")
+encoded_image_6 = get_base64_encoded_image("./assets/AI_pics/ai_face7.png")
+
+slideshow_html = f"""
 <!DOCTYPE html>
 <html>
 <head>
 <style>
-.mySlides {display: none;}
+.mySlides {{display: none;}}
+.mySlides img {{
+  width: 100%; /* Responsive width */
+  max-width: 700px; /* Maximum width */
+  height: auto; /* Adjust height automatically */
+  display: block; /* Center the image */
+  margin-left: auto;
+  margin-right: auto;
+}}
 </style>
 </head>
 <body>
 
 <div class="mySlides">
-  <img src="https://emarsys.com/app/uploads/2020/03/real-ai.jpg">
+  <img src="data:image/png;base64,{encoded_image_1}">
+</div>
 
 <div class="mySlides">
-  <img src="https://s7d1.scene7.com/is/image/dmqualcommprod/getting-personal-with-on-device-ai?$QC_Responsive$&fmt=png-alpha&wid=500">
+  <img src="data:image/png;base64,{encoded_image_2}">
+</div>
+
+<div class="mySlides">
+  <img src="data:image/png;base64,{encoded_image_3}">
+</div>
+
+<div class="mySlides">
+  <img src="data:image/png;base64,{encoded_image_4}">
+</div>
+
+<div class="mySlides">
+  <img src="data:image/png;base64,{encoded_image_5}">
+</div>
+
+<div class="mySlides">
+  <img src="data:image/png;base64,{encoded_image_6}">
 </div>
 
 <script>
 var slideIndex = 0;
 showSlides();
 
-function showSlides() {
+function showSlides() {{
   var i;
   var slides = document.getElementsByClassName("mySlides");
-  for (i = 0; i < slides.length; i++) {
+  for (i = 0; i < slides.length; i++) {{
     slides[i].style.display = "none";  
-  }
+  }}
   slideIndex++;
-  if (slideIndex > slides.length) {slideIndex = 1}
+  if (slideIndex > slides.length) {{slideIndex = 1}}
   slides[slideIndex-1].style.display = "block";
   setTimeout(showSlides, 2000); // Change image every 2 seconds
-}
+}}
 </script>
 
 </body>
 </html>
-
 """
-def render_home_page():
 
+
+def render_home_page():
 	st.title("nextE@AI Forecasting")
 	st.subheader("Forecast and analyze renewable energy production and consumption")
-	stc.html(simple_slideshow, height=700)
+	stc.html(slideshow_html, height=700)
 	st.markdown("""
 	<style>
 			.divider {
@@ -254,7 +289,7 @@ def render_home_page():
 	""", unsafe_allow_html=True)
 
 def main():
-
+	
 	st.sidebar.title("Navigation")
 
 	# Initialize session state for conversation history

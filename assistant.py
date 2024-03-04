@@ -65,8 +65,8 @@ def create_assistant():
 	return assistant
 
 # assistant = create_assistant(file)
-
-
+assistant_files_id = "asst_hLMuf98Ed8lA2RFIiuDE2uuG"
+assistant_nofiles_id = "asst_3hIJi9MLroj9f2VF20fcT7yL"
 # # --------------------------------------------------------------
 # # Thread management
 # # --------------------------------------------------------------
@@ -152,14 +152,14 @@ def generate_response_files(message_body, user_id, name, file_id_array):
 # # --------------------------------------------------------------
 # # Run assistant
 # # --------------------------------------------------------------
-def run_assistant(thread):
+def run_assistant(thread, assistant_id):
 	# Retrieve the Assistant
 	# assistant = client.beta.assistants.retrieve(thread.id)
 
 	# Run the assistant
 	run = client.beta.threads.runs.create(
 		thread_id=thread.id,
-		assistant_id="asst_hLMuf98Ed8lA2RFIiuDE2uuG",
+		assistant_id=assistant_id,
 	)
 
 	# Wait for completion
@@ -229,7 +229,7 @@ def get_openai_response(user_input):
 
 
 
-def generate_response_files(user_query, file_id, name="Andrei"):
+def generate_response_files(user_query, file_id, assistant_id, name="Andrei"):
 	thread = client.beta.threads.create(
 	  messages=[
 		{
@@ -253,11 +253,11 @@ def generate_response_files(user_query, file_id, name="Andrei"):
 	)
 
 	# Run the assistant and get the new message
-	new_message = run_assistant(thread)
+	new_message = run_assistant(thread, assistant_id)
 	print(f"To {name}:", new_message)
 	return new_message, thread.id
 
-def generate_response(user_query,name="Andrei"):
+def generate_response(assistant_id, user_query,name="Andrei"):
 	thread = client.beta.threads.create(
 	  messages=[
 		{
@@ -280,7 +280,7 @@ def generate_response(user_query,name="Andrei"):
 	)
 
 	# Run the assistant and get the new message
-	new_message = run_assistant(thread)
+	new_message = run_assistant(thread, assistant_id)
 	print(f"To {name}:", new_message)
 	return new_message, thread.id
 
@@ -377,25 +377,25 @@ def render_assistant_page():
 			# Updating the Asistant if there are no files uploaded to the thread level or to the Assistant level
 			if len(files_dict) == 0:
 				print("No files")
-				my_updated_assistant = client.beta.assistants.update(
-				  "asst_hLMuf98Ed8lA2RFIiuDE2uuG",
-				  	name="EnergyMarketsAssistant",
-					instructions="You are an absolute Energy Markets guru and Power Trader. You provide detailed, accurate, and well-argued information about everything in the Energy field.",
-					tools=[],
-					model="gpt-4-1106-preview",
-				)
-				print(my_updated_assistant)
-				response, thread = generate_response(user_query)
+				# my_updated_assistant = client.beta.assistants.update(
+				#   "asst_hLMuf98Ed8lA2RFIiuDE2uuG",
+				#   	name="EnergyMarketsAssistant",
+				# 	instructions="You are an absolute Energy Markets guru and Power Trader. You provide detailed, accurate, and well-argued information about everything in the Energy field.",
+				# 	tools=[],
+				# 	model="gpt-4-1106-preview",
+				# )
+				# print(my_updated_assistant)
+				response, thread = generate_response(assistant_nofiles_id, user_query)
 				print(thread)
 			else:
-				my_updated_assistant = client.beta.assistants.update(
-				  "asst_hLMuf98Ed8lA2RFIiuDE2uuG",
-				  	name="EnergyMarketsAssistant",
-					instructions="You are an absolute Energy Markets guru and Power Trader. You provide detailed, accurate, and well-argued information about everything in the Energy field.",
-					model="gpt-4-1106-preview",
-					tools=[{"type": "code_interpreter"}, {"type": "retrieval"}]
-				)
-				response, thread = generate_response_files(user_query, file_id)
+				# my_updated_assistant = client.beta.assistants.update(
+				#   "asst_hLMuf98Ed8lA2RFIiuDE2uuG",
+				#   	name="EnergyMarketsAssistant",
+				# 	instructions="You are an absolute Energy Markets guru and Power Trader. You provide detailed, accurate, and well-argued information about everything in the Energy field.",
+				# 	model="gpt-4-1106-preview",
+				# 	tools=[{"type": "code_interpreter"}, {"type": "retrieval"}]
+				# )
+				response, thread = generate_response_files(user_query, file_id, assistant_files_id)
 				print(thread)
 			# while uploaded_file != None:
 			# 	st.write("Analysis Result:")

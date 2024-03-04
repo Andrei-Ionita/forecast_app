@@ -19,6 +19,57 @@ import joblib
 import base64
 from pathlib import Path
 
+# Creating the holidays dataframe
+# Creating the dictionary of holidays
+New_year_and_day_after = pd.DataFrame({"holiday": "Anul Nou & A doua zi",
+                                                        "ds": pd.to_datetime(["2017-01-01", "2017-01-02", "2016-01-01", "2016-01-02", "2015-01-01", "2015-01-02", "2014-01-01", "2014-01-02", "2019-01-01",
+                                                                                                    "2019-01-02", "2018-01-01", "2018-01-02", "2020-01-01", "2020-01-02", "2021-01-01", "2021-01-02",
+                                                                                                    "2022-01-01", "2022-01-02", "2023-01-01", "2023-01-02","2024-01-01", "2024-01-02"]),
+                                                        "lower_window": -1,
+                                                        "upper_window": 1}) 
+
+National_holiday = pd.DataFrame({"holiday": "Ziua Nationala",
+                                                                 "ds": pd.to_datetime(["2016-12-01", "2015-12-01", "2014-12-01", "2018-12-01", "2019-12-01", "2020-12-01", "2021-12-01", "2022-12-01", "2023-12-01", "2024-12-01"]),
+                                                                 "lower_window": 0,
+                                                                 "upper_window": 1})
+Ziua_Principatelor = pd.DataFrame({"holiday": "Ziua Principatelor",
+                                                                 "ds": pd.to_datetime(["2017-01-24", "2016-01-24", "2018-01-24", "2019-01-24", "2020-01-24", "2021-01-24", "2022-01-24", "2023-01-24", "2024-01-24"]),
+                                                                 "lower_window": 0,
+                                                                 "upper_window": 1})
+Christmas = pd.DataFrame({"holiday": "Craciunul",
+                                                    "ds": pd.to_datetime(["2017-12-25", "2017-12-26", "2016-12-25", "2016-12-26", "2015-12-25", "2015-12-26", "2014-12-25", "2014-12-26", "2018-12-25", "2018-12-26", "2019-12-25", "2019-12-26", "2020-12-25", "2020-12-26", "2021-12-25", "2021-12-26",
+                                                                                                "2022-12-25", "2022-12-26", "2023-12-25", "2023-12-26", "2024-12-25", "2024-12-26"]),
+                                                    "lower_window": -1,
+                                                    "upper_window": 1})
+St_Andrew = pd.DataFrame({"holiday": "Sfantul Andrei",
+                                                    "ds": pd.to_datetime(["2017-11-30", "2016-11-30", "2015-11-30", "2014-11-30", "2018-11-30", "2019-11-30", "2020-11-30", "2021-11-30", "2022-11-30",
+                                                                                                "2023-11-30", "2024-11-30"]),
+                                                    "lower_window": -1,
+                                                    "upper_window": 0})
+Adormirea_Maicii_Domnului = pd.DataFrame({"holiday": "Adormirea Maicii Domnului",
+                                                                                    "ds": pd.to_datetime(["2017-08-15", "2016-08-15", "2015-08-15", "2014-08-15", "2018-08-15", "2019-08-15", "2020-08-15", "2021-08-15","2022-08-15", "2024-08-15"])})
+Rusalii = pd.DataFrame({"holiday": "Rusalii",
+                                                "ds": pd.to_datetime(["2017-06-04", "2017-06-05", "2016-06-19", "2016-06-20", "2015-05-31", "2015-06-01", "2014-06-08", "2014-06-09", "2018-05-27", "2018-05-28", "2019-06-16", "2019-06-17", "2020-06-07", "2020-06-08", "2021-06-20", "2021-06-21",
+                                                                                            "2022-06-12", "2022-06-13", "2023-06-04", "2023-06-05", "2024-06-24"])})
+Ziua_Copilului = pd.DataFrame({"holiday": "Ziua Copilului",
+                                                            "ds": pd.to_datetime(["2017-06-01", "2018-06-01", "2019-06-01", "2020-06-01", "2021-06-01", "2022-06-01", "2023-06-01", "2024-06-01"])})
+Ziua_Muncii = pd.DataFrame({"holiday": "Ziua Muncii",
+                                                        "ds": pd.to_datetime(["2017-05-01", "2016-05-01", "2015-05-01", "2014-05-01", "2018-05-01", "2019-05-01", "2020-05-01", "2021-05-01", "2022-05-01", "2023-05-01",
+                                                            "2024-05-01"])})
+Pastele = pd.DataFrame({"holiday": "Pastele",
+                                                "ds": pd.to_datetime(["2017-04-16", "2017-04-17", "2016-05-01", "2016-05-02", "2015-04-12", "2015-04-13", "2014-04-20", "2014-04-21", "2018-04-08", "2018-04-09", "2019-04-28", "2019-04-29", "2020-04-19", "2020-04-20", "2021-05-02", "2021-05-03",
+                                                                                            "2022-04-24", "2022-04-25", "2023-04-16", "2023-04-17", "2024-05-06"]),
+                                                "lower_window": -1,
+                                                "upper_window": 1})
+Vinerea_Mare = pd.DataFrame({"holiday": "Vinerea Mare",
+                                                         "ds": pd.to_datetime(["2020-04-17", "2019-04-26", "2018-04-06", "2021-04-30", "2022-04-30", "2023-04-30", "2024-05-03"])})
+Ziua_Unirii = pd.DataFrame({"holiday": "Ziua Unirii",
+                                                        "ds": pd.to_datetime(["2015-01-24", "2020-01-24", "2019-01-24", "2021-01-24", "2022-01-24", "2023-01-24", "2024-01-24"])})
+Public_Holiday = pd.DataFrame({"holiday": "Public Holiday",
+                                                            "ds": pd.to_datetime(["2019-04-30"])})
+holidays = pd.concat((New_year_and_day_after, National_holiday, Christmas, St_Andrew, Ziua_Principatelor, Adormirea_Maicii_Domnului, Rusalii, Ziua_Copilului, Ziua_Muncii,
+                                            Pastele, Vinerea_Mare, Ziua_Unirii, Public_Holiday))
+
 # Defining the functions
 def fetch_ghi_data_from_api(lat, lon, date, api_key):
     # Fetch data from the API
@@ -108,7 +159,7 @@ def flatten_json_to_excel(json_file_path, output_file_path):
     # Saving to Excel
     flattened_list_data.to_excel(output_file_path, index=False)
 
-def concatenate_ghi_data(CEF):
+def concatenate_ghi_data(CEF, forecast):
     folder_path = './{}/Production/Input/'.format(CEF)  # Replace with your folder path
     specific_string = 'GHI_'  # Replace with the string you want to check for
     all_files = [f for f in os.listdir(folder_path) if specific_string in f]
@@ -132,7 +183,7 @@ def concatenate_ghi_data(CEF):
 
     # Optionally, save the concatenated DataFrames to new Excel files
     # concatenated_daily_df.to_excel('Concatenated_Daily_GHI.xlsx', index=False)
-    concatenated_hourly_df.to_excel('./{}/Production/Input/Concatenated_Hourly_GHI.xlsx'.format(CEF), index=False)
+    concatenated_hourly_df.to_excel('./{}/{}/Input/Concatenated_Hourly_GHI.xlsx'.format(CEF, forecast), index=False)
 
     print("All files concatenated into Concatenated_Daily_GHI.xlsx and Concatenated_Hourly_GHI.xlsx")
 
@@ -226,9 +277,9 @@ date = datetime.now().strftime('%Y-%m-%d')
 # output_file_path = './RAAL/Weather_data/temps_clouds_{}.xlsx'.format(date)  # Replace with your desired output file path
 
 # First, we need to do some preprocessing of the weather and GHI file
-def creating_weather_date_hour_columns(CEF):
+def creating_weather_date_hour_columns(CEF, forecast):
     # Load the data
-    weather_df = pd.read_excel('./{}/Production/Input/weather.xlsx'.format(CEF))
+    weather_df = pd.read_excel('./{}/{}/Input/weather.xlsx'.format(CEF, forecast))
 
     # Ensure the column 'E' is in datetime format
     weather_df['dt_txt'] = pd.to_datetime(weather_df['dt_txt'])
@@ -238,9 +289,9 @@ def creating_weather_date_hour_columns(CEF):
     weather_df.insert(loc=weather_df.columns.get_loc('Data') + 1, column='Interval', value=weather_df['dt_txt'].dt.hour)
 
     # Save the modified DataFrame back to Excel
-    weather_df.to_excel('./{}/Production/Input/weather.xlsx'.format(CEF), index=False)
+    weather_df.to_excel('./{}/{}/Input/weather.xlsx'.format(CEF, forecast), index=False)
 
-def change_date_format_weather_wb(CEF):
+def change_date_format_weather_wb(CEF, forecast):
     # Check if the named style already exists
     weather_wb = openpyxl.open('./{}/Production/Input/weather.xlsx'.format(CEF))
     style_name = 'date_style'
@@ -254,10 +305,10 @@ def change_date_format_weather_wb(CEF):
     # Now you can safely assign the style to cells without causing an error
     for row in range(1, weather_wb.active.max_row + 1):
         weather_wb.active.cell(row=row, column=6).style = date_style
-    weather_wb.save('./{}/Production/Input/weather.xlsx'.format(CEF))
+    weather_wb.save('./{}/{}/Input/weather.xlsx'.format(CEF, forecast))
 
 # Defining the lookup column in the weather file
-def add_lookup_column_weather(CEF):
+def add_lookup_column_weather(CEF, forecast):
     # Load the workbook and sheet
     workbook = load_workbook('./{}/Production/Input/weather.xlsx'.format(CEF))
     sheet = workbook.active
@@ -277,10 +328,10 @@ def add_lookup_column_weather(CEF):
         sheet[f"{lookup_col_letter}{row}"] = f"=F{row}&G{row}"
 
     # Save the workbook
-    workbook.save('./{}/Production/Input/weather.xlsx'.format(CEF))
-    weather_df = pd.read_excel('./{}/Production/Input/weather.xlsx'.format(CEF))
+    workbook.save('./{}/{}/Input/weather.xlsx'.format(CEF, forecast))
+    weather_df = pd.read_excel('./{}/{}/Input/weather.xlsx'.format(CEF, forecast))
     weather_df["Lookup_python"] = weather_df["Data"].astype(str) + weather_df["Interval"].astype(str)
-    weather_df.to_excel('./{}/Production/Input/weather.xlsx'.format(CEF))
+    weather_df.to_excel('./{}/{}/Input/weather.xlsx'.format(CEF, forecast))
 
 def prepare_lookup_column(file_path, date_col_name='Data', interval_col_name='Interval'):
     # Load the Excel file into a DataFrame
@@ -339,7 +390,7 @@ def prepare_lookup_column(file_path, date_col_name='Data', interval_col_name='In
 # Example usage
 file_path = "./RAAL/Production/Input.xlsm"  # Update this path to your actual file path
 
-def building_input_file(CEF):
+def building_input_file(CEF, forecast):
     # Define file paths
     # base_path = Path("./RAAL/Production").parent  # Adjust this path as necessary
     ghi_file_path = "./{}/Production/Input/Concatenated_Hourly_GHI.xlsx".format(CEF)
@@ -350,7 +401,10 @@ def building_input_file(CEF):
     weather_wb = openpyxl.load_workbook(weather_file_path, data_only=True)
     from pathlib import Path
     # Example for loading an existing workbook
-    workbook_path = Path("./{}/Production/Input.xlsx".format(CEF))  # Ensure this path is correct
+    if forecast == "Production":
+        workbook_path = Path("./{}/Production/Input_Production_{}.xlsx".format(CEF, CEF))  # Ensure this path is correct
+    else:
+        workbook_path = Path("./{}/Consumption/Input_Consumption_{}.xlsx".format(CEF, CEF))
     if workbook_path.exists():
         main_wb = openpyxl.load_workbook(workbook_path)
         ws = main_wb.active  # or specify the sheet name directly if needed
@@ -414,7 +468,7 @@ def building_input_file(CEF):
     # # Similar steps for temperature and clouds from weather data, adjust the formula and columns as necessary
     
     # # Save and close workbooks
-    main_wb.save("./{}/Production/Input.xlsx".format(CEF))  # Adjust the path as necessary
+    main_wb.save("./{}/{}/Input_{}_{}.xlsx".format(CEF, forecast, forecast, CEF))  # Adjust the path as necessary
     # No need to explicitly close in Python, as workbooks are closed when the program ends or when they're no longer referenced
 
 # Adding the Lookup column to the Input file
@@ -532,16 +586,16 @@ def lookup_weather_values():
     main_df['Nori'] = main_df['Lookup'].map(lookup_dict)
     main_df.to_excel('./RAAL/Production/Input.xlsx', index=False)
 
-def lookup_ghi_values(CEF, input_df, ghi_df):
+def lookup_ghi_values(CEF, input_df, ghi_df, forecast):
     # Create a dictionary from the GHI DataFrame for efficient lookup
     ghi_dict = ghi_df.set_index('Lookup')['cloudy_sky_ghi'].to_dict()
     
     # Map the 'Lookup' values from the input DataFrame to get the 'cloudy_sky_ghi' values
     input_df['Radiatie'] = input_df['Lookup'].map(ghi_dict)
-    input_df.to_excel("./{}/Production/Input.xlsx".format(CEF), index=False)
+    input_df.to_excel("./{}/{}/Input_{}_{}.xlsx".format(CEF, forecast, forecast, CEF), index=False)
     return input_df
 
-def lookup_weather_values(CEF, input_df, weather_df):
+def lookup_weather_values(CEF, input_df, weather_df, forecast):
     # Create a dictionary from the main.temp DataFrame for efficient lookup
     weather_dict = weather_df.set_index('Lookup')['main.temp'].to_dict()
     
@@ -552,7 +606,7 @@ def lookup_weather_values(CEF, input_df, weather_df):
     
     # Map the 'Lookup' values from the input DataFrame to get the 'temperatures' values
     input_df['Nori'] = input_df['Lookup'].map(weather_dict)
-    input_df.to_excel("./{}/Production/Input.xlsx".format(CEF), index=False)
+    input_df.to_excel("./{}/{}/Input_{}_{}.xlsx".format(CEF, forecast, forecast, CEF), index=False)
     return input_df
 #===============================================================================Forcasting RAAL Production=================================================================
 
@@ -567,7 +621,7 @@ def predicting_exporting_RAAL(dataset):
     st.write(dataset_forecast)
     preds = xgb_loaded.predict(dataset_forecast.values)
     #Exporting Results to Excel
-    workbook = xlsxwriter.Workbook("./RAAL/Production/Results_Production_xgb_RAAL_wm.xlsx")
+    workbook = xlsxwriter.Workbook("./RAAL/Production/Results/Results_Production_xgb_RAAL_wm.xlsx")
     worksheet = workbook.add_worksheet("Production_Predictions")
     date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
     # Define a format for cells with three decimal places
@@ -591,74 +645,142 @@ def predicting_exporting_RAAL(dataset):
 
     workbook.close()
 
-#===============================================================================Forcasting Solina Production=================================================================
+#===============================================================================Forcasting RAAL Consumption=================================================================
 
-def predicting_exporting_Solina(dataset):
-    xgb_loaded = joblib.load("./Solina/Production/rs_xgb_Solina_prod_WM.pkl")
-    dataset_forecast = dataset.copy()
-    dataset.dropna(inplace=True)
-    dataset_forecast = dataset_forecast[["Data", "Interval", "Radiatie", "Temperatura"]]
-    dataset_forecast["Month"] = dataset_forecast.Data.dt.month
-    dataset_forecast = dataset_forecast.drop("Data", axis=1)
-    dataset_forecast.dropna(inplace=True)
-    preds = xgb_loaded.predict(dataset_forecast.values)
+def predicting_exporting_Consumption_RAAL(dataset):
+    # Predict on forecast data
+    forecast_dataset = dataset.copy()
+    st.write(forecast_dataset)
+    forecast_dataset["Month"] = forecast_dataset.Data.dt.month
+    forecast_dataset["WeekDay"] = forecast_dataset.Data.dt.weekday
+    forecast_dataset["Holiday"] = 0
+    for holiday in forecast_dataset["Data"].unique():
+        if holiday in holidays.ds.values:
+            forecast_dataset["Holiday"][forecast_dataset["Data"] == holiday] = 1
+
+    # Restructuring the dataset
+    forecast_dataset = forecast_dataset[["WeekDay", "Month", "Holiday", "Interval", "Temperatura"]]
+    # Loading the model
+    xgb_loaded = joblib.load("./RAAL/Consumption/XGB_Consumption_RAAL.pkl")
+    preds = xgb_loaded.predict(forecast_dataset.values)
     #Exporting Results to Excel
-    workbook = xlsxwriter.Workbook('./Solina/Production/Results_Production_xgb_Solina_wm.xlsx')
-    worksheet = workbook.add_worksheet("Production_Predictions")
+    workbook = xlsxwriter.Workbook('./RAAL/Consumption/Results/Results_Consumption_xgb_RAAL_WM.xlsx')
+    worksheet = workbook.add_worksheet("Consumption_Predictions")
     date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
     # Define a format for cells with three decimal places
-    # decimal_format = workbook.add_format({'num_format': '0.000'})
+    decimal_format = workbook.add_format({'num_format': '0.000'})
     row = 1
     col = 0
     worksheet.write(0,0,"Data")
     worksheet.write(0,1,"Interval")
     worksheet.write(0,2,"Prediction")
-    # Rounded values
-    rounded_preds = [round(val, 3) for val in preds]
-    for value in rounded_preds:
-            worksheet.write(row, col + 2, value)
-            row +=1
+    for value in preds:
+        worksheet.write(row, col + 2, value, decimal_format)
+        row +=1
     row = 1
     for Data, Interval in zip(dataset.Data, dataset.Interval):
-            worksheet.write(row, col + 0, Data, date_format)
-            worksheet.write(row, col + 1, Interval)
-            row +=1
+        worksheet.write(row, col + 0, Data, date_format)
+        worksheet.write(row, col + 1, Interval)
+        row +=1
 
     workbook.close()
-#===============================================================================Rendering the Data Engineering page=================================================================
 
-def render_data_eng_page():
-    
-    # Web App Title
-    st.markdown('''
-    # **Forecast Production**
+#================================================================================Rendering RAAL Consumption and Production pages=============================================
 
-    ''')
-
-    # Streamlit interface
-    location = st.radio(
-    "Select location",
-    ["Alba Iulia", "Prundu Bargaului"],
-    captions = ["***Solina***", "***RAAL***"])
-
-    if location == "Prundu Bargaului":
-        lat = 47.2229
-        lon = 24.7244
-    else:
-        lat = 46.073272
-        lon = 23.580489
-    # User inputs for start and end dates
-    start_date = st.date_input("Start Date", datetime.today().date())
-    end_date = st.date_input("End Date", datetime.today().date())
-        
-    if st.button("Run Forecast"):
-        current_date = start_date
-        # FORECASTING RAAL PRODUCTION
-        # Check if the file exists
-        if location == "Prundu Bargaului":
+def render_RAAL_cons_prod(start_date, end_date):
+    forecast = st.radio("Choose Forecast:", ["Consumption", "Production"])
+    if forecast == "Consumption":
+        if st.button("Run Consumption Forecast"):
             CEF = "RAAL"
             # 1. Building the Input file
             # Iterate from start_date to end_date, day by day
+            current_date = start_date
+            while current_date <= end_date:
+                print(current_date.strftime('%Y-%m-%d'))
+                # Fetching data for the date
+                ghi_data = fetch_ghi_data_from_api(lat, lon, current_date.strftime('%Y-%m-%d'), api_key)
+                # Processing GHI data
+                output_file_path = './RAAL/Consumption/Input/GHI_{}.xlsx'.format(current_date.strftime('%Y-%m-%d'))  # Replace with your desired output file path
+                ghi_json_to_excel(ghi_data, output_file_path)
+                # Increment the date by one day
+                current_date += timedelta(days=1)
+            # Concatenating the GHI data into one file
+            concatenate_ghi_data(CEF, forecast)
+            # Formatting the date column
+            ghi_file_path = "./RAAL/Consumption/Input/Concatenated_Hourly_GHI.xlsx"
+            process_and_save_excel(ghi_file_path)
+            # Adding the lookup column
+            # add_lookup_column_GHI()
+            file_path = "./RAAL/Consumption/Input/Concatenated_Hourly_GHI.xlsx"
+            date_col_name = "date"
+            interval_col_name = "hour"
+            ghi_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+
+            # Fetching the weather data
+            nr_days = ((end_date - start_date).days + 2)*24
+            print(nr_days)
+            temps_clouds_data = fetch_temps_clouds_data_from_api(lat,lon,api_key,nr_days)
+            print(temps_clouds_data)
+            # Saving the json file
+            json_data = temps_clouds_data  # Replace with your JSON data
+            folder_path = "./RAAL/Consumption/Input/"  # Replace with your folder path
+            file_name = "weather.json"  # Replace with your desired file name
+            save_json_to_file(json_data, folder_path, file_name)
+            # Processing the weather data
+            json_file_path = './RAAL/Consumption/Input/weather.json'  # Replace with your JSON file path
+            output_file_path = './RAAL/Consumption/Input/weather.xlsx'  # Replace with your desired output file path
+            flatten_json_to_excel(json_file_path, output_file_path)
+            creating_weather_date_hour_columns(CEF, forecast)
+            # change_date_format_weather_wb()
+            # add_lookup_column_weather()
+            file_path = "./RAAL/Consumption/Input/weather.xlsx"
+            date_col_name = "Data"
+            interval_col_name = "Interval"
+            weather_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+
+            # Vuilding the Input file
+            building_input_file(CEF, forecast)
+            # add_lookup_column_Input()
+            # add_lookup_column_input_xlsxwriter()
+            file_path = "./RAAL/Consumption/Input_Consumption_RAAL.xlsx"
+            date_col_name = "Data"
+            interval_col_name = "Interval"
+            input_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+            # lookup_ghi_values()
+            # lookup_weather_values()
+            # Lookuping the GHI values
+            input_df = pd.read_excel("./RAAL/Consumption/Input_Consumption_RAAL.xlsx")
+            ghi_df = pd.read_excel("./RAAL/Consumption/Input/Concatenated_Hourly_GHI.xlsx")
+            lookup_ghi_values(CEF, input_df, ghi_df, forecast)
+            # Lookuping the temperatures and clouds values
+            weather_df = pd.read_excel("./RAAL/Consumption/Input/weather.xlsx")
+            lookup_weather_values(CEF, input_df, weather_df, forecast)
+            # Predicting the Production
+            if os.path.exists("./RAAL/Consumption/Input_Consumption_RAAL.xlsx"):
+                # If the file exists, show the button
+                df = pd.read_excel("./RAAL/Consumption/Input_Consumption_RAAL.xlsx")
+                predicting_exporting_Consumption_RAAL(df)
+                file_path_results = './RAAL/Consumption/Results/Results_Consumption_xgb_RAAL_WM.xlsx'
+                with open(file_path_results, "rb") as f:
+                    excel_data = f.read()
+
+                # Create a download link
+                b64 = base64.b64encode(excel_data).decode()
+                button_html = f"""
+                     <a download="Consumption_Forecast_RAAL_WM_{end_date}.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+                     <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+                     </a> 
+                     """
+                st.markdown(button_html, unsafe_allow_html=True)
+            else:
+                # If the file does not exist, display a message
+                st.error("Input file does not exist. Please ensure the file is in the correct location before proceeding.")
+    else:
+        if st.button("Run Production Forecast"):
+            CEF = "RAAL"
+            # 1. Building the Input file
+            # Iterate from start_date to end_date, day by day
+            current_date = start_date
             while current_date <= end_date:
                 print(current_date.strftime('%Y-%m-%d'))
                 # Fetching data for the date
@@ -703,28 +825,28 @@ def render_data_eng_page():
             weather_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
 
             # Vuilding the Input file
-            building_input_file(CEF)
+            building_input_file(CEF, forecast)
             # add_lookup_column_Input()
             # add_lookup_column_input_xlsxwriter()
-            file_path = "./RAAL/Production/Input.xlsx"
+            file_path = "./RAAL/Production/Input_Production_RAAL.xlsx"
             date_col_name = "Data"
             interval_col_name = "Interval"
             input_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
             # lookup_ghi_values()
             # lookup_weather_values()
             # Lookuping the GHI values
-            input_df = pd.read_excel("./RAAL/Production/Input.xlsx")
+            input_df = pd.read_excel("./RAAL/Production/Input_Production_RAAL.xlsx")
             ghi_df = pd.read_excel("./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx")
             lookup_ghi_values(CEF, input_df, ghi_df)
             # Lookupinh the temperatures and clouds values
             weather_df = pd.read_excel("./RAAL/Production/Input/weather.xlsx")
             lookup_weather_values(CEF, input_df, weather_df)
             # Predicting the Production
-            if os.path.exists("./RAAL/Production/Input.xlsx"):
+            if os.path.exists("./RAAL/Production/Input_Production_RAAL.xlsx"):
                 # If the file exists, show the button
-                df = pd.read_excel("./RAAL/Production/Input.xlsx")
+                df = pd.read_excel("./RAAL/Production/Input_Production_RAAL.xlsx")
                 predicting_exporting_RAAL(df)
-                file_path_results = './RAAL/Production/Results_Production_xgb_RAAL_wm.xlsx'
+                file_path_results = './RAAL/Production/Results/Results_Production_xgb_RAAL_wm.xlsx'
                 with open(file_path_results, "rb") as f:
                     excel_data = f.read()
 
@@ -739,8 +861,85 @@ def render_data_eng_page():
             else:
                 # If the file does not exist, display a message
                 st.error("Input file does not exist. Please ensure the file is in the correct location before proceeding.")
-        # Forecasting Solina Production
-        elif location == "Alba Iulia":
+
+#===============================================================================Forcasting Solina Production=================================================================
+
+def predicting_exporting_Solina(dataset):
+    xgb_loaded = joblib.load("./Solina/Production/rs_xgb_Solina_prod_WM.pkl")
+    dataset_forecast = dataset.copy()
+    dataset.dropna(inplace=True)
+    dataset_forecast = dataset_forecast[["Data", "Interval", "Radiatie", "Temperatura"]]
+    dataset_forecast["Month"] = dataset_forecast.Data.dt.month
+    dataset_forecast = dataset_forecast.drop("Data", axis=1)
+    dataset_forecast.dropna(inplace=True)
+    preds = xgb_loaded.predict(dataset_forecast.values)
+    #Exporting Results to Excel
+    workbook = xlsxwriter.Workbook('./Solina/Production/Results/Results_Production_xgb_Solina_wm.xlsx')
+    worksheet = workbook.add_worksheet("Production_Predictions")
+    date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+    # Define a format for cells with three decimal places
+    # decimal_format = workbook.add_format({'num_format': '0.000'})
+    row = 1
+    col = 0
+    worksheet.write(0,0,"Data")
+    worksheet.write(0,1,"Interval")
+    worksheet.write(0,2,"Prediction")
+    # Rounded values
+    rounded_preds = [round(val, 3) for val in preds]
+    for value in rounded_preds:
+            worksheet.write(row, col + 2, value)
+            row +=1
+    row = 1
+    for Data, Interval in zip(dataset.Data, dataset.Interval):
+            worksheet.write(row, col + 0, Data, date_format)
+            worksheet.write(row, col + 1, Interval)
+            row +=1
+
+    workbook.close()
+
+#===============================================================================Forcasting Solina Consumption=================================================================
+
+def predicting_exporting_Consumption_Solina(forecast_dataset):
+    # Predict on forecast data
+    forecast_dataset["Month"] = forecast_dataset.Data.dt.month
+    forecast_dataset["WeekDay"] = forecast_dataset.Data.dt.weekday
+    forecast_dataset["Holiday"] = 0
+    for holiday in forecast_dataset["Data"].unique():
+            if holiday in holidays.ds.values:
+                    forecast_dataset["Holiday"][forecast_dataset["Data"] == holiday] = 1
+
+    # Restructuring the dataset
+    forecast_dataset = forecast_dataset[["WeekDay", "Month", "Holiday", "Interval", "Temperatura"]]
+    forecast_dataset.dropna(inplace=True)
+    # Loading the model
+    xgb_loaded = joblib.load("./Solina/Consumption/XGB_Consumption_Temperature.pkl")
+    preds = xgb_loaded.predict(forecast_dataset.values)
+    #Exporting Results to Excel
+    workbook = xlsxwriter.Workbook('./Solina/Consumption/Results/Results_Consumption_xgb_Solina_WM.xlsx')
+    worksheet = workbook.add_worksheet("Prediction_Consumption")
+    # Define a format for cells with three decimal places
+    decimal_format = workbook.add_format({'num_format': '0.000'})
+
+    row = 1
+    col = 0
+    worksheet.write(0,0,"Prediction")
+    # worksheet.write(0,1,"Real")
+
+    for value in preds:
+            worksheet.write(row, col, value, decimal_format)
+            row +=1
+    # row = 1
+    # for value in y_test:
+    #     worksheet.write(row, col + 1, value)
+    #     row +=1
+
+    workbook.close()
+
+#==============================================================================Rendering Solina Consumption Production Page===================================================
+def render_prod_cons_Solina_page(start_date, end_date):
+    forecast = st.radio("Choose Forecast:", ["Consumption", "Production"])
+    if forecast == "Production":
+        if st.button("Run Production Forecast"):
             CEF = "Solina"
             # Iterate from start_date to end_date, day by day
             current_date = start_date
@@ -754,7 +953,7 @@ def render_data_eng_page():
                 # Increment the date by one day
                 current_date += timedelta(days=1)
             # Concatenating the GHI data into one file
-            concatenate_ghi_data(CEF)
+            concatenate_ghi_data(CEF, forecast)
             # Formatting the date column
             ghi_file_path = "./Solina/Production/Input/Concatenated_Hourly_GHI.xlsx"
             process_and_save_excel(ghi_file_path)
@@ -779,7 +978,7 @@ def render_data_eng_page():
             json_file_path = './Solina/Production/Input/weather.json'  # Replace with your JSON file path
             output_file_path = './Solina/Production/Input/weather.xlsx'  # Replace with your desired output file path
             flatten_json_to_excel(json_file_path, output_file_path)
-            creating_weather_date_hour_columns(CEF)
+            creating_weather_date_hour_columns(CEF, forecast)
             # change_date_format_weather_wb()
             # add_lookup_column_weather()
             file_path = "./Solina/Production/Input/weather.xlsx"
@@ -788,27 +987,27 @@ def render_data_eng_page():
             weather_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
 
             # Building the Input file
-            building_input_file(CEF)
+            building_input_file(CEF, forecast)
             # add_lookup_column_Input()
             # add_lookup_column_input_xlsxwriter()
-            file_path = "./Solina/Production/Input.xlsx"
+            file_path = "./Solina/Production/Input_Production_Solina.xlsx"
             date_col_name = "Data"
             interval_col_name = "Interval"
             input_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
             # lookup_ghi_values()
             # lookup_weather_values()
             # Lookuping the GHI values
-            input_df = pd.read_excel("./Solina/Production/Input.xlsx")
+            input_df = pd.read_excel("./Solina/Production/Input_Production_Solina.xlsx")
             ghi_df = pd.read_excel("./Solina/Production/Input/Concatenated_Hourly_GHI.xlsx")
             lookup_ghi_values(CEF, input_df, ghi_df)
             # Lookupinh the temperatures and clouds values
             weather_df = pd.read_excel("./Solina/Production/Input/weather.xlsx")
             lookup_weather_values(CEF, input_df, weather_df)
-            if os.path.exists("./Solina/Production/Input.xlsx"):
+            if os.path.exists("./Solina/Production/Input_Production_Solina.xlsx"):
             # Check if the file exists
-                df = pd.read_excel("./Solina/Production/Input.xlsx")
+                df = pd.read_excel("./Solina/Production/Input_Production_Solina.xlsx")
                 predicting_exporting_Solina(df)
-                file_path_results = './Solina/Production/Results_Production_xgb_Solina_wm.xlsx'
+                file_path_results = './Solina/Production/Results/Results_Production_xgb_Solina_wm.xlsx'
                 with open(file_path_results, "rb") as f:
                     excel_data = f.read()
 
@@ -823,4 +1022,122 @@ def render_data_eng_page():
             else:
                 # If the file does not exist, display a message
                 st.error("Input file does not exist. Please ensure the file is in the correct location before proceeding.")
+    else:
+        if st.button("Run Consumption Forecast"):
+            CEF = "Solina"
+            # Iterate from start_date to end_date, day by day
+            current_date = start_date
+            while current_date <= end_date:
+                print(current_date.strftime('%Y-%m-%d'))
+                # Fetching data for the date
+                ghi_data = fetch_ghi_data_from_api(lat, lon, current_date.strftime('%Y-%m-%d'), api_key)
+                # Processing GHI data
+                output_file_path = './Solina/Consumption/Input/GHI_{}.xlsx'.format(current_date.strftime('%Y-%m-%d'))  # Replace with your desired output file path
+                ghi_json_to_excel(ghi_data, output_file_path)
+                # Increment the date by one day
+                current_date += timedelta(days=1)
+            # Concatenating the GHI data into one file
+            concatenate_ghi_data(CEF, forecast)
+            # Formatting the date column
+            ghi_file_path = "./Solina/Consumption/Input/Concatenated_Hourly_GHI.xlsx"
+            process_and_save_excel(ghi_file_path)
+            # Adding the lookup column
+            # add_lookup_column_GHI()
+            file_path = "./Solina/Consumption/Input/Concatenated_Hourly_GHI.xlsx"
+            date_col_name = "date"
+            interval_col_name = "hour"
+            ghi_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+
+            # Fetching the weather data
+            nr_days = ((end_date - start_date).days + 2)*24
+            print(nr_days)
+            temps_clouds_data = fetch_temps_clouds_data_from_api(lat,lon,api_key,nr_days)
+            print(temps_clouds_data)
+            # Saving the json file
+            json_data = temps_clouds_data  # Replace with your JSON data
+            folder_path = "./Solina/Consumption/Input/"  # Replace with your folder path
+            file_name = "weather.json"  # Replace with your desired file name
+            save_json_to_file(json_data, folder_path, file_name)
+            # Processing the weather data
+            json_file_path = './Solina/Consumption/Input/weather.json'  # Replace with your JSON file path
+            output_file_path = './Solina/Consumption/Input/weather.xlsx'  # Replace with your desired output file path
+            flatten_json_to_excel(json_file_path, output_file_path)
+            creating_weather_date_hour_columns(CEF, forecast)
+            # change_date_format_weather_wb()
+            # add_lookup_column_weather()
+            file_path = "./Solina/Consumption/Input/weather.xlsx"
+            date_col_name = "Data"
+            interval_col_name = "Interval"
+            weather_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+
+            # Building the Input file
+            building_input_file(CEF, forecast)
+            # add_lookup_column_Input()
+            # add_lookup_column_input_xlsxwriter()
+            file_path = "./Solina/Consumption/Input_Consumption_Solina.xlsx"
+            date_col_name = "Data"
+            interval_col_name = "Interval"
+            input_df = prepare_lookup_column(file_path, date_col_name, interval_col_name)
+            # lookup_ghi_values()
+            # lookup_weather_values()
+            # Lookuping the GHI values
+            input_df = pd.read_excel("./Solina/Consumption/Input_Consumption_Solina.xlsx")
+            ghi_df = pd.read_excel("./Solina/Consumption/Input/Concatenated_Hourly_GHI.xlsx")
+            lookup_ghi_values(CEF, input_df, ghi_df, forecast)
+            # Lookuping the temperatures and clouds values
+            weather_df = pd.read_excel("./Solina/Consumption/Input/weather.xlsx")
+            lookup_weather_values(CEF, input_df, weather_df, forecast)
+            if os.path.exists("./Solina/Consumption/Input_Consumption_Solina.xlsx"):
+            # Check if the file exists
+                df = pd.read_excel("./Solina/Consumption/Input_Consumption_Solina.xlsx")
+                predicting_exporting_Consumption_Solina(df)
+                file_path_results = './Solina/Consumption/Results/Results_Consumption_xgb_Solina_WM.xlsx'
+                with open(file_path_results, "rb") as f:
+                    excel_data = f.read()
+
+                # Create a download link
+                b64 = base64.b64encode(excel_data).decode()
+                button_html = f"""
+                     <a download="Results_Consumption_Forecast_Solina_WM_{end_date}.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+                     <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+                     </a> 
+                     """
+                st.markdown(button_html, unsafe_allow_html=True)
+            else:
+                # If the file does not exist, display a message
+                st.error("Input file does not exist. Please ensure the file is in the correct location before proceeding.")
+
+#===============================================================================Rendering the Data Engineering page=================================================================
+
+def render_data_eng_page():
+    
+    # Web App Title
+    st.markdown('''
+    # **Forecast Production**
+
+    ''')
+
+    # Streamlit interface
+    location = st.radio(
+    "Select location",
+    ["Alba Iulia", "Prundu Bargaului"],
+    captions = ["***Solina***", "***RAAL***"])
+
+    if location == "Prundu Bargaului":
+        lat = 47.2229
+        lon = 24.7244
+    else:
+        lat = 46.073272
+        lon = 23.580489
+
+    # User inputs for start and end dates
+    start_date = st.date_input("Start Date", datetime.today().date())
+    end_date = st.date_input("End Date", datetime.today().date())
+    
+    if location == "Prundu Bargaului":
+        render_RAAL_cons_prod(start_date, end_date)
+
+    # Forecasting Solina Production
+    elif location == "Alba Iulia":
+        render_prod_cons_Solina_page(start_date, end_date)
         
