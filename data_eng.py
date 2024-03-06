@@ -21,12 +21,12 @@ from pathlib import Path
 import gdown
 
 # Importing th files from Google Drive
-file_id = "1qIiG7RJvlrOfMo1TvO0_e1boHf5ebhDn"
-dest_path = "./"
-def download_from_google_drive(file_id, dest_path):
-    url = f'https://drive.google.com/uc?id={file_id}'
-    gdown.download(url, dest_path, quiet=False)
-download_from_google_drive(file_id, dest_path)
+# file_id = "1qIiG7RJvlrOfMo1TvO0_e1boHf5ebhDn"
+# dest_path = "./"
+# def download_from_google_drive(file_id, dest_path):
+#     url = f'https://drive.google.com/uc?id={file_id}'
+#     gdown.download(url, dest_path, quiet=False)
+# download_from_google_drive(file_id, dest_path)
 
 # Example usage
 file_id = 'YOUR_FILE_ID'  # Replace with your actual file ID
