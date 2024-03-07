@@ -18,7 +18,7 @@ import os, os.path
 import joblib
 import base64
 from pathlib import Path
-import gdown
+
 
 # Creating the holidays dataframe
 # Creating the dictionary of holidays
