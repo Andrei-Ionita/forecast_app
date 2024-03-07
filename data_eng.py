@@ -20,20 +20,6 @@ import base64
 from pathlib import Path
 import gdown
 
-# Importing th files from Google Drive
-# file_id = "1qIiG7RJvlrOfMo1TvO0_e1boHf5ebhDn"
-# dest_path = "./"
-# def download_from_google_drive(file_id, dest_path):
-#     url = f'https://drive.google.com/uc?id={file_id}'
-#     gdown.download(url, dest_path, quiet=False)
-# download_from_google_drive(file_id, dest_path)
-
-# Example usage
-file_id = 'YOUR_FILE_ID'  # Replace with your actual file ID
-dest_path = 'path/to/destination/folder/filename.extension'  # Destination path where you want to store the file
-download_from_google_drive(file_id, dest_path)
-
-
 # Creating the holidays dataframe
 # Creating the dictionary of holidays
 New_year_and_day_after = pd.DataFrame({"holiday": "Anul Nou & A doua zi",
@@ -1122,6 +1108,27 @@ def render_prod_cons_Solina_page(start_date, end_date):
                 # If the file does not exist, display a message
                 st.error("Input file does not exist. Please ensure the file is in the correct location before proceeding.")
 
+#=============================================================================Feetching the data for Transavia locations========================================================================
+solcast_api_key = os.getenv("solcast_api_key")
+output_path = "./Transavia/data/Santimbru.csv"
+
+# Defining the fetching data function
+def fetch_data(lat, lon, api_key):
+    # Fetch data from the API
+    api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=336&output_parameters=ghi,air_temp,cloud_opacity&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
+    response = requests.get(api_url)
+    if response.status_code == 200:
+        # Write the content to a CSV file
+        with open(output_path, 'wb') as file:
+            file.write(response.content)
+    else:
+        raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+
+
+
+
+
+
 #===============================================================================Rendering the Data Engineering page=================================================================
 
 def render_data_eng_page():
@@ -1155,4 +1162,11 @@ def render_data_eng_page():
     # Forecasting Solina Production
     elif location == "Alba Iulia":
         render_prod_cons_Solina_page(start_date, end_date)
+
+    st.header("Fetching the Solcast data")
+    if st.button("Get Data"):
+        lat = "46.135244"
+        lon = "23.644428"
+        fetch_data(lat, lon, solcast_api_key)
+
         
