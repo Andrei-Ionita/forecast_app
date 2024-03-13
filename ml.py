@@ -11,6 +11,7 @@ import time
 import zipfile
 from datetime import datetime
 import gdown
+import requests
 
 session_start_time = time.time()
 
@@ -65,16 +66,154 @@ Public_Holiday = pd.DataFrame({"holiday": "Public Holiday",
 holidays = pd.concat((New_year_and_day_after, National_holiday, Christmas, St_Andrew, Ziua_Principatelor, Adormirea_Maicii_Domnului, Rusalii, Ziua_Copilului, Ziua_Muncii,
 											Pastele, Vinerea_Mare, Ziua_Unirii, Public_Holiday))
 
+#=============================================================================Feetching the data for Transavia locations========================================================================
+solcast_api_key = os.getenv("solcast_api_key")
+# output_path = "./Transavia/data/Bocsa.csv"
+
+# Defining the fetching data function
+def fetch_data(lat, lon, api_key, output_path):
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=336&output_parameters=ghi,air_temp,cloud_opacity&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open(output_path, 'wb') as file:
+			file.write(response.content)
+	else:
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+
+# ============================Crating the Input_production file==========
+def creating_input_production_file(path):
+	santimbru_data = pd.read_csv(f"{path}/Santimbru.csv")
+	input_production = pd.read_excel("./Transavia/Production/Input_production.xlsx")
+	input_production = input_production.copy()
+
+	# Convert 'period_end' in santimbru to datetime
+	santimbru_data['period_end'] = pd.to_datetime(santimbru_data['period_end'], errors='coerce')
+	# Extract just the date part in the desired format (as strings)
+	santimbru_dates = santimbru_data['period_end'].dt.strftime('%Y-%m-%d')
+
+	# Write the dates from santimbru_dates to input_production.Data
+	input_production['Data'] = santimbru_dates.values
+	# Fill NaNs in the 'Data' column with next valid observation
+	input_production['Data'].fillna(method='bfill', inplace=True)
+
+	# Completing the Interval column
+	santimbru_intervals = santimbru_data["period_end"].dt.hour
+	input_production["Interval"] = santimbru_intervals
+	# Replace NaNs in the 'Interval' column with 0
+	input_production['Interval'].fillna(0, inplace=True)
+
+	# Completing the Radiatie column
+	santimbru_radiatie = santimbru_data["ghi"]
+	input_production["Radiatie"] = santimbru_radiatie
+
+	# Completing the Temperatura column
+	santimbru_temperatura = santimbru_data["air_temp"]
+	input_production["Temperatura"] = santimbru_temperatura
+
+	# Completing the Nori column
+	santimbru_nori = santimbru_data["cloud_opacity"]
+	input_production["Nori"] = santimbru_nori
+
+	# Completing the Centrala column
+	input_production["Centrala"] = "Abator_Oiejdea"
+
+	# Copying the data for FNC PVPP
+	copy_df = input_production.copy()
+	copy_df['Centrala'] = "FNC"
+
+	# Append the copied dataframe to the original dataframe
+	input_production = pd.concat([input_production, copy_df])
+
+	# Copying the data for F4 PVPP
+	copy_df = input_production[input_production["Centrala"] == "Abator_Oiejdea"].copy()
+	copy_df['Centrala'] = "F4"
+
+	# Append the copied dataframe to the original dataframe
+	input_production = pd.concat([input_production, copy_df])
+
+	# Copying the data for Ciugud PVPP
+	copy_df = input_production[input_production["Centrala"] == "Abator_Oiejdea"].copy()
+	copy_df['Centrala'] = "Ciugud"
+
+	# Append the copied dataframe to the original dataframe
+	input_production = pd.concat([input_production, copy_df])
+
+	# Copying the data for Abator Bocsa PVPP
+	copy_df = input_production[input_production["Centrala"] == "Abator_Oiejdea"].copy()
+	copy_df['Centrala'] = "Abator_Bocsa"
+	# Append the copied dataframe to the original dataframe
+	input_production = pd.concat([input_production, copy_df])
+
+	bocsa_data = pd.read_csv(f"{path}/Bocsa.csv")
+
+	# Completing the Radiatie column for Abator Bocsa
+	bocsa_radiatie = bocsa_data["ghi"]
+	input_production["Radiatie"][input_production["Centrala"] == "Abator_Bocsa"] = bocsa_radiatie
+
+	# Completing the Temperatura column for Abator Bocsa
+	bocsa_temperatura = bocsa_data["air_temp"]
+	input_production["Temperatura"][input_production["Centrala"] == "Abator_Bocsa"] = bocsa_temperatura
+
+	# Completing the Nori column for Abator Bocsa
+	bocsa_nori = bocsa_data["cloud_opacity"]
+	input_production["Nori"][input_production["Centrala"] == "Abator_Bocsa"] = bocsa_nori
+
+	# Copying the data for Lunca PVPP
+	copy_df = input_production[input_production["Centrala"] == "Abator_Oiejdea"].copy()
+	copy_df['Centrala'] = "F24"
+	# Append the copied dataframe to the original dataframe
+	input_production = pd.concat([input_production, copy_df])
+
+	lunca_data = pd.read_csv(f"{path}/Lunca.csv")
+
+	# Completing the Radiatie column for F24
+	lunca_radiatie = lunca_data["ghi"]
+	input_production["Radiatie"][input_production["Centrala"] == "F24"] = lunca_radiatie
+
+	# Completing the Temperatura column for F24
+	lunca_temperatura = lunca_data["air_temp"]
+	input_production["Temperatura"][input_production["Centrala"] == "F24"] = lunca_temperatura
+
+	# Completing the Nori column for F24
+	lunca_nori = lunca_data["cloud_opacity"]
+	input_production["Nori"][input_production["Centrala"] == "F24"] = lunca_nori
+
+	# Copying the data for Brasov PVPP
+	copy_df = input_production[input_production["Centrala"] == "Abator_Oiejdea"].copy()
+	copy_df['Centrala'] = "Brasov"
+	# Append the copied dataframe to the original dataframe
+	input_production = pd.concat([input_production, copy_df])
+
+	brasov_data = pd.read_csv(f"{path}/Brasov.csv")
+
+	# Completing the Radiatie column for Brasov
+	brasov_radiatie = brasov_data["ghi"]
+	input_production["Radiatie"][input_production["Centrala"] == "Brasov"] = brasov_radiatie
+
+	# Completing the Temperatura column for Brasov
+	brasov_temperatura = brasov_data["air_temp"]
+	input_production["Temperatura"][input_production["Centrala"] == "Brasov"] = brasov_temperatura
+
+	# Completing the Nori column for Brasov
+	brasov_nori = brasov_data["cloud_opacity"]
+	input_production["Nori"][input_production["Centrala"] == "Brasov"] = brasov_nori
+
+	# Saving input_production to Excel
+	input_production.to_excel("./Transavia/Production/Input_production_filled.xlsx", index=False)
+
 # ===================================================================================TRANSAVIA FORECAST==================================================================================================================
 def predicting_exporting_Transavia(dataset):
-	dataset_forecast = dataset
-	CEFs = dataset_forecast.Centrala.unique()
-	datasets_forecast = {elem : pd.DataFrame for elem in CEFs}
+	datasets_forecast = dataset.copy()
+	CEFs = datasets_forecast.Centrala.unique()
+	dataset_forecast = {elem : pd.DataFrame for elem in CEFs}
 	for CEF in CEFs:
 		print("Predicting for {}".format(CEF))
 		xgb_loaded = joblib.load("./Transavia/Production/Models/rs_xgb_{}.pkl".format(CEF))
-		dataset_forecast = dataset
-		dataset_forecast = dataset_forecast[:][dataset_forecast.Centrala == CEF]
+		dataset_forecast = datasets_forecast[:][datasets_forecast.Centrala == CEF]
+		dataset_forecast["Data"] = pd.to_datetime(dataset_forecast["Data"])
 		dataset_forecast["Month"] = dataset_forecast.Data.dt.month
 		if CEF in ["F24"]:
 			df_forecast = dataset_forecast.drop(["Data", "Nori", "Centrala"], axis=1)
@@ -312,49 +451,62 @@ def zip_files(folder_path, zip_name):
 					arcname = os.path.relpath(file_path, folder_path)  # Relative path within the zip file
 					zipf.write(file_path, arcname)
 
-def render_production_forecast_Transavia():
+# Creating the dictionary for the Production PVPPs locations
+locations_PVPPs = {"Lunca": {"lat": 46.427350, "lon": 23.905963}, "Brasov": {"lat": 45.642680, "lon": 25.588725},
+                    "Santimbru": {"lat":46.135244 , "lon":23.644428 }, "Bocsa": {"lat":45.377012 , "lon":21.718752}}
+def render_production_forecast_Transavia(locations_PVPPs):
 	st.write("Production Forecast")
 	# ... (other content and functionality for production forecasting)
-	uploaded_files = st.file_uploader("Choose a file", type=["text/csv", "xlsx"], accept_multiple_files=True)
+	# Iterating through the dictionary of PVPP locations
+	for location in locations_PVPPs.keys():
+		print("Getting data for {}".format(location))
+		output_path = f"./Transavia/data/{location}.csv"
+		lat = locations_PVPPs[location]["lat"]
+		lon = locations_PVPPs[location]["lon"]
+		fetch_data(lat, lon, solcast_api_key, output_path)
+	# Creating the input_production file
+	path = "./Transavia/data"
+	creating_input_production_file(path)
+	df = pd.read_excel("./Transavia/Production/Input_production_filled.xlsx")
+	# uploaded_files = st.file_uploader("Choose a file", type=["text/csv", "xlsx"], accept_multiple_files=True)
 
-	if uploaded_files is not None:
-		for uploaded_file in uploaded_files:
-			if uploaded_file.type == "text/csv":
-				df = pd.read_csv(uploaded_file)
-			elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-				try:
-					df = pd.read_excel(uploaded_file)
-				except ValueError:
-					st.error("Expected sheet name 'Forecast_Dataset' not found in Excel file.")
-					continue
-			else:
-				st.error("Unsupported file format. Please upload a CSV or XLSX file.")
-				continue
-			st.dataframe(df)
+	# if uploaded_files is not None:
+	# 	for uploaded_file in uploaded_files:
+	# 		if uploaded_file.type == "text/csv":
+	# 			df = pd.read_csv(uploaded_file)
+	# 		elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+	# 			try:
+	# 				df = pd.read_excel(uploaded_file)
+	# 			except ValueError:
+	# 				st.error("Expected sheet name 'Forecast_Dataset' not found in Excel file.")
+	# 				continue
+	# 		else:
+	# 			st.error("Unsupported file format. Please upload a CSV or XLSX file.")
+	# 			continue
+	st.dataframe(df)
+	# Submit button
+	if st.button('Submit'):
+		st.success('Forecast Ready', icon="✅")
+		# Your code to generate the forecast
+		predicting_exporting_Transavia(df)
+		print("Forecast is on going...")
+		# Creating the ZIP file with the Productions:
+		folder_path = './Transavia/Production/Results'
+		zip_name = 'Transavia_Production_Results.zip'
+		zip_files(folder_path, zip_name)
+		file_path = './Transavia/Production/Results/Transavia_Production_Results.zip'
 
-			# Submit button
-			if st.button('Submit'):
-				st.success('Forecast Ready', icon="✅")
-				# Your code to generate the forecast
-				predicting_exporting_Transavia(df)
-				print("Forecast is on going...")
-				# Creating the ZIP file with the Productions:
-				folder_path = './Transavia/Production/Results'
-				zip_name = 'Transavia_Production_Results.zip'
-				zip_files(folder_path, zip_name)
-				file_path = './Transavia/Production/Results/Transavia_Production_Results.zip'
+		with open(file_path, "rb") as f:
+			zip_data = f.read()
 
-				with open(file_path, "rb") as f:
-					zip_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(zip_data).decode()
-				button_html = f"""
-					 <a download="Transavia_Production_Results.zip" href="data:application/zip;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
+		# Create a download link
+		b64 = base64.b64encode(zip_data).decode()
+		button_html = f"""
+			 <a download="Transavia_Production_Results.zip" href="data:application/zip;base64,{b64}" download>
+			 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+			 </a> 
+			 """
+		st.markdown(button_html, unsafe_allow_html=True)
 
 def render_consumption_forecast_Transavia():
 	st.write("Consumption Forecast")
@@ -416,7 +568,7 @@ def render_Transavia_page():
 	if forecast_type == "Consumption":
 		render_consumption_forecast_Transavia()
 	elif forecast_type == "Production":
-		render_production_forecast_Transavia()
+		render_production_forecast_Transavia(locations_PVPPs)
 
 #================================================================================GENERAL FUNCTIONALITY==========================================================================================
 
@@ -525,8 +677,8 @@ def predicting_exporting_Consumption_RAAL(dataset):
 	forecast_dataset["WeekDay"] = forecast_dataset.Data.dt.weekday
 	forecast_dataset["Holiday"] = 0
 	for holiday in forecast_dataset["Data"].unique():
-	    if holiday in holidays.ds.values:
-	        forecast_dataset["Holiday"][forecast_dataset["Data"] == holiday] = 1
+		if holiday in holidays.ds.values:
+			forecast_dataset["Holiday"][forecast_dataset["Data"] == holiday] = 1
 
 	# Restructuring the dataset
 	forecast_dataset = forecast_dataset[["WeekDay", "Month", "Holiday", "Interval", "Temperatura"]]
@@ -545,13 +697,13 @@ def predicting_exporting_Consumption_RAAL(dataset):
 	worksheet.write(0,1,"Interval")
 	worksheet.write(0,2,"Prediction")
 	for value in preds:
-	    worksheet.write(row, col + 2, value, decimal_format)
-	    row +=1
+		worksheet.write(row, col + 2, value, decimal_format)
+		row +=1
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):
-	    worksheet.write(row, col + 0, Data, date_format)
-	    worksheet.write(row, col + 1, Interval)
-	    row +=1
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row +=1
 
 	workbook.close()
 
@@ -668,13 +820,3 @@ def render_balancing_market_page():
 	# **The Balancing Market Section**
 
 	''')
-
-	# Allow the user to choose between Consumption and Production
-	forecast_type = st.radio("Choose Forecast Type:", options=["Consumption", "Production", "Transavia"])
-
-	if forecast_type == "Consumption":
-		render_consumption_forecast()
-	elif forecast_type == "Production":
-		render_production_forecast()
-	elif forecast_type == "Transavia":
-		render_Transavia_page()
