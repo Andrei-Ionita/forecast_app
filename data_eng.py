@@ -1108,7 +1108,6 @@ def render_prod_cons_Solina_page(start_date, end_date):
                 # If the file does not exist, display a message
                 st.error("Input file does not exist. Please ensure the file is in the correct location before proceeding.")
 
-
 #===============================================================================Rendering the Data Engineering page=================================================================
 
 def render_data_eng_page():
@@ -1148,7 +1147,6 @@ def render_data_eng_page():
                         "Santimbru": {"lat":46.135244 , "lon":23.644428 }, "Bocsa": {"lat":45.377012 , "lon":21.718752}}
 
     st.header("Fetching the Solcast data")
-        
 
 
         
