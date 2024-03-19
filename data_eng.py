@@ -792,7 +792,7 @@ def render_RAAL_cons_prod(start_date, end_date):
                 # Increment the date by one day
                 current_date += timedelta(days=1)
             # Concatenating the GHI data into one file
-            concatenate_ghi_data(CEF)
+            concatenate_ghi_data(CEF, forecast)
             # Formatting the date column
             ghi_file_path = "./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx"
             process_and_save_excel(ghi_file_path)
@@ -817,7 +817,7 @@ def render_RAAL_cons_prod(start_date, end_date):
             json_file_path = './RAAL/Production/Input/weather.json'  # Replace with your JSON file path
             output_file_path = './RAAL/Production/Input/weather.xlsx'  # Replace with your desired output file path
             flatten_json_to_excel(json_file_path, output_file_path)
-            creating_weather_date_hour_columns(CEF)
+            creating_weather_date_hour_columns(CEF, forecast)
             # change_date_format_weather_wb()
             # add_lookup_column_weather()
             file_path = "./RAAL/Production/Input/weather.xlsx"
@@ -838,10 +838,10 @@ def render_RAAL_cons_prod(start_date, end_date):
             # Lookuping the GHI values
             input_df = pd.read_excel("./RAAL/Production/Input_Production_RAAL.xlsx")
             ghi_df = pd.read_excel("./RAAL/Production/Input/Concatenated_Hourly_GHI.xlsx")
-            lookup_ghi_values(CEF, input_df, ghi_df)
+            lookup_ghi_values(CEF, input_df, ghi_df, forecast)
             # Lookupinh the temperatures and clouds values
             weather_df = pd.read_excel("./RAAL/Production/Input/weather.xlsx")
-            lookup_weather_values(CEF, input_df, weather_df)
+            lookup_weather_values(CEF, input_df, weather_df, forecast)
             # Predicting the Production
             if os.path.exists("./RAAL/Production/Input_Production_RAAL.xlsx"):
                 # If the file exists, show the button
@@ -1108,6 +1108,25 @@ def render_prod_cons_Solina_page(start_date, end_date):
                 # If the file does not exist, display a message
                 st.error("Input file does not exist. Please ensure the file is in the correct location before proceeding.")
 
+solcast_api_key = os.getenv("solcast_api_key")
+# output_path = "./Transavia/data/Bocsa.csv"
+locations_cons = {"Lunca": {"lat": 46.427350, "lon": 23.905963}, "Brasov": {"lat": 45.642680, "lon": 25.588725},
+                    "Santimbru": {"lat":46.135244, "lon":23.644428 }, "Bocsa": {"lat":45.377012 , "lon":21.718752}, "Cristian": {"lat":45.782114, "lon":24.029499},
+                    "Cristuru": {"lat":46.292453, "lon":25.031714}, "Jebel": {"lat":45.562394 , "lon":21.214496}, "Medias": {"lat":46.157283, "lon":24.347167},
+                    "Miercurea": {"lat":45.890054, "lon":23.791766}}
+
+# Defining the fetching data function
+def fetch_data(lat, lon, api_key, output_path):
+    # Fetch data from the API
+    api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=ghi,air_temp,cloud_opacity&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
+    response = requests.get(api_url)
+    print("Fetching data...")
+    if response.status_code == 200:
+        # Write the content to a CSV file
+        with open(output_path, 'wb') as file:
+            file.write(response.content)
+    else:
+        raise Exception(f"Failed to fetch data: Status code {response.status_code}")
 #===============================================================================Rendering the Data Engineering page=================================================================
 
 def render_data_eng_page():
@@ -1142,11 +1161,14 @@ def render_data_eng_page():
     elif location == "Alba Iulia":
         render_prod_cons_Solina_page(start_date, end_date)
 
-    # Creating the dictionary for the Production PVPPs locations
-    locations_PVPPs = {"Lunca": {"lat": 46.427350, "lon": 23.905963}, "Brasov": {"lat": 45.642680, "lon": 25.588725},
-                        "Santimbru": {"lat":46.135244 , "lon":23.644428 }, "Bocsa": {"lat":45.377012 , "lon":21.718752}}
-
     st.header("Fetching the Solcast data")
-
+    if st.button("Fetch data"):
+        # Iterating through the dictionary of PVPP locations
+        for location in locations_cons.keys():
+            print("Getting data for {}".format(location))
+            output_path = f"./Transavia/data/{location}.csv"
+            lat = locations_cons[location]["lat"]
+            lon = locations_cons[location]["lon"]
+            fetch_data(lat, lon, solcast_api_key, output_path)
 
         
