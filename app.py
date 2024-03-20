@@ -302,7 +302,7 @@ def main():
 	# Use session state to set default value for sidebar radio
 	page = st.sidebar.radio(
 			"Select a page:",
-			options=["Home", "Forecast WeatherMap", "EDA", "Forecast", "Balancing Market", "Your AI BFF"],
+			options=["Home", "EDA", "Forecast", "Balancing Market", "Your AI BFF"],
 			index=None,
 			key="page_select"
 	)
@@ -317,8 +317,8 @@ def main():
 	# Render the appropriate page based on session state
 	if st.session_state['page'] == "Home":
 		render_home_page()
-	elif st.session_state["page"] == "Forecast WeatherMap":
-		render_data_eng_page()
+	# elif st.session_state["page"] == "Forecast WeatherMap":
+		# render_data_eng_page()
 	elif st.session_state['page'] == "Forecast":
 		render_forecast_page()
 	elif st.session_state['page'] == "EDA":

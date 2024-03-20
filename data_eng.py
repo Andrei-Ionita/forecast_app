@@ -1118,7 +1118,7 @@ locations_cons = {"Lunca": {"lat": 46.427350, "lon": 23.905963}, "Brasov": {"lat
 # Defining the fetching data function
 def fetch_data(lat, lon, api_key, output_path):
     # Fetch data from the API
-    api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=ghi,air_temp,cloud_opacity&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
+    api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,dni,ghi&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
     response = requests.get(api_url)
     print("Fetching data...")
     if response.status_code == 200:
