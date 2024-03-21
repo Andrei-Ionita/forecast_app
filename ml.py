@@ -1456,14 +1456,67 @@ def render_Transavia_page():
 
 #================================================================================GENERAL FUNCTIONALITY==========================================================================================
 
-def predicting_exporting_Solina(dataset):
+#===================Crating the function for fething the data for Solina===========================
+def fetching_Solina_data():
+	lat = 46.073272
+	lon = 23.580489
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./Solina/Solcast/Alba_Iulia_raw.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+
+def fetching_RAAL_data():
+	lat = 47.2229
+	lon = 24.7244
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./RAAL/Solcast/Prundu_raw.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+
+def predicting_exporting_Solina():
+	# Creating the forecast_dataset df
+	data = pd.read_csv("./Solina/Solcast/Alba_Iulia_raw.csv")
+	forecast_dataset = pd.read_excel("./Solina/Production/Input_Solina.xlsx", sheet_name="Forecast_Dataset")
+	# Convert 'period_end' in santimbru to datetime
+	data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce')
+	# Extract just the date part in the desired format (as strings)
+	dates = data['period_end'].dt.strftime('%Y-%m-%d')
+	# Write the dates to the Input file
+	forecast_dataset['Data'] = dates.values
+	# Fill NaNs in the 'Data' column with next valid observation
+	forecast_dataset['Data'].fillna(method='bfill', inplace=True)
+	# Completing the Interval column
+	intervals = data["period_end"].dt.hour
+	forecast_dataset["Interval"] = intervals
+	# Replace NaNs in the 'Interval' column with 0
+	forecast_dataset['Interval'].fillna(0, inplace=True)
+	# Completing the Temperatura column
+	forecast_dataset["Temperatura"] = data["air_temp"].values
+	# Completing the GHI column
+	forecast_dataset["Radiatie"] = data["ghi"].values
+	# Completing the Nori column
+	forecast_dataset["Nori"] = data["cloud_opacity"].values
+
+
 	xgb_loaded = joblib.load("./Solina/Production/rs_xgb_Solina_prod.pkl")
-	dataset_forecast = dataset.copy()
-	dataset_forecast["Month"] = dataset_forecast.Data.dt.month
 
-	dataset_forecast = dataset_forecast.drop("Data", axis=1)
+	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
+	dataset = forecast_dataset.copy()
+	forecast_dataset = forecast_dataset.drop("Data", axis=1)
 
-	preds = xgb_loaded.predict(dataset_forecast.values)
+	preds = xgb_loaded.predict(forecast_dataset.values)
 	#Exporting Results to Excel
 	workbook = xlsxwriter.Workbook("./Solina/Production/Results_Production_xgb.xlsx")
 	worksheet = workbook.add_worksheet("Production_Predictions")
@@ -1486,11 +1539,31 @@ def predicting_exporting_Solina(dataset):
 			row +=1
 
 	workbook.close()
+	return dataset
 
-def predicting_exporting_Consumption_Solina(forecast_dataset):
+def predicting_exporting_Consumption_Solina():
+	# Creating the forecast_dataset df
+	data = pd.read_csv("./Solina/Solcast/Alba_Iulia_raw.csv")
+	forecast_dataset = pd.read_excel("./Solina/Consumption/Input_Consumption_Solina.xlsx")
+	# Convert 'period_end' in santimbru to datetime
+	data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce')
+	# Extract just the date part in the desired format (as strings)
+	dates = data['period_end'].dt.strftime('%Y-%m-%d')
+	# Write the dates to the Input file
+	forecast_dataset['Data'] = dates.values
+	# Fill NaNs in the 'Data' column with next valid observation
+	forecast_dataset['Data'].fillna(method='bfill', inplace=True)
+	# Completing the Interval column
+	intervals = data["period_end"].dt.hour
+	forecast_dataset["Interval"] = intervals
+	# Replace NaNs in the 'Interval' column with 0
+	forecast_dataset['Interval'].fillna(0, inplace=True)
+	# Completing the Temperatura column
+	forecast_dataset["Temperatura"] = data["air_temp"].values
+
 	# Predict on forecast data
-	forecast_dataset["Month"] = forecast_dataset.Data.dt.month
-	forecast_dataset["WeekDay"] = forecast_dataset.Data.dt.weekday
+	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
+	forecast_dataset["WeekDay"] = pd.to_datetime(forecast_dataset.Data).dt.weekday
 	forecast_dataset["Holiday"] = 0
 	for holiday in forecast_dataset["Data"].unique():
 			if holiday in holidays.ds.values:
@@ -1502,7 +1575,7 @@ def predicting_exporting_Consumption_Solina(forecast_dataset):
 	xgb_loaded = joblib.load("./Solina/Consumption/XGB_Consumption_Temperature.pkl")
 	preds = xgb_loaded.predict(forecast_dataset.values)
 	#Exporting Results to Excel
-	workbook = xlsxwriter.Workbook("./Solina/Consumption/Results_Consumption.xlsx")
+	workbook = xlsxwriter.Workbook("./Solina/Consumption/Results/Results_Consumption_Solina.xlsx")
 	worksheet = workbook.add_worksheet("Prediction_Consumption")
 	# Define a format for cells with three decimal places
 	decimal_format = workbook.add_format({'num_format': '0.000'})
@@ -1521,15 +1594,41 @@ def predicting_exporting_Consumption_Solina(forecast_dataset):
 	#     row +=1
 
 	workbook.close()
+	return forecast_dataset
 
-def predicting_exporting_RAAL(dataset):
+def predicting_exporting_RAAL():
+	# Creating the forecast_dataset df
+	data = pd.read_csv("./RAAL/Solcast/Prundu_raw.csv")
+	forecast_dataset = pd.read_excel("./RAAL/Production/Input_RAAL.xlsx", sheet_name="Forecast_Dataset")
+	# Convert 'period_end' in santimbru to datetime
+	data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce')
+	# Extract just the date part in the desired format (as strings)
+	dates = data['period_end'].dt.strftime('%Y-%m-%d')
+	# Write the dates to the Input file
+	forecast_dataset['Data'] = dates.values
+	# Fill NaNs in the 'Data' column with next valid observation
+	forecast_dataset['Data'].fillna(method='bfill', inplace=True)
+	# Completing the Interval column
+	intervals = data["period_end"].dt.hour
+	forecast_dataset["Interval"] = intervals
+	# Replace NaNs in the 'Interval' column with 0
+	forecast_dataset['Interval'].fillna(0, inplace=True)
+	# Completing the Temperatura column
+	forecast_dataset["Temperatura"] = data["air_temp"].values
+	# Completing the GHI column
+	forecast_dataset["Radiatie"] = data["ghi"].values
+	# Completing the Nori column
+	forecast_dataset["Nori"] = data["cloud_opacity"].values
+
+	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
+	forecast_dataset.drop("Nori", axis=1, inplace=True)
+	dataset = forecast_dataset.copy()
+	forecast_dataset = forecast_dataset.drop("Data", axis=1)
+
+	# Loading the model
 	xgb_loaded = joblib.load("./RAAL/Production/rs_xgb_RAAL_prod.pkl")
-	dataset_forecast = dataset.copy()
-	dataset_forecast["Month"] = dataset_forecast.Data.dt.month
-	dataset_forecast.drop("Nori", axis=1, inplace=True)
-	dataset_forecast = dataset_forecast.drop("Data", axis=1)
+	preds = xgb_loaded.predict(forecast_dataset.values)
 
-	preds = xgb_loaded.predict(dataset_forecast.values)
 	#Exporting Results to Excel
 	workbook = xlsxwriter.Workbook("./RAAL/Production/Results_Production_xgb_RAAL.xlsx")
 	worksheet = workbook.add_worksheet("Production_Predictions")
@@ -1552,13 +1651,33 @@ def predicting_exporting_RAAL(dataset):
 			row +=1
 
 	workbook.close()
+	return dataset
 
-def predicting_exporting_Consumption_RAAL(dataset):
+def predicting_exporting_Consumption_RAAL():
+	# Creating the forecast_dataset df
+	data = pd.read_csv("./RAAL/Solcast/Prundu_raw.csv")
+	forecast_dataset = pd.read_excel("./RAAL/Production/Input_RAAL.xlsx", sheet_name="Forecast_Dataset")
+	# Convert 'period_end' in santimbru to datetime
+	data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce')
+	# Extract just the date part in the desired format (as strings)
+	dates = data['period_end'].dt.strftime('%Y-%m-%d')
+	# Write the dates to the Input file
+	forecast_dataset['Data'] = dates.values
+	# Fill NaNs in the 'Data' column with next valid observation
+	forecast_dataset['Data'].fillna(method='bfill', inplace=True)
+	# Completing the Interval column
+	intervals = data["period_end"].dt.hour
+	forecast_dataset["Interval"] = intervals
+	# Replace NaNs in the 'Interval' column with 0
+	forecast_dataset['Interval'].fillna(0, inplace=True)
+	# Completing the Temperatura column
+	forecast_dataset["Temperatura"] = data["air_temp"].values
+	
 	# Predict on forecast data
-	forecast_dataset = dataset.copy()
-	st.write(forecast_dataset)
-	forecast_dataset["Month"] = forecast_dataset.Data.dt.month
-	forecast_dataset["WeekDay"] = forecast_dataset.Data.dt.weekday
+	dataset = forecast_dataset.copy()
+	
+	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
+	forecast_dataset["WeekDay"] = pd.to_datetime(forecast_dataset.Data).dt.weekday
 	forecast_dataset["Holiday"] = 0
 	for holiday in forecast_dataset["Data"].unique():
 		if holiday in holidays.ds.values:
@@ -1570,7 +1689,7 @@ def predicting_exporting_Consumption_RAAL(dataset):
 	xgb_loaded = joblib.load("./RAAL/Consumption/XGB_Consumption_RAAL.pkl")
 	preds = xgb_loaded.predict(forecast_dataset.values)
 	#Exporting Results to Excel
-	workbook = xlsxwriter.Workbook("./RAAL/Consumption/Results_Consumption_RAAL.xlsx")
+	workbook = xlsxwriter.Workbook("./RAAL/Consumption//Results/Results_Consumption_RAAL.xlsx")
 	worksheet = workbook.add_worksheet("Consumption_Predictions")
 	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
 	# Define a format for cells with three decimal places
@@ -1590,83 +1709,86 @@ def predicting_exporting_Consumption_RAAL(dataset):
 		row +=1
 
 	workbook.close()
+	return dataset
 
 def render_consumption_forecast():
 	st.write("Consumption Forecast Section")
-	# ... (other content and functionality for consumption forecasting)
-	uploaded_files_consumption = st.file_uploader("Choose a file", type=["text/csv", "xlsx"], accept_multiple_files=True)
 
-	if uploaded_files_consumption is not None:
-		for uploaded_file in uploaded_files_consumption:
-			if uploaded_file.type == "text/csv":
-				df = pd.read_csv(uploaded_file)
-			elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-				try:
-					df = pd.read_excel(uploaded_file, sheet_name="Forecast_dataset")
-				except ValueError:
-					st.error("Expected sheet name 'Forecast_dataset' not found in Excel file.")
-					continue
-			else:
-				st.error("Unsupported file format. Please upload a CSV or XLSX file.")
-				continue
+	# Allow the user to choose between Consumption and Production
+	consumption_place = st.radio("Choose Consumption:", options=["Solina", "RAAL"], index=None)
+	if consumption_place == "Solina":
+		if st.button("Submit"):
+			fetching_Solina_data()
+			df = predicting_exporting_Consumption_Solina()
 			st.dataframe(df)
+			file_path = './Solina/Consumption/Results/Results_Consumption_Solina.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
 
-			# Submit button
-			if st.button('Submit'):
-				# Replace this line with the code to generate and display the forecast
-				st.success('Forecast Ready', icon="✅")
-				if uploaded_file.name == "Input_consump_Solina.xlsx":
-					predicting_exporting_Consumption_Solina(df)
-					# Assume the forecast data is already written to forecast_results.xlsx
-					file_path = './Solina/Consumption/Results_Consumption.xlsx'
-				else:
-					predicting_exporting_Consumption_RAAL(df)
-					# Assume the forecast data is already written to forecast_results.xlsx
-					file_path = './RAAL/Consumption/Results_Consumption_RAAL.xlsx'
-				with open(file_path, "rb") as f:
-					excel_data = f.read()
+			# Create a download link
+			b64 = base64.b64encode(excel_data).decode()
+			button_html = f"""
+				 <a download="Consumption_Forecast_Solina.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+				 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+				 </a> 
+				 """
+			st.markdown(button_html, unsafe_allow_html=True)
+	else:
+		if st.button("Submit"):
+			fetching_RAAL_data()
+			df=predicting_exporting_Consumption_RAAL()
+			st.dataframe(df)
+			file_path = './RAAL/Consumption/Results/Results_Consumption_RAAL.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
+
+			# Create a download link
+			b64 = base64.b64encode(excel_data).decode()
+			button_html = f"""
+				 <a download="Consumption_Forecast_RAAL.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+				 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+				 </a> 
+				 """
+			st.markdown(button_html, unsafe_allow_html=True)
+
+def render_production_forecast():
+	st.write("Production Forecast Section")
+
+	# Allow the user to choose between Consumption and Production
+	PVPP = st.radio("Choose PVPP:", options=["Solina", "RAAL"], index=None)
+
+	if PVPP == "Solina":
+		# Submit button
+		if st.button('Submit'):
+			# Fetching the data from Solcast
+			fetching_Solina_data()
+			# Your code to generate the forecast
+			df = predicting_exporting_Solina()
+			st.dataframe(df)
+			st.success('Forecast Ready', icon="✅")
+			file_path = './Solina/Production/Results_Production_xgb.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
 
 				# Create a download link
 				b64 = base64.b64encode(excel_data).decode()
 				button_html = f"""
-					 <a download="Consumption_Forecast.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <a download="Production_Forecast_Solina.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
 					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
-
-def render_production_forecast():
-	st.write("Production Forecast Section")
-	# ... (other content and functionality for production forecasting)
-	uploaded_files = st.file_uploader("Choose a file", type=["text/csv", "xlsx"], accept_multiple_files=True)
-
-	if uploaded_files is not None:
-		for uploaded_file in uploaded_files:
-			if uploaded_file.type == "text/csv":
-				df = pd.read_csv(uploaded_file)
-			elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-				try:
-					df = pd.read_excel(uploaded_file, sheet_name="Forecast_Dataset")
-				except ValueError:
-					st.error("Expected sheet name 'Forecast_Dataset' not found in Excel file.")
-					continue
-			else:
-				st.error("Unsupported file format. Please upload a CSV or XLSX file.")
-				continue
+	else:
+		# Submit button
+		if st.button("Submit"):
+			# Fetching the Solcast data
+			fetching_RAAL_data()
+			df = predicting_exporting_RAAL()
 			st.dataframe(df)
-
-			# Submit button
-			if st.button('Submit'):
-				st.success('Forecast Ready', icon="✅")
-				# Your code to generate the forecast
-				if uploaded_file.name == "Input.xlsx":
-					predicting_exporting_Solina(df)
-					file_path = './Solina/Production/Results_Production_xgb.xlsx'
-				else:
-					predicting_exporting_RAAL(df)
-					file_path = './RAAL/Production/Results_Production_xgb_RAAL.xlsx'
-				with open(file_path, "rb") as f:
-					excel_data = f.read()
+			st.success('Forecast Ready', icon="✅")
+			file_path = './RAAL/Production/Results_Production_xgb_RAAL.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
 
 				# Create a download link
 				b64 = base64.b64encode(excel_data).decode()
@@ -1689,16 +1811,14 @@ def render_forecast_page():
 	forecast_type = st.radio("Choose Forecast Type:", options=["Consumption", "Production", "Transavia"])
 
 	if forecast_type == "Consumption":
+		cleaning_input_files()
 		render_consumption_forecast()
 	elif forecast_type == "Production":
 		render_production_forecast()
 	elif forecast_type == "Transavia":
 		print("Transavia page")
 		render_Transavia_page()
-
-	st.subheader("Cleaning Input files")
-	if st.button("Cleaning Inputs"):
-		cleaning_input_files()
+		
 
 #======================================================BALANGING MARKET===================================================================================================
 

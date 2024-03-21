@@ -9,7 +9,6 @@ import base64
 
 # Importing apps and pages
 from eda import render_eda_page
-from data_eng import render_data_eng_page
 from ml import render_forecast_page, render_balancing_market_page
 from assistant import render_assistant_page
 
@@ -317,13 +316,14 @@ def main():
 	# Render the appropriate page based on session state
 	if st.session_state['page'] == "Home":
 		render_home_page()
-	# elif st.session_state["page"] == "Forecast WeatherMap":
-		# render_data_eng_page()
+	elif st.session_state["page"] == "Balancing Market":
+		render_balancing_market_page()
 	elif st.session_state['page'] == "Forecast":
 		render_forecast_page()
 	elif st.session_state['page'] == "EDA":
 		render_eda_page()
 	elif st.session_state['page'] == "Your AI BFF":
 		render_assistant_page()
+
 if __name__ == "__main__":
 		main()
