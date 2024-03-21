@@ -327,7 +327,7 @@ def render_assistant_page():
 	if "user_query" not in st.session_state:
 		st.session_state.user_query = ""
 	# st.write(st.session_state)
-	st.title("OpenAI Assistant")
+	st.title("nextE@AI Assistant")
 
 	# File Uploader
 	uploaded_file = st.file_uploader("Choose a file", type=["pdf", "txt", "docx", "csv", "xlsx"], key="file_uploader")
