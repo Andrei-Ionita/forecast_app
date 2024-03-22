@@ -1469,7 +1469,9 @@ def fetching_Solina_data():
 		with open("./Solina/Solcast/Alba_Iulia_raw.csv", 'wb') as file:
 			file.write(response.content)
 	else:
+		print(response.text)  # Add this line to see the error message returned by the API
 		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+
 
 def fetching_RAAL_data():
 	lat = 47.2229
