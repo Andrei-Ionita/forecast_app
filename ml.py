@@ -206,16 +206,16 @@ def creating_input_production_file(path):
 
 # ===================================================================================TRANSAVIA FORECAST==================================================================================================================
 def cleaning_input_files():
-	input_brasov = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx")
-	input_santimbru = pd.read_excel("./Transavia/Consumption/Input.xlsx")
+	input_brasov = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx")
+	input_santimbru = pd.read_excel("./Transavia/Consumption/Input/Input.xlsx")
 	input_brasov[:] = ""
 	input_santimbru[:] = ""
-	input_brasov.to_excel("./Transavia/Consumption/Input_Brasov.xlsx", index=False)
-	input_santimbru.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input_brasov.to_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx", index=False)
+	input_santimbru.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 # Creating the Input file for Santimbru region===========================
 def creating_input_consumption_Santimbru():
-	input = pd.read_excel("./Transavia/Consumption/Input.xlsx")
+	input = pd.read_excel("./Transavia/Consumption/Input/Input.xlsx")
 	santimbru_data = pd.read_csv("./Transavia/data/Santimbru.csv")
 	# Convert 'period_end' in santimbru to datetime
 	santimbru_data['period_end'] = pd.to_datetime(santimbru_data['period_end'], errors='coerce')
@@ -247,7 +247,7 @@ def creating_input_consumption_Santimbru():
 	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
 	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
 	input['Lookup'] = input["Data"].dt.strftime('%d.%m.%Y') + str("F2")
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 	# Adding the Lookup column to the Fluxuri_pui.xlsx file
 	df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsm", sheet_name='Alba')
 
@@ -259,7 +259,7 @@ def creating_input_consumption_Santimbru():
 	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Loc"].astype(str)
 	df.to_excel("./Transavia/Consumption/Fluxuri_pui.xlsx", index=False)
 	# Mapping the Flow_Chicks column fo the input
-	main_df = pd.read_excel("./Transavia/Consumption/Input.xlsx")
+	main_df = pd.read_excel("./Transavia/Consumption/Input/Input.xlsx")
 	lookup_df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsx")
 	# Temperatures values
 	# Create a dictionary from lookup_df for efficient lookup
@@ -285,7 +285,7 @@ def creating_input_consumption_Santimbru():
 	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
 	f20_f21_data['Lookup'] = f20_f21_data["Data"].dt.strftime('%d.%m.%Y') + str("F20")
 	input = pd.concat([input, f20_f21_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 	# Adding the Lookup column to the Fluxuri_pui.xlsx file
 	df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsm", sheet_name='Alba')
 
@@ -297,7 +297,7 @@ def creating_input_consumption_Santimbru():
 	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Loc"].astype(str)
 	df.to_excel("./Transavia/Consumption/Fluxuri_pui.xlsx", index=False)
 	# Mapping the Flow_Chicks column fo the input
-	main_df = pd.read_excel("./Transavia/Consumption/Input.xlsx")
+	main_df = pd.read_excel("./Transavia/Consumption/Input/Input.xlsx")
 	lookup_df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsx")
 	# Temperatures values
 	# Create a dictionary from lookup_df for efficient lookup
@@ -305,7 +305,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
 	input = main_df.copy()
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for F3
 	f3_data = input[input["IBD"] == "Abator"].copy()
@@ -317,7 +317,7 @@ def creating_input_consumption_Santimbru():
 	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
 	f3_data['Lookup'] = f3_data["Data"].dt.strftime('%d.%m.%Y') + str("F3")
 	input = pd.concat([input, f3_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 	# Adding the Lookup column to the Fluxuri_pui.xlsx file
 	df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsm", sheet_name='Alba')
 
@@ -329,7 +329,7 @@ def creating_input_consumption_Santimbru():
 	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Loc"].astype(str)
 	df.to_excel("./Transavia/Consumption/Fluxuri_pui.xlsx", index=False)
 	# Mapping the Flow_Chicks column fo the input
-	main_df = pd.read_excel("./Transavia/Consumption/Input.xlsx")
+	main_df = pd.read_excel("./Transavia/Consumption/Input/Input.xlsx")
 	lookup_df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsx")
 	# Temperatures values
 	# Create a dictionary from lookup_df for efficient lookup
@@ -337,7 +337,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
 	input = main_df.copy()
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for F4
 	f4_data = input[input["IBD"] == "Abator"].copy()
@@ -348,7 +348,7 @@ def creating_input_consumption_Santimbru():
 	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
 	f4_data['Lookup'] = f4_data["Data"].dt.strftime('%d.%m.%Y') + str("F4")
 	input = pd.concat([input, f4_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 	# Adding the Lookup column to the Fluxuri_pui.xlsx file
 	df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsm", sheet_name='Alba')
 
@@ -360,7 +360,7 @@ def creating_input_consumption_Santimbru():
 	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Loc"].astype(str)
 	df.to_excel("./Transavia/Consumption/Fluxuri_pui.xlsx", index=False)
 	# Mapping the Flow_Chicks column fo the input
-	main_df = pd.read_excel("./Transavia/Consumption/Input.xlsx")
+	main_df = pd.read_excel("./Transavia/Consumption/Input/Input.xlsx")
 	lookup_df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsx")
 	# Temperatures values
 	# Create a dictionary from lookup_df for efficient lookup
@@ -368,7 +368,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
 	input = main_df.copy()
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for F5
 	f5_data = input[input["IBD"] == "Abator"].copy()
@@ -379,7 +379,7 @@ def creating_input_consumption_Santimbru():
 	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
 	f5_data['Lookup'] = f5_data["Data"].dt.strftime('%d.%m.%Y') + str("F5")
 	input = pd.concat([input, f5_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 	# Adding the Lookup column to the Fluxuri_pui.xlsx file
 	df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsm", sheet_name='Alba')
 
@@ -391,7 +391,7 @@ def creating_input_consumption_Santimbru():
 	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Loc"].astype(str)
 	df.to_excel("./Transavia/Consumption/Fluxuri_pui.xlsx", index=False)
 	# Mapping the Flow_Chicks column fo the input
-	main_df = pd.read_excel("./Transavia/Consumption/Input.xlsx")
+	main_df = pd.read_excel("./Transavia/Consumption/Input/Input.xlsx")
 	lookup_df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsx")
 	# Temperatures values
 	# Create a dictionary from lookup_df for efficient lookup
@@ -399,7 +399,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
 	input = main_df.copy()
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for F7
 	f7_data = input[input["IBD"] == "Abator"].copy()
@@ -411,7 +411,7 @@ def creating_input_consumption_Santimbru():
 	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
 	f7_data['Lookup'] = f7_data["Data"].dt.strftime('%d.%m.%Y') + str("F7")
 	input = pd.concat([input, f7_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 	# Adding the Lookup column to the Fluxuri_pui.xlsx file
 	df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsm", sheet_name='Alba')
 
@@ -423,7 +423,7 @@ def creating_input_consumption_Santimbru():
 	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Loc"].astype(str)
 	df.to_excel("./Transavia/Consumption/Fluxuri_pui.xlsx", index=False)
 	# Mapping the Flow_Chicks column fo the input
-	main_df = pd.read_excel("./Transavia/Consumption/Input.xlsx")
+	main_df = pd.read_excel("./Transavia/Consumption/Input/Input.xlsx")
 	lookup_df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsx")
 	# Temperatures values
 	# Create a dictionary from lookup_df for efficient lookup
@@ -431,7 +431,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
 	input = main_df.copy()
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for FNC
 	fnc_data = input[input["IBD"] == "Abator"].copy()
@@ -442,7 +442,7 @@ def creating_input_consumption_Santimbru():
 	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
 	fnc_data['Lookup'] = fnc_data["Data"].dt.strftime('%d.%m.%Y') + str("FNC")
 	input = pd.concat([input, fnc_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 	# Adding the Lookup column to the Fluxuri_pui.xlsx file
 	df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsm", sheet_name='Alba')
 
@@ -454,7 +454,7 @@ def creating_input_consumption_Santimbru():
 	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Loc"].astype(str)
 	df.to_excel("./Transavia/Consumption/Fluxuri_pui.xlsx", index=False)
 	# Mapping the Flow_Chicks column fo the input
-	main_df = pd.read_excel("./Transavia/Consumption/Input.xlsx")
+	main_df = pd.read_excel("./Transavia/Consumption/Input/Input.xlsx")
 	lookup_df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsx")
 	# Temperatures values
 	# Create a dictionary from lookup_df for efficient lookup
@@ -462,7 +462,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
 	input = main_df.copy()
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for Abator Bocsa
 	bocsa_data = pd.read_csv("./Transavia/data/Bocsa.csv")
@@ -500,7 +500,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict) + main_df['Lookup2'].map(lookup_dict)
 	input = pd.concat([input, abator_bocsa_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for Ferma_Bocsa
 	ferma_bocsa_data = input[input["IBD"] == "Abator_Bocsa"].copy()
@@ -529,7 +529,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
 	input = pd.concat([input, ferma_bocsa_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for F_Cristian
 	cristian_data = pd.read_csv("./Transavia/data/Cristian.csv")
@@ -546,7 +546,7 @@ def creating_input_consumption_Santimbru():
 	cristian_ghi = cristian_data["ghi"]
 	cristian_data["Radiatie"] = ""
 	input = pd.concat([input, f_cristian_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for F10
 	cristuru_data = pd.read_csv("./Transavia/data/Cristuru.csv")
@@ -581,7 +581,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
 	input = pd.concat([input, f10_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for Jebel1
 	jebel_data = pd.read_csv("./Transavia/data/Jebel.csv")
@@ -595,7 +595,7 @@ def creating_input_consumption_Santimbru():
 	jebel_temperatura = jebel_data["air_temp"]
 	jebel1_data["Temperatura"] = jebel_temperatura
 	input = pd.concat([input, jebel1_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for F6
 	lunca_data = pd.read_csv("./Transavia/data/Lunca.csv")
@@ -630,7 +630,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
 	input = pd.concat([input, f6_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for F17
 	medias_data = pd.read_csv("./Transavia/data/Medias.csv")
@@ -644,7 +644,7 @@ def creating_input_consumption_Santimbru():
 	medias_temperatura = medias_data["air_temp"]
 	f17_data["Temperatura"] = medias_temperatura
 	input = pd.concat([input, f17_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for F9
 	miercurea_data = pd.read_csv("./Transavia/data/Miercurea.csv")
@@ -679,7 +679,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
 	input = pd.concat([input, f9_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 	# Filling the data for F8
 	lunca_data = pd.read_csv("./Transavia/data/Lunca.csv")
@@ -714,7 +714,7 @@ def creating_input_consumption_Santimbru():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
 	input = pd.concat([input, f8_data])
-	input.to_excel("./Transavia/Consumption/Input.xlsx", index=False)
+	input.to_excel("./Transavia/Consumption/Input/Input.xlsx", index=False)
 
 
 	return input
@@ -722,7 +722,7 @@ def creating_input_consumption_Santimbru():
 # Creating the Input file for Brasov region====================================================
 def creating_input_cons_file_Brasov():
 	# Filling the data for 594020100002383007
-	input_brasov = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx")
+	input_brasov = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx")
 	brasov_data = pd.read_csv("./Transavia/data/Brasov.csv")
 	# Convert 'period_end' in santimbru to datetime
 	brasov_data['period_end'] = pd.to_datetime(brasov_data['period_end'], errors='coerce')
@@ -752,7 +752,7 @@ def creating_input_cons_file_Brasov():
 	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
 	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
 	input_brasov['Lookup'] = input_brasov["Data"].dt.strftime('%d.%m.%Y') + str("F25")
-	input_brasov.to_excel("./Transavia/Consumption/Input_Brasov.xlsx", index=False)
+	input_brasov.to_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx", index=False)
 	# Adding the Lookup column to the Fluxuri_pui.xlsx file
 	df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsm", sheet_name='Brasov')
 
@@ -764,13 +764,13 @@ def creating_input_cons_file_Brasov():
 	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Loc"].astype(str)
 	df.to_excel("./Transavia/Consumption/Fluxuri_pui.xlsx", index=False)
 	# Mapping the Flow_Chicks column fo the input
-	main_df = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx")
+	main_df = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx")
 	lookup_df = pd.read_excel("./Transavia/Consumption/Fluxuri_pui.xlsx")
 	# Create a dictionary from lookup_df for efficient lookup
 	lookup_dict = lookup_df.set_index("Lookup")["Fluxuri_Input"].to_dict()
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	main_df['Flow_Chicks'] = main_df['Lookup'].map(lookup_dict)
-	main_df.to_excel('./Transavia/Consumption/Input_Brasov.xlsx', index=False)
+	main_df.to_excel('./Transavia/Consumption/Input/Input_Brasov.xlsx', index=False)
 
 	# Preserving the POD column format
 	from openpyxl import Workbook
@@ -800,7 +800,7 @@ def creating_input_cons_file_Brasov():
 	new_data["Lookup"] = ""
 	print(new_data)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel("./Transavia/Consumption/Input_Brasov.xlsx", index=False)
+	input_brasov.to_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx", index=False)
 
 	# Filling the data for 594020100002273568
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
@@ -811,7 +811,7 @@ def creating_input_cons_file_Brasov():
 	new_data["Lookup"] = ""
 	print(new_data)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel("./Transavia/Consumption/Input_Brasov.xlsx", index=False)
+	input_brasov.to_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx", index=False)
 
 	# Filling the data for 594020100002382970
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
@@ -822,10 +822,10 @@ def creating_input_cons_file_Brasov():
 	new_data["Lookup"] = ""
 	print(new_data)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel("./Transavia/Consumption/Input_Brasov.xlsx", index=False)
+	input_brasov.to_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx", index=False)
 
 	# Filling the data for 594020100002383014
-	input_brasov = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx").copy()
+	input_brasov = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx").copy()
 	print(input_brasov)
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
 	new_data = input_brasov[input_brasov["POD"] == "594020100002224041"].copy()
@@ -857,7 +857,7 @@ def creating_input_cons_file_Brasov():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	new_data['Flow_Chicks'] = new_data['Lookup'].map(lookup_dict) + new_data['Lookup2'].map(lookup_dict)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel('./Transavia/Consumption/Input_Brasov.xlsx', index=False)
+	input_brasov.to_excel('./Transavia/Consumption/Input/Input_Brasov.xlsx', index=False)
 
 	# Filling the data for 594020100002383069
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
@@ -868,10 +868,10 @@ def creating_input_cons_file_Brasov():
 	new_data["Lookup"] = ""
 	print(new_data)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel("./Transavia/Consumption/Input_Brasov.xlsx", index=False)
+	input_brasov.to_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx", index=False)
 
 	# Filling the data for 594020100002383502
-	input_brasov = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx").copy()
+	input_brasov = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx").copy()
 	print(input_brasov)
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
 	new_data = input_brasov[input_brasov["POD"] == "594020100002224041"].copy()
@@ -902,10 +902,10 @@ def creating_input_cons_file_Brasov():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	new_data['Flow_Chicks'] = new_data['Lookup'].map(lookup_dict)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel('./Transavia/Consumption/Input_Brasov.xlsx', index=False)
+	input_brasov.to_excel('./Transavia/Consumption/Input/Input_Brasov.xlsx', index=False)
 
 	# Filling the data for 594020100002383519
-	input_brasov = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx").copy()
+	input_brasov = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx").copy()
 	print(input_brasov)
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
 	new_data = input_brasov[input_brasov["POD"] == "594020100002224041"].copy()
@@ -936,7 +936,7 @@ def creating_input_cons_file_Brasov():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	new_data['Flow_Chicks'] = new_data['Lookup'].map(lookup_dict)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel('./Transavia/Consumption/Input_Brasov.xlsx', index=False)
+	input_brasov.to_excel('./Transavia/Consumption/Input/Input_Brasov.xlsx', index=False)
 
 	# Filling the data for 594020100002384233
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
@@ -947,10 +947,10 @@ def creating_input_cons_file_Brasov():
 	new_data["Lookup"] = ""
 	print(new_data)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel("./Transavia/Consumption/Input_Brasov.xlsx", index=False)
+	input_brasov.to_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx", index=False)
 
 	# Filling the data for 594020100002384691
-	input_brasov = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx").copy()
+	input_brasov = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx").copy()
 	print(input_brasov)
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
 	new_data = input_brasov[input_brasov["POD"] == "594020100002224041"].copy()
@@ -981,10 +981,10 @@ def creating_input_cons_file_Brasov():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	new_data['Flow_Chicks'] = new_data['Lookup'].map(lookup_dict)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel('./Transavia/Consumption/Input_Brasov.xlsx', index=False)
+	input_brasov.to_excel('./Transavia/Consumption/Input/Input_Brasov.xlsx', index=False)
 
 	# Filling the data for 594020100002836497
-	input_brasov = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx").copy()
+	input_brasov = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx").copy()
 	print(input_brasov)
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
 	new_data = input_brasov[input_brasov["POD"] == "594020100002224041"].copy()
@@ -1015,10 +1015,10 @@ def creating_input_cons_file_Brasov():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	new_data['Flow_Chicks'] = new_data['Lookup'].map(lookup_dict)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel('./Transavia/Consumption/Input_Brasov.xlsx', index=False)
+	input_brasov.to_excel('./Transavia/Consumption/Input/Input_Brasov.xlsx', index=False)
 
 	# Filling the data for 594020100002841279
-	input_brasov = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx").copy()
+	input_brasov = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx").copy()
 	print(input_brasov)
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
 	new_data = input_brasov[input_brasov["POD"] == "594020100002224041"].copy()
@@ -1049,10 +1049,10 @@ def creating_input_cons_file_Brasov():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	new_data['Flow_Chicks'] = new_data['Lookup'].map(lookup_dict)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel('./Transavia/Consumption/Input_Brasov.xlsx', index=False)
+	input_brasov.to_excel('./Transavia/Consumption/Input/Input_Brasov.xlsx', index=False)
 
 	# Filling the data for 594020100002967269
-	input_brasov = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx").copy()
+	input_brasov = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx").copy()
 	print(input_brasov)
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
 	new_data = input_brasov[input_brasov["POD"] == "594020100002224041"].copy()
@@ -1083,7 +1083,7 @@ def creating_input_cons_file_Brasov():
 	# Perform the lookup by mapping the 'Lookup' column in main_df to the values in lookup_dict
 	new_data['Flow_Chicks'] = new_data['Lookup'].map(lookup_dict)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel('./Transavia/Consumption/Input_Brasov.xlsx', index=False)
+	input_brasov.to_excel('./Transavia/Consumption/Input/Input_Brasov.xlsx', index=False)
 
 	# Filling the data for 594020300002359730
 	input_brasov["POD"] = input_brasov["POD"].astype(str)
@@ -1094,7 +1094,7 @@ def creating_input_cons_file_Brasov():
 	new_data["Lookup"] = ""
 	print(new_data)
 	input_brasov = pd.concat([input_brasov, new_data])
-	input_brasov.to_excel("./Transavia/Consumption/Input_Brasov.xlsx", index=False)
+	input_brasov.to_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx", index=False)
 
 def predicting_exporting_Transavia(dataset):
 	datasets_forecast = dataset.copy()
@@ -1406,21 +1406,37 @@ def render_consumption_forecast_Transavia():
 		cleaning_input_files()
 		creating_input_consumption_Santimbru()
 		creating_input_cons_file_Brasov()
-		df_santimbru = pd.read_excel("./Transavia/Consumption/Input.xlsx")
-		df_brasov = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx")
+		df_santimbru = pd.read_excel("./Transavia/Consumption/Input/Input.xlsx")
+		df_brasov = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx")
 
 		st.dataframe(df_santimbru)
 		st.dataframe(df_brasov)
+		# Creating the ZIP file with the Predictions:
+		folder_path = './Transavia/Consumption/Input'
+		zip_name = 'Transavia_Inputs.zip'
+		zip_files(folder_path, zip_name)
+		file_path = './Transavia/Consumption/Input/Transavia_Inputs.zip'
 
+		with open(file_path, "rb") as f:
+			zip_data = f.read()
+
+		# Create a download link
+		b64 = base64.b64encode(zip_data).decode()
+		button_html = f"""
+			 <a download="Transavia_Inputs.zip" href="data:application/zip;base64,{b64}" download>
+			 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+			 </a> 
+			 """
+		st.markdown(button_html, unsafe_allow_html=True)
 	# Submit button
 	if st.button('Submit'):
 		st.success('Forecast Ready', icon="✅")
 		# Your code to generate the forecast
-		df_santimbru = pd.read_excel("./Transavia/Consumption/Input.xlsx")
-		df_brasov = pd.read_excel("./Transavia/Consumption/Input_Brasov.xlsx")
+		df_santimbru = pd.read_excel("./Transavia/Consumption/Input/Input.xlsx")
+		df_brasov = pd.read_excel("./Transavia/Consumption/Input/Input_Brasov.xlsx")
 		predicting_exporting_consumption_Santimbru(df_santimbru)
 		predicting_exporting_consumption_Brasov(df_brasov)
-		# Creating the ZIP file with the Productions:
+		# Creating the ZIP file with the Predictions:
 		folder_path = './Transavia/Consumption/Results/XGB'
 		zip_name = 'Transavia_Consumption_Results.zip'
 		zip_files(folder_path, zip_name)
@@ -1519,6 +1535,10 @@ def predicting_exporting_Solina():
 	forecast_dataset = forecast_dataset.drop("Data", axis=1)
 
 	preds = xgb_loaded.predict(forecast_dataset.values)
+	
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+	
 	#Exporting Results to Excel
 	workbook = xlsxwriter.Workbook("./Solina/Production/Results_Production_xgb.xlsx")
 	worksheet = workbook.add_worksheet("Production_Predictions")
@@ -1531,7 +1551,7 @@ def predicting_exporting_Solina():
 	worksheet.write(0,1,"Interval")
 	worksheet.write(0,2,"Prediction")
 
-	for value in preds:
+	for value in rounded_values:
 			worksheet.write(row, col + 2, value, decimal_format)
 			row +=1
 	row = 1
@@ -1570,7 +1590,7 @@ def predicting_exporting_Consumption_Solina():
 	for holiday in forecast_dataset["Data"].unique():
 			if holiday in holidays.ds.values:
 					forecast_dataset["Holiday"][forecast_dataset["Data"] == holiday] = 1
-
+	dataset = forecast_dataset.copy()
 	# Restructuring the dataset
 	forecast_dataset = forecast_dataset[["WeekDay", "Month", "Holiday", "Interval", "Temperatura"]]
 	# Loading the model
@@ -1579,21 +1599,23 @@ def predicting_exporting_Consumption_Solina():
 	#Exporting Results to Excel
 	workbook = xlsxwriter.Workbook("./Solina/Consumption/Results/Results_Consumption_Solina.xlsx")
 	worksheet = workbook.add_worksheet("Prediction_Consumption")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
 	# Define a format for cells with three decimal places
 	decimal_format = workbook.add_format({'num_format': '0.000'})
-
 	row = 1
 	col = 0
-	worksheet.write(0,0,"Prediction")
-	# worksheet.write(0,1,"Real")
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
 
 	for value in preds:
-			worksheet.write(row, col, value, decimal_format)
+			worksheet.write(row, col + 2, round(value,3))
 			row +=1
-	# row = 1
-	# for value in y_test:
-	#     worksheet.write(row, col + 1, value)
-	#     row +=1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+			worksheet.write(row, col + 0, Data, date_format)
+			worksheet.write(row, col + 1, Interval)
+			row +=1
 
 	workbook.close()
 	return forecast_dataset
@@ -1644,7 +1666,7 @@ def predicting_exporting_RAAL():
 	worksheet.write(0,2,"Prediction")
 
 	for value in preds:
-			worksheet.write(row, col + 2, value, decimal_format)
+			worksheet.write(row, col + 2, round(value,3))
 			row +=1
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):
@@ -1702,7 +1724,7 @@ def predicting_exporting_Consumption_RAAL():
 	worksheet.write(0,1,"Interval")
 	worksheet.write(0,2,"Prediction")
 	for value in preds:
-		worksheet.write(row, col + 2, value, decimal_format)
+		worksheet.write(row, col + 2, round(value,3))
 		row +=1
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):
