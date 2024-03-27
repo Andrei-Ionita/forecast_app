@@ -1561,6 +1561,27 @@ def predicting_exporting_Solina():
 			row +=1
 
 	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./Solina/Production/Results_Production_xgb.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+	    original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	    if original_value is not None:  # Check if the cell is not empty
+	        # Round the value to 3 decimal places and write it back to column C
+	        worksheet.cell(row, 3).value = round(original_value, 3)
+	    
+	for row in range(2, worksheet.max_row + 1):
+	    original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	    if original_value < 0.01:  # Check if the value is less than 0.01
+	        # Residual values are rounded to 0.000
+	        worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
 	return dataset
 
 def predicting_exporting_Consumption_Solina():
@@ -1617,6 +1638,27 @@ def predicting_exporting_Consumption_Solina():
 			worksheet.write(row, col + 1, Interval)
 			row +=1
 
+	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./Solina/Consumption/Results/Results_Consumption_Solina.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+	    original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	    if original_value is not None:  # Check if the cell is not empty
+	        # Round the value to 3 decimal places and write it back to column C
+	        worksheet.cell(row, 3).value = round(original_value, 3)
+	    
+	for row in range(2, worksheet.max_row + 1):
+	    original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	    if original_value < 0.01:  # Check if the value is less than 0.01
+	        # Residual values are rounded to 0.000
+	        worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
 	workbook.close()
 	return forecast_dataset
 
@@ -1675,6 +1717,28 @@ def predicting_exporting_RAAL():
 			row +=1
 
 	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./RAAL/Production/Results_Production_xgb_RAAL.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+	    original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	    if original_value is not None:  # Check if the cell is not empty
+	        # Round the value to 3 decimal places and write it back to column C
+	        worksheet.cell(row, 3).value = round(original_value, 3)
+	    
+	for row in range(2, worksheet.max_row + 1):
+	    original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	    if original_value < 0.01:  # Check if the value is less than 0.01
+	        # Residual values are rounded to 0.000
+	        worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
+
 	return dataset
 
 def predicting_exporting_Consumption_RAAL():
@@ -1733,6 +1797,27 @@ def predicting_exporting_Consumption_RAAL():
 		row +=1
 
 	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./RAAL/Consumption//Results/Results_Consumption_RAAL.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+	    original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	    if original_value is not None:  # Check if the cell is not empty
+	        # Round the value to 3 decimal places and write it back to column C
+	        worksheet.cell(row, 3).value = round(original_value, 3)
+	    
+	for row in range(2, worksheet.max_row + 1):
+	    original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	    if original_value < 0.01:  # Check if the value is less than 0.01
+	        # Residual values are rounded to 0.000
+	        worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
 	return dataset
 
 def render_consumption_forecast():
@@ -1785,7 +1870,7 @@ def render_production_forecast():
 		# Submit button
 		if st.button('Submit'):
 			# Fetching the data from Solcast
-			fetching_Solina_data()
+			# fetching_Solina_data()
 			# Your code to generate the forecast
 			df = predicting_exporting_Solina()
 			st.dataframe(df)
