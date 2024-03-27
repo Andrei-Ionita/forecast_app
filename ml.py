@@ -70,6 +70,7 @@ holidays = pd.concat((New_year_and_day_after, National_holiday, Christmas, St_An
 #=============================================================================Feetching the data for Transavia locations========================================================================
 solcast_api_key = os.getenv("solcast_api_key")
 # output_path = "./Transavia/data/Bocsa.csv"
+# print("API Key:", solcast_api_key)  # Remove after debugging
 
 # Defining the fetching data function
 def fetch_data(lat, lon, api_key, output_path):
