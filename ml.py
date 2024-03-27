@@ -12,6 +12,7 @@ import zipfile
 from datetime import datetime
 import gdown
 import requests
+from openpyxl import load_workbook
 
 session_start_time = time.time()
 
@@ -81,6 +82,7 @@ def fetch_data(lat, lon, api_key, output_path):
 		with open(output_path, 'wb') as file:
 			file.write(response.content)
 	else:
+		print(response.text)  # Add this line to see the error message returned by the API
 		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
 
 # ============================Crating the Input_production file==========
@@ -1424,7 +1426,7 @@ def render_consumption_forecast_Transavia():
 		b64 = base64.b64encode(zip_data).decode()
 		button_html = f"""
 			 <a download="Transavia_Inputs.zip" href="data:application/zip;base64,{b64}" download>
-			 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+			 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Input Files</button>
 			 </a> 
 			 """
 		st.markdown(button_html, unsafe_allow_html=True)
@@ -1501,6 +1503,7 @@ def fetching_RAAL_data():
 		with open("./RAAL/Solcast/Prundu_raw.csv", 'wb') as file:
 			file.write(response.content)
 	else:
+		print(response.text)  # Add this line to see the error message returned by the API
 		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
 
 def predicting_exporting_Solina():
