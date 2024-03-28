@@ -71,6 +71,8 @@ holidays = pd.concat((New_year_and_day_after, National_holiday, Christmas, St_An
 solcast_api_key = os.getenv("solcast_api_key")
 # output_path = "./Transavia/data/Bocsa.csv"
 # print("API Key:", solcast_api_key)  # Remove after debugging
+if 'solcast_api_key' not in st.session_state:
+	st.session_state['solcast_api_key'] = solcast_api_key = os.getenv("solcast_api_key")
 
 # Defining the fetching data function
 def fetch_data(lat, lon, api_key, output_path):
