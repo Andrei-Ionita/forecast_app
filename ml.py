@@ -74,6 +74,7 @@ solcast_api_key = os.getenv("solcast_api_key")
 if 'solcast_api_key' not in st.session_state:
 	st.session_state['solcast_api_key'] = solcast_api_key = os.getenv("solcast_api_key")
 
+
 # Defining the fetching data function
 def fetch_data(lat, lon, api_key, output_path):
 	# Fetch data from the API
@@ -1649,7 +1650,7 @@ def predicting_exporting_Consumption_Solina():
 	# Step 1: Open the Excel file
 	file_path = "./Solina/Consumption/Results/Results_Consumption_Solina.xlsx"
 	workbook = load_workbook(filename=file_path)
-	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+	worksheet = workbook.active  # Adjust the sheet name as necessary
 
 	# Step 2: Directly round the values in column C and write them back
 	for row in range(2, worksheet.max_row + 1):
@@ -1807,7 +1808,7 @@ def predicting_exporting_Consumption_RAAL():
 	# Step 1: Open the Excel file
 	file_path = "./RAAL/Consumption//Results/Results_Consumption_RAAL.xlsx"
 	workbook = load_workbook(filename=file_path)
-	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+	worksheet = workbook.active  # Adjust the sheet name as necessary
 
 	# Step 2: Directly round the values in column C and write them back
 	for row in range(2, worksheet.max_row + 1):
