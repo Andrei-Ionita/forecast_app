@@ -11,6 +11,7 @@ import base64
 from eda import render_eda_page
 from ml import render_forecast_page, render_balancing_market_page
 from assistant import render_assistant_page
+from fundamentals import render_fundamentals_page
 
 # Define rendering functions before the main function.
 slideshow_html = """
@@ -301,7 +302,7 @@ def main():
 	# Use session state to set default value for sidebar radio
 	page = st.sidebar.radio(
 			"Select a page:",
-			options=["Home", "EDA", "Forecast", "Balancing Market", "Your AI BFF"],
+			options=["Home", "EDA", "Forecast", "Market Fundamentals", "Balancing Market", "Your AI BFF"],
 			index=None,
 			key="page_select"
 	)
@@ -320,6 +321,8 @@ def main():
 		render_balancing_market_page()
 	elif st.session_state['page'] == "Forecast":
 		render_forecast_page()
+	elif st.session_state['page'] == "Market Fundamentals":
+		render_fundamentals_page()
 	elif st.session_state['page'] == "EDA":
 		render_eda_page()
 	elif st.session_state['page'] == "Your AI BFF":

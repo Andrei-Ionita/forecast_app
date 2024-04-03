@@ -1478,7 +1478,7 @@ def render_Transavia_page():
 
 #================================================================================GENERAL FUNCTIONALITY==========================================================================================
 
-#===================Crating the function for fething the data for Solina===========================
+#===================Creating the function for fething the data for Solina===========================
 def fetching_Solina_data():
 	lat = 46.073272
 	lon = 23.580489
@@ -1493,6 +1493,23 @@ def fetching_Solina_data():
 	else:
 		print(response.text)  # Add this line to see the error message returned by the API
 		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./Solina/Solcast/Alba_Iulia_raw.csv")
+
+	# Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
+	columns_to_shift = data.columns.difference(['period_end'])
+
+	# Shift the data columns by 2 intervals
+	data_shifted = data[columns_to_shift].shift(2)
+
+	# Combine the fixed 'period_end' with the shifted data columns
+	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
+
+	# Optionally, handle the NaN values in the first two rows after shifting
+	data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
+
+	# Save the adjusted DataFrame
+	data_adjusted.to_csv("./Solina/Solcast/Alba_Iulia_raw.csv", index=False)
 
 
 def fetching_RAAL_data():
@@ -1509,6 +1526,23 @@ def fetching_RAAL_data():
 	else:
 		print(response.text)  # Add this line to see the error message returned by the API
 		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./RAAL/Solcast/Prundu_raw.csv")
+
+	# Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
+	columns_to_shift = data.columns.difference(['period_end'])
+
+	# Shift the data columns by 2 intervals
+	data_shifted = data[columns_to_shift].shift(2)
+
+	# Combine the fixed 'period_end' with the shifted data columns
+	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
+
+	# Optionally, handle the NaN values in the first two rows after shifting
+	data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
+
+	# Save the adjusted DataFrame
+	data_adjusted.to_csv("./RAAL/Solcast/Prundu_raw.csv", index=False)
 
 def predicting_exporting_Solina():
 	# Creating the forecast_dataset df
@@ -1877,7 +1911,7 @@ def render_production_forecast():
 		# Submit button
 		if st.button('Submit'):
 			# Fetching the data from Solcast
-			# fetching_Solina_data()
+			fetching_Solina_data()
 			# Your code to generate the forecast
 			df = predicting_exporting_Solina()
 			st.dataframe(df)
