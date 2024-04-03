@@ -1346,6 +1346,23 @@ def render_production_forecast_Transavia(locations_PVPPs):
 		lat = locations_PVPPs[location]["lat"]
 		lon = locations_PVPPs[location]["lon"]
 		fetch_data(lat, lon, solcast_api_key, output_path)
+		# Adjusting the values to EET time
+		data = pd.read_csv(f"./Transavia/data/{location}.csv")
+
+		# Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
+		columns_to_shift = data.columns.difference(['period_end'])
+
+		# Shift the data columns by 2 intervals
+		data_shifted = data[columns_to_shift].shift(2)
+
+		# Combine the fixed 'period_end' with the shifted data columns
+		data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
+
+		# Optionally, handle the NaN values in the first two rows after shifting
+		data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
+
+		# Save the adjusted DataFrame
+		data_adjusted.to_csv(f"./Transavia/data/{location}.csv", index=False)
 	# Creating the input_production file
 	path = "./Transavia/data"
 	creating_input_production_file(path)
