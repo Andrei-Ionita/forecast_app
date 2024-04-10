@@ -12,3 +12,4 @@ ydata_profiling==4.6.1
 phik==0.12.3
 gdown
 wapi-python
+streamlit_pandas_profiling==0.1.3
