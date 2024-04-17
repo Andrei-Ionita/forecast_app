@@ -1745,7 +1745,7 @@ def predicting_exporting_RAAL():
 	forecast_dataset["Nori"] = data["cloud_opacity"].values
 
 	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
-	forecast_dataset.drop("Nori", axis=1, inplace=True)
+	# forecast_dataset.drop("Nori", axis=1, inplace=True)
 	dataset = forecast_dataset.copy()
 	forecast_dataset = forecast_dataset.drop("Data", axis=1)
 

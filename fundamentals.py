@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import wapi
 from openpyxl import load_workbook
 from datetime import datetime
+from entsoe import EntsoePandasClient
+import xml.etree.ElementTree as ET
 
 # ================================================================================VOLUE data==================================================================================
 
@@ -185,9 +187,9 @@ def updating_PZU_date():
 
 	# Step 5: Write dates in the format "dd.mm.yyyy" from A2 to A25
 	for row in range(2, 26):  # Note: range(2, 26) will loop from 2 to 25
-	    # Format the date as "dd.mm.yyyy"
-	    formatted_date = next_day.strftime("%d.%m.%Y")
-	    ws[f'A{row}'] = formatted_date
+		# Format the date as "dd.mm.yyyy"
+		formatted_date = next_day.strftime("%d.%m.%Y")
+		ws[f'A{row}'] = formatted_date
 
 	# Step 6: Save the workbook
 	wb.save("./Market Fundamentals/Volue_data.xlsx")
@@ -195,54 +197,235 @@ def updating_PZU_date():
 # Fetching the Consumption and Production from Transelectrica===================================================
 # 1. Consumption
 def process_file_consumption_transelectrica(file_path):
-    # Read the file, skipping initial rows to get to the actual data
-    data_cleaned = pd.read_excel(file_path, skiprows=4)
-    
-    # Drop the unnecessary first two columns (index and "Update day")
-    data_cleaned.drop(columns=data_cleaned.columns[:2], inplace=True)
-    
-    # Rename the first column to 'Date' for clarity
-    data_cleaned.rename(columns={data_cleaned.columns[0]: 'Date'}, inplace=True)
-    
-    # Determine the number of intervals (subtracting the Date column)
-    num_intervals = len(data_cleaned.columns) - 1
-    
-    # Generate interval identifiers
-    interval_identifiers = list(range(1, num_intervals + 1))
-    
-    # Melt the dataframe with generated interval identifiers
-    data_long = pd.melt(data_cleaned, id_vars=["Date"], value_vars=data_cleaned.columns[1:], var_name="Interval", value_name="Value")
-    
-    # Replace the interval column with the generated interval identifiers
-    data_long['Interval'] = data_long.groupby('Date').cumcount() + 1
-    
-    # Sort values to ensure they are ordered by Date and then by Interval
-    data_long_sorted = data_long.sort_values(by=["Date", "Interval"]).reset_index(drop=True)
-    
-    return data_long_sorted
+	# Read the file, skipping initial rows to get to the actual data
+	data_cleaned = pd.read_excel(file_path, skiprows=4)
+	
+	# Drop the unnecessary first two columns (index and "Update day")
+	data_cleaned.drop(columns=data_cleaned.columns[:2], inplace=True)
+	
+	# Rename the first column to 'Date' for clarity
+	data_cleaned.rename(columns={data_cleaned.columns[0]: 'Date'}, inplace=True)
+	
+	# Determine the number of intervals (subtracting the Date column)
+	num_intervals = len(data_cleaned.columns) - 1
+	
+	# Generate interval identifiers
+	interval_identifiers = list(range(1, num_intervals + 1))
+	
+	# Melt the dataframe with generated interval identifiers
+	data_long = pd.melt(data_cleaned, id_vars=["Date"], value_vars=data_cleaned.columns[1:], var_name="Interval", value_name="Value")
+	
+	# Replace the interval column with the generated interval identifiers
+	data_long['Interval'] = data_long.groupby('Date').cumcount() + 1
+	
+	# Sort values to ensure they are ordered by Date and then by Interval
+	data_long_sorted = data_long.sort_values(by=["Date", "Interval"]).reset_index(drop=True)
+	
+	return data_long_sorted
 
 # 2. Production
 def process_file_production_transelectrica(file_path):
-    # Read the CSV, skipping initial rows to get to the actual data
-    data_cleaned = pd.read_excel(file_path, skiprows=4)
-    
-    # Drop the unnecessary first two columns (index and "Update day")
-    data_cleaned.drop(columns=data_cleaned.columns[:2], inplace=True)
-    
-    # Rename the first column to 'Date' for clarity
-    data_cleaned.rename(columns={data_cleaned.columns[0]: 'Date'}, inplace=True)
-    
-    # Melt the dataframe to transform it from wide to long format
-    data_long = data_cleaned.melt(id_vars=["Date"], var_name="Interval", value_name="Value")
-    
-    # Extract interval numbers from the Interval column (e.g., "int1" -> 1)
-    data_long["Interval"] = data_long["Interval"].str.extract('(\d+)').astype(int)
-    
-    # Sort values to ensure they are ordered by Date and then by Interval
-    data_long_sorted = data_long.sort_values(by=["Date", "Interval"]).reset_index(drop=True)
-    
-    return data_long_sorted
+	# Read the CSV, skipping initial rows to get to the actual data
+	data_cleaned = pd.read_excel(file_path, skiprows=4)
+	
+	# Drop the unnecessary first two columns (index and "Update day")
+	data_cleaned.drop(columns=data_cleaned.columns[:2], inplace=True)
+	
+	# Rename the first column to 'Date' for clarity
+	data_cleaned.rename(columns={data_cleaned.columns[0]: 'Date'}, inplace=True)
+	
+	# Melt the dataframe to transform it from wide to long format
+	data_long = data_cleaned.melt(id_vars=["Date"], var_name="Interval", value_name="Value")
+	
+	# Extract interval numbers from the Interval column (e.g., "int1" -> 1)
+	data_long["Interval"] = data_long["Interval"].str.extract('(\d+)').astype(int)
+	
+	# Sort values to ensure they are ordered by Date and then by Interval
+	data_long_sorted = data_long.sort_values(by=["Date", "Interval"]).reset_index(drop=True)
+	
+	return data_long_sorted
 
+#====================================================================================ENTSOE data=======================================================================================
+api_key_entsoe = os.getenv("api_key_entsoe")
+client = EntsoePandasClient(api_key=api_key_entsoe)
+
+# 1 Imbalance Prices
+def imbalance_prices(start, end):
+	# Define the start and end timestamps for the query
+	# start = pd.Timestamp('20240401', tz='Europe/Bucharest')  # Adjust the start date as needed
+	# end = pd.Timestamp('20240411', tz='Europe/Bucharest')    # Adjust the end date as needed
+
+	# Set the country code for Romania
+	country_code = 'RO'  # ISO-3166 alpha-2 code for Romania
+
+	# Fetch imbalance prices
+	imbalance_prices = client.query_imbalance_prices(country_code, start=start, end=end, psr_type=None)
+
+	# Display or analyze the fetched data
+	return imbalance_prices
+
+# 2. Imbalabce Volumes
+def imbalance_volumes(start, end):
+	# Define the start and end timestamps for the query
+	# start = pd.Timestamp('20240401', tz='Europe/Bucharest')  # Adjust the start date as needed
+	# end = pd.Timestamp('20240411', tz='Europe/Bucharest')    # Adjust the end date as needed
+
+	# Set the country code for Romania
+	country_code = 'RO'  # ISO-3166 alpha-2 code for Romania
+
+	# Fetch imbalance prices
+	imbalance_volumes = client.query_imbalance_volumes(country_code, start=start, end=end, psr_type=None)
+
+	# Display or analyze the fetched data
+	return imbalance_volumes
+
+#3. Contracted Aggragated mFRR Volumes
+def activated_mFRR_energy(start, end):
+	# Update parameters with Czech control area domain
+	params = {
+		'documentType': 'A83',
+		"controlArea_Domain": "10YRO-TEL------P",
+		"businessType": "A97"
+	}
+
+	# Make the API request
+	response = client._base_request(params=params, start=start, end=end)
+
+	# Process the response
+	if response.status_code == 200:
+		# Check if the response is empty
+		if response.text:
+			# Check the content type
+			content_type = response.headers.get('Content-Type', '')
+			if 'application/json' in content_type:
+				try:
+					data = response.json()
+					# st.write(data)
+				except ValueError as e:
+					st.error(f"Invalid JSON data received: {e}")
+			else:
+				st.error(f"Unexpected content type: {content_type}")
+				st.text(f"Response content: {response.text}")
+		else:
+			st.warning("Empty response received.")
+	else:
+		st.error(f"Failed to retrieve data: HTTP Status {response.status_code}")
+
+	return response.text
+
+# Defining the function to process the server response
+def creating_mFRR_dfs(data):
+	# Creating two dataframes, one for Up and another for Down
+	# The XML content you provided
+	xml_data = data
+
+	# Define the namespace map to use with ElementTree
+	namespaces = {
+		'ns': 'urn:iec62325.351:tc57wg16:451-6:balancingdocument:3:0'  # 'ns' is a placeholder for the namespace
+	}
+
+	# Parse the XML
+	root = ET.fromstring(xml_data)
+
+	# Dictionary to hold DataFrames, one for each TimeSeries
+	dfs = {}
+
+	# Counter to identify TimeSeries
+	time_series_id = 1
+
+	# Navigate through the XML structure and extract data
+	for ts in root.findall('.//ns:TimeSeries', namespaces):
+		timestamps = []
+		positions = []
+		quantities = []
+
+		for point in ts.findall('.//ns:Point', namespaces):
+			position = int(point.find('ns:position', namespaces).text)
+			quantity = point.find('ns:quantity', namespaces).text
+			# Assuming the timestamp is the same for all points in a TimeSeries for simplicity
+			time_interval = ts.find('.//ns:Period/ns:timeInterval', namespaces)
+			start = time_interval.find('ns:start', namespaces).text
+			end = time_interval.find('ns:end', namespaces).text
+			start_date = pd.to_datetime(start).strftime('%d.%m.%Y')  # Format as "dd.mm.yyyy"
+			end_date = pd.to_datetime(end).strftime('%d.%m.%Y')  # Format as "dd.mm.yyyy"
+			timestamps.append(end_date)
+			positions.append(position)
+			quantities.append(quantity)
+
+		# Create a DataFrame for the current TimeSeries
+		df = pd.DataFrame({
+			'Date': timestamps,
+			'Interval': positions,
+			'Quantity': quantities
+		})
+		
+		# Rename columns based on TimeSeries number
+		if time_series_id == 1:
+			df.rename(columns={'Quantity': 'Activated Energy Down'}, inplace=True)
+		else:
+			df.rename(columns={'Quantity': 'Activated Energy Up'}, inplace=True)
+		
+		# Store the DataFrame in the dictionary with a unique key
+		dfs[f"TimeSeries_{time_series_id}"] = df
+		time_series_id += 1
+
+	# Now dfs['TimeSeries_1'] will hold the DataFrame for the first TimeSeries
+	# and dfs['TimeSeries_2'] for the second, etc.
+
+	# Example to print DataFrame for TimeSeries 1 and 2
+	st.write("DataFrame for TimeSeries 1:")
+	st.dataframe(dfs['TimeSeries_1'])
+	st.write("\nDataFrame for TimeSeries 2:")
+	st.dataframe(dfs['TimeSeries_2'])
+
+	# Merge the dataframes on 'Date' and 'Interval'
+	activated_energy_df = pd.merge(dfs['TimeSeries_1'], dfs['TimeSeries_2'], on=['Date', 'Interval'], how='outer')
+	return activated_energy_df
+
+#4. Fethcing the Actual Load 
+def actual_load(start, end):
+	# Define the start and end timestamps for the query
+	# start = pd.Timestamp('20240401', tz='Europe/Bucharest')  # Adjust the start date as needed
+	# end = pd.Timestamp('20240411', tz='Europe/Bucharest')    # Adjust the end date as needed
+
+	# Set the country code for Romania
+	country_code = 'RO'  # ISO-3166 alpha-2 code for Romania
+
+	# Fetch imbalance prices
+	actual_load = client.query_load(country_code, start=start, end=end)
+
+	# Display or analyze the fetched data
+	return actual_load
+
+#5. Fetching the Generation Forecast
+def generation_forecast(start, end):
+	# Define the start and end timestamps for the query
+	# start = pd.Timestamp('20240401', tz='Europe/Bucharest')  # Adjust the start date as needed
+	# end = pd.Timestamp('20240411', tz='Europe/Bucharest')    # Adjust the end date as needed
+
+	# Set the country code for Romania
+	country_code = 'RO'  # ISO-3166 alpha-2 code for Romania
+
+	# Fetch generation forecast
+	generation_forecast = client.query_generation_forecast(country_code, start=start, end=end)
+
+	# Display or analyze the fetched data
+	return generation_forecast
+
+#6. Fetching the Actual Geneeration per Source
+def actual_generation_source(start, end):
+	# Define the start and end timestamps for the query
+	# start = pd.Timestamp('20240401', tz='Europe/Bucharest')  # Adjust the start date as needed
+	# end = pd.Timestamp('20240411', tz='Europe/Bucharest')    # Adjust the end date as needed
+
+	# Set the country code for Romania
+	country_code = 'RO'  # ISO-3166 alpha-2 code for Romania
+
+	# Fetch imbalance prices
+	actual_generation_source = client.query_generation(country_code, start=start, end=end, psr_type=None, include_eic=False)
+
+	# Display or analyze the fetched data
+	return actual_generation_source
 #====================================================================================Rendering into App================================================================================
 
 def render_fundamentals_page():
@@ -588,3 +771,148 @@ def render_fundamentals_page():
 		filtered_data.dropna(inplace=True)
 
 		filtered_data.to_excel('./Market Fundamentals/Transelectrica_data/Weekly_Production_2024.xlsx', index=False)
+
+	# Fething the Entsoe data
+	st.subheader("Entsoe Data", divider="violet")
+	start_date = st.date_input("Select Start Date", value=pd.to_datetime('2024-04-11'))
+	end_date = st.date_input("Select End Date", value=pd.to_datetime('2024-04-12'))
+
+	# Convert the input dates to Timestamps with time set to '0000' hours
+	start = pd.Timestamp(f"{start_date.strftime('%Y%m%d')}0000", tz='Europe/Bucharest')
+	end = pd.Timestamp(f"{end_date.strftime('%Y%m%d')}0000", tz='Europe/Bucharest')
+	
+	# start = pd.Timestamp('202404110000', tz='Europe/Bucharest')  # Adjust the start date as needed
+	# end = pd.Timestamp('202404120000', tz='Europe/Bucharest')    # Adjust the end date as needed
+	if st.button("Entsoe"):
+		#Fetch the DataFrames
+		df_imbalance_prices = imbalance_prices(start, end)
+		df_imbalance_volumes = imbalance_volumes(start, end)
+		# Merge the DataFrames on their indices
+		df_imbalance = pd.merge(df_imbalance_prices, df_imbalance_volumes, left_index=True, right_index=True, how='inner')
+		# Assuming df_imbalance is your merged DataFrame
+		df_imbalance = df_imbalance.rename(columns={'Long': 'Excedent Price',
+													'Short': 'Deficit Price'})
+		
+		# Fetching the Activated mFRR capacities
+		data = activated_mFRR_energy(start, end)
+		df_activated_energy = creating_mFRR_dfs(data)
+		# st.dataframe(df_activated_energy)
+
+		# Fethcing the Actual Load
+		df_actual_load = actual_load(start, end)
+		# st.dataframe(df_actual_load)
+
+		# Fetching the Generation Forecast
+		df_generation_forecast = generation_forecast(start, end)
+		# st.dataframe(df_generation_forecast)
+
+		# Fetching the Generation per Source
+		df_actual_generation_source = actual_generation_source(start, end)
+		st.dataframe(df_actual_generation_source)
+		st.write(df_actual_generation_source.columns)
+		
+		# Creating the dataframe with all the Entsoe data
+		# 1. Concatenating the df_activated_energy and df_imbalance
+		df_imbalance.reset_index(inplace=True)
+		df_imbalance.columns = ['Timestamp', 'Excedent Price', 'Deficit Price', 'Imbalance Volume']
+
+		# Convert 'Timestamp' to datetime format
+		df_imbalance['Timestamp'] = pd.to_datetime(df_imbalance['Timestamp'])
+
+		# Create 'Date' and 'Interval' columns from 'Timestamp'
+		df_imbalance['Date'] = df_imbalance['Timestamp'].dt.strftime('%d.%m.%Y')
+		df_imbalance['Interval'] = ((df_imbalance['Timestamp'].dt.hour * 60 + df_imbalance['Timestamp'].dt.minute) // 15 + 1)
+
+		# Now proceed with the merge as previously described
+		df_final = pd.merge(df_activated_energy, df_imbalance, on=['Date', 'Interval'], how='left')
+
+		# Optionally remove the 'Timestamp' column if it's no longer needed
+		df_final.drop(columns=['Timestamp'], inplace=True)
+
+		# 2. Adding the Actual Load
+		df_actual_load.reset_index(inplace=True)
+		df_actual_load.rename(columns={'index': 'Timestamp'}, inplace=True)
+		# Convert 'Timestamp' to datetime format
+		df_actual_load['Timestamp'] = pd.to_datetime(df_actual_load['Timestamp'])
+
+		# Create 'Date' and 'Interval' columns from 'Timestamp'
+		df_actual_load['Date'] = df_actual_load['Timestamp'].dt.strftime('%d.%m.%Y')
+		df_actual_load['Interval'] = ((df_actual_load['Timestamp'].dt.hour * 60 + df_actual_load['Timestamp'].dt.minute) // 15 + 1)
+
+		# Now proceed with the merge as previously described
+		df_final_2 = pd.merge(df_final, df_actual_load, on=['Date', 'Interval'], how='left')
+
+		# Optionally remove the 'Timestamp' column if it's no longer needed
+		df_final_2.drop(columns=['Timestamp'], inplace=True)
+
+		# 3. Adding the Generation Forecast
+		# Convert the Series to DataFrame
+		df_generation_forecast = df_generation_forecast.to_frame('Generation Forecast')
+		# If your Series had the timestamp as the index (which is common in time series data), you can reset the index to make it a column:
+		df_generation_forecast.reset_index(inplace=True)
+		df_generation_forecast.rename(columns={'index': 'Timestamp'}, inplace=True)
+
+		# Create 'Date' and 'Interval' columns from 'Timestamp'
+		df_generation_forecast['Date'] = df_generation_forecast['Timestamp'].dt.strftime('%d.%m.%Y')
+		df_generation_forecast['Interval'] = ((df_generation_forecast['Timestamp'].dt.hour * 60 + df_generation_forecast['Timestamp'].dt.minute) // 15 + 1)
+
+		# Now proceed with the merge as previously described
+		df_final_3 = pd.merge(df_final_2, df_generation_forecast, on=['Date', 'Interval'], how='left')
+
+		# # Optionally remove the 'Timestamp' column if it's no longer needed
+		df_final_3.drop(columns=['Timestamp'], inplace=True)
+
+		# 4. Adding the Generation Forecast per Source
+		df_actual_generation_source.reset_index(inplace=True)
+		df_actual_generation_source.columns = ['Timestamp', "Biomass", "Fossil Brown coal/Lignite", "Fossil Gas", "Fossil Hard coal", 
+		"Hydro Run-of-river and poundage", "Hydro Water Reservoir", "Nuclear", "Solar", "Wind Onshore"]
+
+		# Convert 'Timestamp' to datetime format
+		df_actual_generation_source['Timestamp'] = pd.to_datetime(df_actual_generation_source['Timestamp'])
+
+		# Create 'Date' and 'Interval' columns from 'Timestamp'
+		df_actual_generation_source['Date'] = df_actual_generation_source['Timestamp'].dt.strftime('%d.%m.%Y')
+		df_actual_generation_source['Interval'] = ((df_actual_generation_source['Timestamp'].dt.hour * 60 + df_actual_generation_source['Timestamp'].dt.minute) // 15 + 1)
+
+		# Now proceed with the merge as previously described
+		df_final_4 = pd.merge(df_final_3, df_actual_generation_source, on=['Date', 'Interval'], how='left')
+
+		# Optionally remove the 'Timestamp' column if it's no longer needed
+		df_final_4.drop(columns=['Timestamp'], inplace=True)
+
+		# Display the merged DataFrame
+		st.dataframe(df_final_4)
+
+		# Exporting the final Entsoe dataframe to Excel
+		df_final_4.to_excel("./Market Fundamentals/Entsoe_data/Entsoe_data.xlsx")
+
+		# Formatting the Date column
+		# Assuming df_final_4 is your DataFrame
+		# Create an Excel writer object
+		with pd.ExcelWriter("./Market Fundamentals/Entsoe_data/Entsoe_data.xlsx", 
+							engine='xlsxwriter', 
+							datetime_format='dd.mm.yyyy') as writer:
+			df_final_4.to_excel(writer, index=False)
+
+			# Access the xlsxwriter workbook and worksheet objects from the dataframe
+			workbook  = writer.book
+			worksheet = writer.sheets['Sheet1']
+
+			# Get the number of rows in the DataFrame
+			num_rows = len(df_final_4.index)
+
+			# Define a format object for Excel to use
+			date_format = workbook.add_format({'num_format': 'dd.mm.yyyy'})
+
+			# Apply the date format to the column with dates (assuming it's the first column)
+			worksheet.set_column(0, 0, None, date_format)  # Column 'A:A' if your dates are in the first column
+
+		
+
+		
+
+
+
+
+
+
