@@ -10,6 +10,7 @@ from openpyxl import load_workbook
 from datetime import datetime
 from entsoe import EntsoePandasClient
 import xml.etree.ElementTree as ET
+import openpyxl
 
 # ================================================================================VOLUE data==================================================================================
 
@@ -171,8 +172,8 @@ def fetch_time_series_data(token, curve_id, start_date, end_date, time_zone=None
 	else:
 		return {"error": "Failed to fetch time series data", "status_code": response.status_code, "message": response.text}
 
-#=================================Fetching the Wind Energy data============================================
-def fetch_volue_wind_data():
+#=================================Fetching the Wind Power data============================================
+def fetch_volue_wind_data(issue_date_str):
 	# INSTANCES curve 15 min
 	curve = session.get_curve(name='pro ro wnd ec00 mwh/h cet min15 f')
 	# INSTANCES curves contain a timeseries for each defined issue dates
@@ -245,6 +246,177 @@ def fetch_volue_wind_data():
 	print("Excel file has been updated.")
 
 	return df_wind_15min
+#=================================Fetching the Solar Power data============================================
+def fetch_volue_solar_data(issue_date_str):
+	# INSTANCE curve 15 min
+	curve = session.get_curve(name='pro ro spv ec00 mwh/h cet min15 f')
+	# INSTANCES curves contain a timeseries for each defined issue dates
+	# Get a list of available curves with issue dates within a timerange with:
+	# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
+	ts_15min = curve.get_instance(issue_date=issue_date_str)
+	pd_s_15min = ts_15min.to_pandas() # convert TS object to pandas.Series object
+	df_solar_15min = pd_s_15min.to_frame() # convert pandas.Series to pandas.DataFrame
+	st.dataframe(df_solar_15min)
+	df_solar_15min.to_csv("./Market Fundamentals/PV_data_15min.csv")
+	## INSTANCE curve hour
+	curve = session.get_curve(name='pro ro spv fwd mw cet h f')
+	# INSTANCES curves contain a timeseries for each defined issue dates
+	# Get a list of available curves with issue dates within a timerange with:
+	# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
+	ts_h = curve.get_instance(issue_date=issue_date_str)
+	pd_s_h = ts_h.to_pandas() # convert TS object to pandas.Series object
+	pd_df_h = pd_s_h.to_frame() # convert pandas.Series to pandas.DataFrame
+	st.dataframe(pd_df_h)
+	# Writing the hourly values to the Trading Tool file
+	pd_df_h.to_csv("./Market Fundamentals/PV_data_hourly.csv")
+	# Load the wind data from CSV without altering the date format
+	pv_data_path = './Market Fundamentals/PV_data_hourly.csv'  # Update with the actual path
+	pv_data = pd.read_csv(pv_data_path)
+
+	# Determine tomorrow's date as a string to match your CSV format
+	tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+
+	# Filter rows based on the string representation of tomorrow's date
+	# Assuming the date in your CSV is in the format 'YYYY-MM-DD' and is in the first column
+	tomorrow_data = pv_data[pv_data.iloc[:, 0].str.startswith(tomorrow)]
+	st.dataframe(tomorrow_data)
+	# Write to Excel
+	excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
+	workbook = load_workbook(excel_file_path)
+	sheet = workbook["Volue_Data_eng"] 
+
+	# Confirm we have data to write
+	if len(tomorrow_data) > 0:
+		excel_row = 4
+		for index, row in tomorrow_data.iterrows():
+			if excel_row == 12 or excel_row == 25:
+				excel_row += 1
+			cell = f'P{excel_row}'
+			sheet[cell] = row[1]  # Assuming data to write is in the second column
+			print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
+			excel_row += 1
+		workbook.save(filename=excel_file_path)
+		print("Excel file has been updated.")
+	else:
+		print("No data available for tomorrow to write into the Excel file.")
+
+	# Writing the quarterly pv data to the Volue data Excel file
+	pv_data_path = './Market Fundamentals/PV_data_15min.csv'  # Update with the actual path
+	pv_data = pd.read_csv(pv_data_path)
+	# Write to Excel
+	excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
+	workbook = load_workbook(excel_file_path)
+	sheet = workbook["Volue_Data_eng"] 
+	excel_row = 4
+	for index, row in pv_data.iterrows():
+		cell = f'AY{excel_row}'
+		sheet[cell] = row[0]  # Assuming data to write is in the second column
+		cell = f'AZ{excel_row}'
+		sheet[cell] = row[1]  # Assuming data to write is in the second column
+		print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
+		excel_row += 1
+	workbook.save(filename=excel_file_path)
+	print("Excel file has been updated.")
+	return df_solar_15min
+#=================================Fetching the Hydro Power data============================================
+def fetch_volue_hydro_data(issue_date_str):
+	# INSTANCE curve hour
+	curve = session.get_curve(name='pro ro hydro tot mwh/h cet h f')
+	# INSTANCES curves contain a timeseries for each defined issue dates
+	# Get a list of available curves with issue dates within a timerange with:
+	# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
+	ts_h = curve.get_instance(issue_date=issue_date_str)
+	pd_s_h = ts_h.to_pandas() # convert TS object to pandas.Series object
+	pd_df_h = pd_s_h.to_frame() # convert pandas.Series to pandas.DataFrame
+	st.dataframe(pd_df_h)
+	# Writing the hourly values to the Trading Tool file
+	pd_df_h.to_csv("./Market Fundamentals/Hydro_data_hourly.csv")
+	# Load the wind data from CSV without altering the date format
+	hydro_data_path = './Market Fundamentals/Hydro_data_hourly.csv'  # Update with the actual path
+	hydro_data = pd.read_csv(hydro_data_path)
+
+	# Writing the quarterly hydro data to the Volue data Excel file
+	hydro_data_path = './Market Fundamentals/Hydro_data_hourly.csv'  # Update with the actual path
+	hydro_data = pd.read_csv(hydro_data_path)
+	# Write to Excel
+	excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
+	workbook = load_workbook(excel_file_path)
+	sheet = workbook["Volue_Data_eng"] 
+	excel_row = 4
+	for index, row in hydro_data.iterrows():
+		cell = f'AI{excel_row}'
+		sheet[cell] = row[0]  # Assuming data to write is in the second column
+		cell = f'AJ{excel_row}'
+		sheet[cell] = row[1]  # Assuming data to write is in the second column
+		print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
+		excel_row += 1
+	workbook.save(filename=excel_file_path)
+	print("Excel file has been updated.")
+	# Creating the 15 data dataframe in order to add it to the Volue dataframe
+	# Load the CSV file
+	data = pd_df_h.copy()
+	data.reset_index(inplace=True)
+
+	# Rename columns for clarity
+	data.rename(columns={
+		data.columns[0]: 'Date',
+		data.columns[1]: 'Hydro Power'
+	}, inplace=True)
+
+	# Convert the date column to datetime
+	data['Date'] = pd.to_datetime(data['Date'])
+
+	# Set the date column as the index
+	data.set_index('Date', inplace=True)
+
+	# Resample the data to quarter-hourly intervals, filling forward the hydro power values
+	quarterly_data = data.resample('15T').ffill()
+
+	# Reset the index to move the date back to a column
+	quarterly_data.reset_index(inplace=True)
+
+	# Add the Interval column which represents the quarter-hourly intervals in the day (1 to 96)
+	quarterly_data['Interval'] = quarterly_data['Date'].dt.hour * 4 + quarterly_data['Date'].dt.minute // 15 + 1
+
+	# Create a column for the formatted date without time information
+	quarterly_data['Formatted Date'] = quarterly_data['Date'].dt.strftime('%d.%m.%Y')
+
+	# Reorder and rename columns to match the specified output
+	quarterly_data = quarterly_data[['Formatted Date', 'Interval', 'Hydro Power']]
+	quarterly_data.rename(columns={'Formatted Date': 'Date'}, inplace=True)
+
+	return quarterly_data
+#=================================Fetching the Temperature data============================================
+def fetch_volue_temperature_data(issue_date_str):
+	# INSTANCE curve 15 min
+	curve = session.get_curve(name='tt ro con ec00 °c cet min15 f')
+	# INSTANCES curves contain a timeseries for each defined issue dates
+	# Get a list of available curves with issue dates within a timerange with:
+	# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
+	ts_15min = curve.get_instance(issue_date=issue_date_str)
+	pd_s_15min = ts_15min.to_pandas() # convert TS object to pandas.Series object
+	pd_df_15min = pd_s_15min.to_frame() # convert pandas.Series to pandas.DataFrame
+	st.dataframe(pd_df_15min)
+	pd_df_15min.to_csv("./Market Fundamentals/Temperature_data_15min.csv")
+
+	# Writing the quarterly pv data to the Volue data Excel file
+	temp_data_path = './Market Fundamentals/Temperature_data_15min.csv'  # Update with the actual path
+	temp_data = pd.read_csv(temp_data_path)
+	# Write to Excel
+	excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
+	workbook = load_workbook(excel_file_path)
+	sheet = workbook["Volue_Data_eng"] 
+	excel_row = 4
+	for index, row in temp_data.iterrows():
+		cell = f'BN{excel_row}'
+		sheet[cell] = row[0]  # Assuming data to write is in the second column
+		cell = f'BO{excel_row}'
+		sheet[cell] = row[1]  # Assuming data to write is in the second column
+		print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
+		excel_row += 1
+	workbook.save(filename=excel_file_path)
+	print("Excel file has been updated.")
+	return pd_df_15min
 #=====================================================================================Input Data=======================================================================================
 
 # Updating the date on the Pret_PZU sheet
@@ -457,45 +629,45 @@ def creating_mFRR_dfs(data):
 
 # Defining the functions fetch the data for a range of days
 def make_api_request(params, start, end):
-    # Replace with your actual API request logic
-    response = client._base_request(params=params, start=start, end=end)
-    return response
+	# Replace with your actual API request logic
+	response = client._base_request(params=params, start=start, end=end)
+	return response
 
 def query_daily_mFRR(start_date, end_date):
-    current_date = start_date
-    final_dfs = []  # List to store each day's DataFrame
+	current_date = start_date
+	final_dfs = []  # List to store each day's DataFrame
 
-    while current_date < end_date:
-        # Generate start and end timestamps for the current day
-        start = pd.Timestamp(f"{current_date.strftime('%Y%m%d')}0000", tz='Europe/Bucharest')
-        end = pd.Timestamp(f"{(current_date + timedelta(days=1)).strftime('%Y%m%d')}0000", tz='Europe/Bucharest')
-        
-        # Update parameters with the control area domain
-        params = {
-            'documentType': 'A83',
-            "controlArea_Domain": "10YRO-TEL------P",
-            "businessType": "A97"
-        }
-        
-        # Make the API request for the current day
-        response = make_api_request(params, start, end)
+	while current_date < end_date:
+		# Generate start and end timestamps for the current day
+		start = pd.Timestamp(f"{current_date.strftime('%Y%m%d')}0000", tz='Europe/Bucharest')
+		end = pd.Timestamp(f"{(current_date + timedelta(days=1)).strftime('%Y%m%d')}0000", tz='Europe/Bucharest')
+		
+		# Update parameters with the control area domain
+		params = {
+			'documentType': 'A83',
+			"controlArea_Domain": "10YRO-TEL------P",
+			"businessType": "A97"
+		}
+		
+		# Make the API request for the current day
+		response = make_api_request(params, start, end)
 
-        # Process the API response into a DataFrame
-        if response.status_code == 200 and response.text:
-            day_df = creating_mFRR_dfs(response.text)  # Assume this function returns a DataFrame
-            final_dfs.append(day_df)
-        else:
-            st.error(f"Failed to retrieve data for {current_date.strftime('%Y-%m-%d')}: HTTP Status {response.status_code}")
+		# Process the API response into a DataFrame
+		if response.status_code == 200 and response.text:
+			day_df = creating_mFRR_dfs(response.text)  # Assume this function returns a DataFrame
+			final_dfs.append(day_df)
+		else:
+			st.error(f"Failed to retrieve data for {current_date.strftime('%Y-%m-%d')}: HTTP Status {response.status_code}")
 
-        # Move to the next day
-        current_date += timedelta(days=1)
+		# Move to the next day
+		current_date += timedelta(days=1)
 
-    # Concatenate all daily DataFrames into a single DataFrame
-    if final_dfs:
-        combined_df = pd.concat(final_dfs, ignore_index=True)
-        return combined_df
-    else:
-        return pd.DataFrame()  # Return an empty DataFrame if no data was collected
+	# Concatenate all daily DataFrames into a single DataFrame
+	if final_dfs:
+		combined_df = pd.concat(final_dfs, ignore_index=True)
+		return combined_df
+	else:
+		return pd.DataFrame()  # Return an empty DataFrame if no data was collected
 
 #4. Fethcing the Actual Load 
 def actual_load(start, end):
@@ -550,92 +722,22 @@ if "df_wind_15min" and "df_solar_15min" not in st.session_state:
 def render_fundamentals_page():
 	
 	# Page tittle
-	st.header("Market Fundamentals", divider = "rainbow")
+	st.header("Market Fundamentals")
+	st.divider()
+	# Get Volue data
+	st.subheader("Volue Data", divider = "rainbow")
+	if st.button("Fetch data"):
+		print(issue_date_str)
+		df_wind_15min = fetch_volue_wind_data(issue_date_str)
+		df_solar_15min = fetch_volue_solar_data(issue_date_str)
+		df_hydro_15min = fetch_volue_hydro_data(issue_date_str)
+		df_temps_15min = fetch_volue_temperature_data(issue_date_str)
 
-	# Get Wind Forecast
-	st.subheader("Wind Data", divider = "green")
-	
-	# if st.button("Get Wind Data"):
-	# 	df_wind_15min = fetch_volue_wind_data()
-
-	# Get Solar Forecast
-	st.subheader("PV Data", divider = "orange")
-	if st.button("Get Solar Data"):
-		## INSTANCE curve 15 min
-		curve = session.get_curve(name='pro ro spv ec00 mwh/h cet min15 f')
-		# INSTANCES curves contain a timeseries for each defined issue dates
-		# Get a list of available curves with issue dates within a timerange with:
-		# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
-		ts_15min = curve.get_instance(issue_date=issue_date_str)
-		pd_s_15min = ts_15min.to_pandas() # convert TS object to pandas.Series object
-		df_solar_15min = pd_s_15min.to_frame() # convert pandas.Series to pandas.DataFrame
-		st.dataframe(df_solar_15min)
-		df_solar_15min.to_csv("./Market Fundamentals/PV_data_15min.csv")
-		## INSTANCE curve hour
-		curve = session.get_curve(name='pro ro spv fwd mw cet h f')
-		# INSTANCES curves contain a timeseries for each defined issue dates
-		# Get a list of available curves with issue dates within a timerange with:
-		# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
-		ts_h = curve.get_instance(issue_date=issue_date_str)
-		pd_s_h = ts_h.to_pandas() # convert TS object to pandas.Series object
-		pd_df_h = pd_s_h.to_frame() # convert pandas.Series to pandas.DataFrame
-		st.dataframe(pd_df_h)
-		# Writing the hourly values to the Trading Tool file
-		pd_df_h.to_csv("./Market Fundamentals/PV_data_hourly.csv")
-		# Load the wind data from CSV without altering the date format
-		pv_data_path = './Market Fundamentals/PV_data_hourly.csv'  # Update with the actual path
-		pv_data = pd.read_csv(pv_data_path)
-
-		# Determine tomorrow's date as a string to match your CSV format
-		tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
-
-		# Filter rows based on the string representation of tomorrow's date
-		# Assuming the date in your CSV is in the format 'YYYY-MM-DD' and is in the first column
-		tomorrow_data = pv_data[pv_data.iloc[:, 0].str.startswith(tomorrow)]
-		st.dataframe(tomorrow_data)
-		# Write to Excel
-		excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
-		workbook = load_workbook(excel_file_path)
-		sheet = workbook["Volue_Data_eng"] 
-
-		# Confirm we have data to write
-		if len(tomorrow_data) > 0:
-			excel_row = 4
-			for index, row in tomorrow_data.iterrows():
-				if excel_row == 12 or excel_row == 25:
-					excel_row += 1
-				cell = f'P{excel_row}'
-				sheet[cell] = row[1]  # Assuming data to write is in the second column
-				print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
-				excel_row += 1
-			workbook.save(filename=excel_file_path)
-			print("Excel file has been updated.")
-		else:
-			print("No data available for tomorrow to write into the Excel file.")
-
-		# Writing the quarterly pv data to the Volue data Excel file
-		pv_data_path = './Market Fundamentals/PV_data_15min.csv'  # Update with the actual path
-		pv_data = pd.read_csv(pv_data_path)
-		# Write to Excel
-		excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
-		workbook = load_workbook(excel_file_path)
-		sheet = workbook["Volue_Data_eng"] 
-		excel_row = 4
-		for index, row in pv_data.iterrows():
-			cell = f'AY{excel_row}'
-			sheet[cell] = row[0]  # Assuming data to write is in the second column
-			cell = f'AZ{excel_row}'
-			sheet[cell] = row[1]  # Assuming data to write is in the second column
-			print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
-			excel_row += 1
-		workbook.save(filename=excel_file_path)
-		print("Excel file has been updated.")
-
-		# Creating the Volue dataframe
+		# Creatiung the Volue dataframe
 		df_wind_15min = fetch_volue_wind_data()
 		# 1. Creating the first layer of the big dataframe containing the Wind and Solar Energy
 		df_wind_15min.reset_index(inplace=True)
-		df_wind_15min.columns = ['Timestamp', "Wind Energy"]
+		df_wind_15min.columns = ['Timestamp', "Wind Power"]
 
 		# Convert 'Timestamp' to datetime format
 		df_wind_15min['Timestamp'] = pd.to_datetime(df_wind_15min['Timestamp'])
@@ -647,7 +749,7 @@ def render_fundamentals_page():
 		st.dataframe(df_wind_15min)
 
 		df_solar_15min.reset_index(inplace=True)
-		df_solar_15min.columns = ['Timestamp', "Solar Energy"]
+		df_solar_15min.columns = ['Timestamp', "Solar Power"]
 
 		# Convert 'Timestamp' to datetime format
 		df_solar_15min['Timestamp'] = pd.to_datetime(df_solar_15min['Timestamp'])
@@ -660,75 +762,25 @@ def render_fundamentals_page():
 		# Now proceed with the merge as previously described
 		df_final = pd.merge(df_wind_15min, df_solar_15min, on=['Date', 'Interval'], how='left')
 
-		st.dataframe(df_final)
+		# Adding the Hydro Power to the Volue dataframe
+		df_final_2 = pd.merge(df_final, df_hydro_15min, on=['Date', 'Interval'], how='left')
 
-	# Get Hydro Forecast
-	st.subheader("Hydro Data", divider = "blue")
-	if st.button("Get Hydro Data"):
-		## INSTANCE curve hour
-		curve = session.get_curve(name='pro ro hydro tot mwh/h cet h f')
-		# INSTANCES curves contain a timeseries for each defined issue dates
-		# Get a list of available curves with issue dates within a timerange with:
-		# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
-		ts_h = curve.get_instance(issue_date=issue_date_str)
-		pd_s_h = ts_h.to_pandas() # convert TS object to pandas.Series object
-		pd_df_h = pd_s_h.to_frame() # convert pandas.Series to pandas.DataFrame
-		st.dataframe(pd_df_h)
-		# Writing the hourly values to the Trading Tool file
-		pd_df_h.to_csv("./Market Fundamentals/Hydro_data_hourly.csv")
-		# Load the wind data from CSV without altering the date format
-		hydro_data_path = './Market Fundamentals/Hydro_data_hourly.csv'  # Update with the actual path
-		hydro_data = pd.read_csv(hydro_data_path)
+		# Adding the Temperatures to the Volue dataframe
+		df_temps_15min = fetch_volue_temperature_data()
+		df_temps_15min.reset_index(inplace=True)
+		df_temps_15min.columns = ['Timestamp', "Wind Power"]
 
-		# Writing the quarterly hydro data to the Volue data Excel file
-		hydro_data_path = './Market Fundamentals/Hydro_data_hourly.csv'  # Update with the actual path
-		hydro_data = pd.read_csv(hydro_data_path)
-		# Write to Excel
-		excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
-		workbook = load_workbook(excel_file_path)
-		sheet = workbook["Volue_Data_eng"] 
-		excel_row = 4
-		for index, row in hydro_data.iterrows():
-			cell = f'AI{excel_row}'
-			sheet[cell] = row[0]  # Assuming data to write is in the second column
-			cell = f'AJ{excel_row}'
-			sheet[cell] = row[1]  # Assuming data to write is in the second column
-			print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
-			excel_row += 1
-		workbook.save(filename=excel_file_path)
-		print("Excel file has been updated.")
+		# Convert 'Timestamp' to datetime format
+		df_temps_15min['Timestamp'] = pd.to_datetime(df_temps_15min['Timestamp'])
 
-	# Get Temperature Forecast
-	st.subheader("Temperature Data", divider = "red")
-	if st.button("Get Temperature Data"):
-		## INSTANCE curve 15 min
-		curve = session.get_curve(name='tt ro con ec00 °c cet min15 f')
-		# INSTANCES curves contain a timeseries for each defined issue dates
-		# Get a list of available curves with issue dates within a timerange with:
-		# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
-		ts_15min = curve.get_instance(issue_date=issue_date_str)
-		pd_s_15min = ts_15min.to_pandas() # convert TS object to pandas.Series object
-		pd_df_15min = pd_s_15min.to_frame() # convert pandas.Series to pandas.DataFrame
-		st.dataframe(pd_df_15min)
-		pd_df_15min.to_csv("./Market Fundamentals/Temperature_data_15min.csv")
-
-		# Writing the quarterly pv data to the Volue data Excel file
-		temp_data_path = './Market Fundamentals/Temperature_data_15min.csv'  # Update with the actual path
-		temp_data = pd.read_csv(temp_data_path)
-		# Write to Excel
-		excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
-		workbook = load_workbook(excel_file_path)
-		sheet = workbook["Volue_Data_eng"] 
-		excel_row = 4
-		for index, row in temp_data.iterrows():
-			cell = f'BN{excel_row}'
-			sheet[cell] = row[0]  # Assuming data to write is in the second column
-			cell = f'BO{excel_row}'
-			sheet[cell] = row[1]  # Assuming data to write is in the second column
-			print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
-			excel_row += 1
-		workbook.save(filename=excel_file_path)
-		print("Excel file has been updated.")
+		# Create 'Date' and 'Interval' columns from 'Timestamp'
+		df_temps_15min['Date'] = df_temps_15min['Timestamp'].dt.strftime('%d.%m.%Y')
+		df_temps_15min['Interval'] = ((df_temps_15min['Timestamp'].dt.hour * 60 + df_temps_15min['Timestamp'].dt.minute) // 15 + 1)
+		df_temps_15min.drop(columns=["Timestamp"], inplace=True)
+		st.dataframe(df_temps_15min)
+		# Creating the Volue dataframe containing Wind, Solar, Hydro and Temperatures
+		df_final_3 = pd.merge(df_final_2, df_temps_15min, on=['Date', 'Interval'], how='left')
+		st.dataframe(df_final_3)
 
 	# Get Price Forecast
 	st.subheader("Price Data", divider = "grey")
