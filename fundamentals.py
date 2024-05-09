@@ -11,6 +11,8 @@ from datetime import datetime
 from entsoe import EntsoePandasClient
 import xml.etree.ElementTree as ET
 import openpyxl
+import base64
+import zipfile
 
 # ================================================================================VOLUE data==================================================================================
 
@@ -21,7 +23,7 @@ issue_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 # Format the date as a string in the desired format
 issue_date_str = issue_date.isoformat()
 issue_date_str = issue_date.strftime('%Y-%m-%dT%H:%M')
-
+print(issue_date_str)
 # Fetching the token and store it's expiring timestamp
 load_dotenv()
 client_id = os.getenv("volue_client_id")
@@ -184,7 +186,7 @@ def fetch_volue_wind_data(issue_date_str):
 	df_wind_15min = df_wind_15min.to_frame() # convert pandas.Series to pandas.DataFrame
 	st.dataframe(df_wind_15min)
 	df_wind_15min.to_csv("./Market Fundamentals/Wind_data_15min.csv")
-	## INSTANCES curve hour
+	# INSTANCES curve hour
 	curve = session.get_curve(name='pro ro wnd fwd mw cet h f')
 	# INSTANCES curves contain a timeseries for each defined issue dates
 	# Get a list of available curves with issue dates within a timerange with:
@@ -417,6 +419,108 @@ def fetch_volue_temperature_data(issue_date_str):
 	workbook.save(filename=excel_file_path)
 	print("Excel file has been updated.")
 	return pd_df_15min
+#=================================Fetching the Price data==================================================
+def fetch_volue_price_data(issue_date_str):
+	# INSTANCE curve hour
+	curve = session.get_curve(name='pri ro spot ec12ens ron/mwh cet h f')
+	# INSTANCES curves contain a timeseries for each defined issue dates
+	# Get a list of available curves with issue dates within a timerange with:
+	# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
+	ts_h = curve.get_instance(issue_date=issue_date_str)
+	pd_s_h = ts_h.to_pandas() # convert TS object to pandas.Series object
+	pd_df_h = pd_s_h.to_frame() # convert pandas.Series to pandas.DataFrame
+	st.dataframe(pd_df_h)
+	# Writing the hourly values to the Trading Tool file
+	pd_df_h.to_csv("./Market Fundamentals/Price_data_hourly.csv")
+	# Load the wind data from CSV without altering the date format
+	price_data_path = './Market Fundamentals/Price_data_hourly.csv'  # Update with the actual path
+	price_data = pd.read_csv(price_data_path)
+
+	# Determine tomorrow's date as a string to match your CSV format
+	tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+	two_days_ahead = (datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d')
+	three_days_ahead = (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d')
+
+	# Filter rows based on the string representation of tomorrow's date
+	# Assuming the date in your CSV is in the format 'YYYY-MM-DD' and is in the first column
+	tomorrow_data = price_data[price_data.iloc[:, 0].str.startswith(tomorrow)]
+	two_days_ahead_data = price_data[price_data.iloc[:, 0].str.startswith(two_days_ahead)]
+	three_days_ahead_data = price_data[price_data.iloc[:, 0].str.startswith(three_days_ahead)]
+	st.dataframe(tomorrow_data)
+	st.dataframe(two_days_ahead_data)
+	st.dataframe(three_days_ahead_data)
+	# Write to Excel
+	excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
+	workbook = load_workbook(excel_file_path)
+	sheet = workbook["Pret_PZU"] 
+
+	# Confirm we have data to write
+	if len(tomorrow_data) > 0:
+		excel_row = 3
+		for index, row in tomorrow_data.iterrows():
+			if excel_row == 11 or excel_row == 24:
+				excel_row += 1
+			cell = f'AE{excel_row}'
+			sheet[cell] = row[1]  # Assuming data to write is in the second column
+			print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
+			excel_row += 1
+	if len(two_days_ahead_data) > 0:
+		excel_row = 3
+		for index, row in two_days_ahead_data.iterrows():
+			if excel_row == 11 or excel_row == 24:
+				excel_row += 1
+			cell = f'AF{excel_row}'
+			sheet[cell] = row[1]  # Assuming data to write is in the second column
+			print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
+			excel_row += 1
+	if len(three_days_ahead_data) > 0:
+		excel_row = 3
+		for index, row in three_days_ahead_data.iterrows():
+			if excel_row == 11 or excel_row == 24:
+				excel_row += 1
+			cell = f'AG{excel_row}'
+			sheet[cell] = row[1]  # Assuming data to write is in the second column
+			print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
+			excel_row += 1
+		workbook.save(filename=excel_file_path)
+		print("Excel file has been updated.")
+	else:
+		print("No data available for tomorrow to write into the Excel file.")
+	# Creating the 15 data dataframe in order to add it to the Volue dataframe
+	# Load the CSV file
+	data = pd_df_h.copy()
+	data.reset_index(inplace=True)
+
+	# Rename columns for clarity
+	data.rename(columns={
+		data.columns[0]: 'Date',
+		data.columns[1]: 'Price'
+	}, inplace=True)
+
+	# Convert the date column to datetime
+	data['Date'] = pd.to_datetime(data['Date'])
+
+	# Set the date column as the index
+	data.set_index('Date', inplace=True)
+
+	# Resample the data to quarter-hourly intervals, filling forward the hydro power values
+	quarterly_data = data.resample('15T').ffill()
+
+	# Reset the index to move the date back to a column
+	quarterly_data.reset_index(inplace=True)
+
+	# Add the Interval column which represents the quarter-hourly intervals in the day (1 to 96)
+	quarterly_data['Interval'] = quarterly_data['Date'].dt.hour * 4 + quarterly_data['Date'].dt.minute // 15 + 1
+
+	# Create a column for the formatted date without time information
+	quarterly_data['Formatted Date'] = quarterly_data['Date'].dt.strftime('%d.%m.%Y')
+
+	# Reorder and rename columns to match the specified output
+	quarterly_data = quarterly_data[['Formatted Date', 'Interval', 'Price']]
+	quarterly_data.rename(columns={'Formatted Date': 'Date'}, inplace=True)
+
+	return quarterly_data
+
 #=====================================================================================Input Data=======================================================================================
 
 # Updating the date on the Pret_PZU sheet
@@ -490,6 +594,15 @@ def process_file_production_transelectrica(file_path):
 	
 	return data_long_sorted
 
+def zip_files(folder_path, zip_name):
+	zip_path = os.path.join(folder_path, zip_name)
+	with zipfile.ZipFile(zip_path, 'w') as zipf:
+		for root, _, files in os.walk(folder_path):
+			for file in files:
+				if file != zip_name:  # Avoid zipping the zip file itself
+					file_path = os.path.join(root, file)
+					arcname = os.path.relpath(file_path, folder_path)  # Relative path within the zip file
+					zipf.write(file_path, arcname)
 #====================================================================================ENTSOE data=======================================================================================
 api_key_entsoe = os.getenv("api_key_entsoe")
 client = EntsoePandasClient(api_key=api_key_entsoe)
@@ -509,7 +622,7 @@ def imbalance_prices(start, end):
 	# Display or analyze the fetched data
 	return imbalance_prices
 
-# 2. Imbalabce Volumes
+# 2. Imbalance Volumes
 def imbalance_volumes(start, end):
 	# Define the start and end timestamps for the query
 	# start = pd.Timestamp('20240401', tz='Europe/Bucharest')  # Adjust the start date as needed
@@ -713,6 +826,47 @@ def actual_generation_source(start, end):
 
 	# Display or analyze the fetched data
 	return actual_generation_source
+
+#7. Fetching the Forecast Load
+def load_forecast(start, end):
+	# Define the start and end timestamps for the query
+	# start = pd.Timestamp('20240401', tz='Europe/Bucharest')  # Adjust the start date as needed
+	# end = pd.Timestamp('20240411', tz='Europe/Bucharest')    # Adjust the end date as needed
+
+	# Set the country code for Romania
+	country_code = 'RO'  # ISO-3166 alpha-2 code for Romania
+
+	# Fetch Load Forecast
+	load_forecast = client.query_load_forecast(country_code, start=start, end=end)
+
+	# Display or analyze the fetched data
+	return load_forecast
+
+#8. Fetching the Forecast Load in CET for the Trading_Tool Update
+def load_forecast_CET(start_cet, end_cet):
+	# Define the start and end timestamps for the query
+	# start = pd.Timestamp('20240401', tz='Europe/Bucharest')  # Adjust the start date as needed
+	# end = pd.Timestamp('20240411', tz='Europe/Bucharest')    # Adjust the end date as needed
+
+	# Set the country code for Romania
+	country_code = 'RO'  # ISO-3166 alpha-2 code for Romania
+
+	# Fetch Load Forecast
+	load_forecast_cet = client.query_load_forecast(country_code, start=start_cet, end=end_cet)
+	load_forecast_cet.reset_index(inplace=True)
+	load_forecast_cet.columns = ["Timestamp", "Load"]
+
+	# Convert 'Timestamp' to datetime format
+	load_forecast_cet['Timestamp'] = pd.to_datetime(load_forecast_cet['Timestamp'])
+	# Convert datetime to CET timezone
+	load_forecast_cet['Timestamp'] = load_forecast_cet['Timestamp'].dt.tz_convert('CET')
+
+	# Remove timezone information but keep the time in CET
+	load_forecast_cet['Timestamp'] = load_forecast_cet['Timestamp'].dt.tz_localize(None)
+	load_forecast_cet.to_excel("./Market Fundamentals/Entsoe_data/load_forecast.xlsx", index=False)
+	# Display or analyze the fetched data
+	return load_forecast_cet
+
 #====================================================================================Rendering into App================================================================================
 
 if "df_wind_15min" and "df_solar_15min" not in st.session_state:
@@ -727,14 +881,14 @@ def render_fundamentals_page():
 	# Get Volue data
 	st.subheader("Volue Data", divider = "rainbow")
 	if st.button("Fetch data"):
-		print(issue_date_str)
 		df_wind_15min = fetch_volue_wind_data(issue_date_str)
 		df_solar_15min = fetch_volue_solar_data(issue_date_str)
 		df_hydro_15min = fetch_volue_hydro_data(issue_date_str)
 		df_temps_15min = fetch_volue_temperature_data(issue_date_str)
-
+		df_price_15min = fetch_volue_price_data(issue_date_str)
+		st.write("Volue Price dataframe")
+		st.dataframe(df_price_15min)
 		# Creatiung the Volue dataframe
-		df_wind_15min = fetch_volue_wind_data()
 		# 1. Creating the first layer of the big dataframe containing the Wind and Solar Energy
 		df_wind_15min.reset_index(inplace=True)
 		df_wind_15min.columns = ['Timestamp', "Wind Power"]
@@ -766,9 +920,9 @@ def render_fundamentals_page():
 		df_final_2 = pd.merge(df_final, df_hydro_15min, on=['Date', 'Interval'], how='left')
 
 		# Adding the Temperatures to the Volue dataframe
-		df_temps_15min = fetch_volue_temperature_data()
+		df_temps_15min = fetch_volue_temperature_data(issue_date_str)
 		df_temps_15min.reset_index(inplace=True)
-		df_temps_15min.columns = ['Timestamp', "Wind Power"]
+		df_temps_15min.columns = ['Timestamp', "Temperature"]
 
 		# Convert 'Timestamp' to datetime format
 		df_temps_15min['Timestamp'] = pd.to_datetime(df_temps_15min['Timestamp'])
@@ -782,74 +936,23 @@ def render_fundamentals_page():
 		df_final_3 = pd.merge(df_final_2, df_temps_15min, on=['Date', 'Interval'], how='left')
 		st.dataframe(df_final_3)
 
-	# Get Price Forecast
-	st.subheader("Price Data", divider = "grey")
-	if st.button("Get Price Data"):
-		## INSTANCE curve hour
-		curve = session.get_curve(name='pri ro spot ec12ens ron/mwh cet h f')
-		# INSTANCES curves contain a timeseries for each defined issue dates
-		# Get a list of available curves with issue dates within a timerange with:
-		# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
-		ts_h = curve.get_instance(issue_date=issue_date_str)
-		pd_s_h = ts_h.to_pandas() # convert TS object to pandas.Series object
-		pd_df_h = pd_s_h.to_frame() # convert pandas.Series to pandas.DataFrame
-		st.dataframe(pd_df_h)
-		# Writing the hourly values to the Trading Tool file
-		pd_df_h.to_csv("./Market Fundamentals/Price_data_hourly.csv")
-		# Load the wind data from CSV without altering the date format
-		price_data_path = './Market Fundamentals/Price_data_hourly.csv'  # Update with the actual path
-		price_data = pd.read_csv(price_data_path)
+		# Adding the Price to the Volue dataframe
+		df_final_4 = pd.merge(df_final_3, df_price_15min, on=['Date', 'Interval'], how='left')
+		st.dataframe(df_final_4)
 
-		# Determine tomorrow's date as a string to match your CSV format
-		tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
-		two_days_ahead = (datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d')
-		three_days_ahead = (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d')
+		# Creating a download button for the Volue data
+		file_path = './Market Fundamentals/Volue_data.xlsx'
+		with open(file_path, "rb") as f:
+			excel_data = f.read()
 
-		# Filter rows based on the string representation of tomorrow's date
-		# Assuming the date in your CSV is in the format 'YYYY-MM-DD' and is in the first column
-		tomorrow_data = price_data[price_data.iloc[:, 0].str.startswith(tomorrow)]
-		two_days_ahead_data = price_data[price_data.iloc[:, 0].str.startswith(two_days_ahead)]
-		three_days_ahead_data = price_data[price_data.iloc[:, 0].str.startswith(three_days_ahead)]
-		st.dataframe(tomorrow_data)
-		st.dataframe(two_days_ahead_data)
-		st.dataframe(three_days_ahead_data)
-		# Write to Excel
-		excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
-		workbook = load_workbook(excel_file_path)
-		sheet = workbook["Pret_PZU"] 
-
-		# Confirm we have data to write
-		if len(tomorrow_data) > 0:
-			excel_row = 3
-			for index, row in tomorrow_data.iterrows():
-				if excel_row == 11 or excel_row == 24:
-					excel_row += 1
-				cell = f'AE{excel_row}'
-				sheet[cell] = row[1]  # Assuming data to write is in the second column
-				print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
-				excel_row += 1
-		if len(two_days_ahead_data) > 0:
-			excel_row = 3
-			for index, row in two_days_ahead_data.iterrows():
-				if excel_row == 11 or excel_row == 24:
-					excel_row += 1
-				cell = f'AF{excel_row}'
-				sheet[cell] = row[1]  # Assuming data to write is in the second column
-				print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
-				excel_row += 1
-		if len(three_days_ahead_data) > 0:
-			excel_row = 3
-			for index, row in three_days_ahead_data.iterrows():
-				if excel_row == 11 or excel_row == 24:
-					excel_row += 1
-				cell = f'AG{excel_row}'
-				sheet[cell] = row[1]  # Assuming data to write is in the second column
-				print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
-				excel_row += 1
-			workbook.save(filename=excel_file_path)
-			print("Excel file has been updated.")
-		else:
-			print("No data available for tomorrow to write into the Excel file.")
+		# Create a download link
+		b64 = base64.b64encode(excel_data).decode()
+		button_html = f"""
+			 <a download="Volue_data.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+			 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Export Volue Data</button>
+			 </a> 
+			 """
+		st.markdown(button_html, unsafe_allow_html=True)
 
 	# Updating PZU sheet date
 	st.subheader("Updating Dates", divider = True)
@@ -886,7 +989,7 @@ def render_fundamentals_page():
 		filtered_data = processed_data[(processed_data['Date'].dt.year == current_year) & (processed_data['Date'].dt.month == current_month)]
 
 		filtered_data.dropna(inplace=True)
-		filtered_data.to_excel('./Market Fundamentals/Transelectrica_data/Weekly_Consumption_2024.xlsx', index=False)
+		filtered_data.to_excel('./Market Fundamentals/Transelectrica_data/Cons_Prod_final/Weekly_Consumption_2024.xlsx', index=False)
 
 		# Example usage
 		file_path = './Market Fundamentals/Transelectrica_data/weekly_production_2023.xlsx'  # Change this to your actual file path
@@ -905,18 +1008,39 @@ def render_fundamentals_page():
 		filtered_data = filtered_data = processed_data[(processed_data['Date'].dt.year == current_year) & (processed_data['Date'].dt.month == current_month)]
 		filtered_data.dropna(inplace=True)
 
-		filtered_data.to_excel('./Market Fundamentals/Transelectrica_data/Weekly_Production_2024.xlsx', index=False)
+		filtered_data.to_excel('./Market Fundamentals/Transelectrica_data/Cons_Prod_final/Weekly_Production_2024.xlsx', index=False)
+
+		# Downloading the Files
+		folder_path = './Market Fundamentals/Transelectrica_data/Cons_Prod_final/'
+		zip_name = 'Transelectrica_Input.zip'
+		zip_files(folder_path, zip_name)
+		file_path = './Market Fundamentals/Transelectrica_data/Cons_Prod_final/Transelectrica_Input.zip'
+
+		with open(file_path, "rb") as f:
+			zip_data = f.read()
+
+		# Create a download link
+		b64 = base64.b64encode(zip_data).decode()
+		button_html = f"""
+			 <a download="Transelectrica_Input.zip" href="data:application/zip;base64,{b64}" download>
+			 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Input Files</button>
+			 </a> 
+			 """
+		st.markdown(button_html, unsafe_allow_html=True)
 
 	# Fething the Entsoe data
 	st.subheader("Entsoe Data", divider="violet")
-	start_date = st.date_input("Select Start Date", value=pd.to_datetime('2024-04-11'))
-	end_date = st.date_input("Select End Date", value=pd.to_datetime('2024-04-12'))
+	start_date = st.date_input("Select Start Date", value=pd.to_datetime(issue_date + timedelta(days=1)))
+	end_date = st.date_input("Select End Date", value=pd.to_datetime(issue_date + timedelta(days=2)))
 	# start_date = pd.to_datetime('2024-04-14')
 	# end_date = pd.to_datetime('2024-04-15')
 	# Convert the input dates to Timestamps with time set to '0000' hours
 	start = pd.Timestamp(f"{start_date.strftime('%Y%m%d')}0000", tz='Europe/Bucharest')
 	end = pd.Timestamp(f"{end_date.strftime('%Y%m%d')}0000", tz='Europe/Bucharest')
-	
+	# Switching to CET time for the Load Forecast
+	start_cet = pd.Timestamp(f"{start_date.strftime('%Y%m%d')}0000", tz='Europe/Budapest')
+	end_cet = pd.Timestamp(f"{end_date.strftime('%Y%m%d')}0000", tz='Europe/Budapest')
+
 	# start = pd.Timestamp('202404110000', tz='Europe/Bucharest')  # Adjust the start date as needed
 	# end = pd.Timestamp('202404120000', tz='Europe/Bucharest')    # Adjust the end date as needed
 	if st.button("Entsoe"):
@@ -936,11 +1060,16 @@ def render_fundamentals_page():
 		else:
 			data = activated_mFRR_energy(start, end)
 			df_activated_energy = creating_mFRR_dfs(data)
-		st.dataframe(df_activated_energy)
+		# st.dataframe(df_activated_energy)
 
 		# Fethcing the Actual Load
 		df_actual_load = actual_load(start, end)
 		# st.dataframe(df_actual_load)
+
+		# Fethcing the Forecast Load
+		df_load_forecast = load_forecast(start, end)
+		df_load_forecast_CET = load_forecast_CET(start_cet, end_cet)
+		st.dataframe(df_load_forecast_CET)
 
 		# Fetching the Generation Forecast
 		df_generation_forecast = generation_forecast(start, end)
@@ -1047,6 +1176,21 @@ def render_fundamentals_page():
 			# Apply the date format to the column with dates (assuming it's the first column)
 			worksheet.set_column(0, 0, None, date_format)  # Column 'A:A' if your dates are in the first column
 
+	if st.button("Load Forecast CET"):
+		load_forecast_CET(start_cet, end_cet)
+		# Creating a download button for the Volue data
+		file_path = './Market Fundamentals/Entsoe_data/Load_Forecast.xlsx'
+		with open(file_path, "rb") as f:
+			excel_data = f.read()
+
+		# Create a download link
+		b64 = base64.b64encode(excel_data).decode()
+		button_html = f"""
+			 <a download="Load_Forecast.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+			 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Load</button>
+			 </a> 
+			 """
+		st.markdown(button_html, unsafe_allow_html=True)
 		
 
 		
