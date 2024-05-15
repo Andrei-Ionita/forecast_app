@@ -19,11 +19,21 @@ import zipfile
 # Set the date dinamically as today
 # Get the current date with time set to 00:00
 issue_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-
+print(issue_date)
 # Format the date as a string in the desired format
 issue_date_str = issue_date.isoformat()
 issue_date_str = issue_date.strftime('%Y-%m-%dT%H:%M')
 print(issue_date_str)
+
+def get_issue_date():
+    issue_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    print(issue_date)
+    # Format the date as a string in the desired format
+    issue_date_str = issue_date.isoformat()
+    issue_date_str = issue_date.strftime('%Y-%m-%dT%H:%M')
+    print(issue_date_str)
+    return issue_date_str, issue_date
+
 # Fetching the token and store it's expiring timestamp
 load_dotenv()
 client_id = os.getenv("volue_client_id")
@@ -881,6 +891,7 @@ def render_fundamentals_page():
 	# Get Volue data
 	st.subheader("Volue Data", divider = "rainbow")
 	if st.button("Fetch data"):
+		issue_date_str = get_issue_date()
 		df_wind_15min = fetch_volue_wind_data(issue_date_str)
 		df_solar_15min = fetch_volue_solar_data(issue_date_str)
 		df_hydro_15min = fetch_volue_hydro_data(issue_date_str)
@@ -954,13 +965,6 @@ def render_fundamentals_page():
 			 """
 		st.markdown(button_html, unsafe_allow_html=True)
 
-	# Updating PZU sheet date
-	st.subheader("Updating Dates", divider = True)
-	if st.button("Update Date"):
-		updating_PZU_date()
-
-	
-
 	# Fething the Transelectrica data
 	st.subheader("Transelectrica Data", divider="violet")
 	if st.button("Fetch Transelectrica"):
@@ -1028,8 +1032,9 @@ def render_fundamentals_page():
 			 """
 		st.markdown(button_html, unsafe_allow_html=True)
 
-	# Fething the Entsoe data
+	# Fetching the Entsoe data
 	st.subheader("Entsoe Data", divider="violet")
+	issue_date = get_issue_date()[1]
 	start_date = st.date_input("Select Start Date", value=pd.to_datetime(issue_date + timedelta(days=1)))
 	end_date = st.date_input("Select End Date", value=pd.to_datetime(issue_date + timedelta(days=2)))
 	# start_date = pd.to_datetime('2024-04-14')

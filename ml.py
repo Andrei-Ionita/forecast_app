@@ -1593,6 +1593,38 @@ def fetching_Astro_Imperial_data():
 	# Save the adjusted DataFrame
 	data_adjusted.to_csv("./Astro/Solcast/Bontida_raw.csv", index=False)
 
+def fetching_Astro_Imperial_data_30min():
+	lat = 46.914895
+	lon = 23.815583
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT30M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./Astro/Solcast/Bontida_raw_30min.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		print(response.text)  # Add this line to see the error message returned by the API
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./Astro/Solcast/Bontida_raw_30min.csv")
+
+	# Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
+	columns_to_shift = data.columns.difference(['period_end'])
+
+	# Shift the data columns by 2 intervals
+	data_shifted = data[columns_to_shift].shift(2)
+
+	# Combine the fixed 'period_end' with the shifted data columns
+	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
+
+	# Optionally, handle the NaN values in the first two rows after shifting
+	data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
+
+	# Save the adjusted DataFrame
+	data_adjusted.to_csv("./Astro/Solcast/Bontida_raw_30min.csv", index=False)
+
 def predicting_exporting_Astro():
 	# Creating the forecast_dataset df
 	data = pd.read_csv("./Astro/Solcast/Bontida_raw.csv")
@@ -1684,6 +1716,34 @@ def predicting_exporting_Astro():
 	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
 	df.to_excel(file_path, index=False)
 	return dataset
+
+def creating_prediction_dataset_Astro():
+	# Creating the forecast_dataset df
+	data = pd.read_csv("./Astro/Solcast/Bontida_raw.csv")
+	forecast_dataset = pd.read_excel("./Astro/Input_Astro.xlsx", sheet_name="Forecast_Dataset")
+	# Convert 'period_end' in santimbru to datetime
+	data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce')
+	# Extract just the date part in the desired format (as strings)
+	dates = data['period_end'].dt.strftime('%Y-%m-%d')
+	# Write the dates to the Input file
+	forecast_dataset['Data'] = dates.values
+	# Fill NaNs in the 'Data' column with next valid observation
+	forecast_dataset['Data'].fillna(method='bfill', inplace=True)
+	# Completing the Interval column
+	intervals = data["period_end"].dt.hour
+	forecast_dataset["Interval"] = intervals
+	# Replace NaNs in the 'Interval' column with 0
+	forecast_dataset['Interval'].fillna(0, inplace=True)
+	# Completing the Temperatura column
+	forecast_dataset["Temperatura"] = data["air_temp"].values
+	# Completing the GHI column
+	forecast_dataset["Radiatie"] = data["ghi"].values
+	# Completing the Nori column
+	forecast_dataset["Nori"] = data["cloud_opacity"].values
+	forecast_dataset['Data'] = pd.to_datetime(forecast_dataset['Data'])
+	df_predictions = pd.read_excel("./Astro/Results_Production_Astro_xgb.xlsx")
+	df_final = pd.merge(forecast_dataset, df_predictions, on=['Data', 'Interval'], how='left')
+	df_final.to_excel("./Astro/predictions_dataset.xlsx", index=False)
 
 def predicting_exporting_Imperial():
 	# Creating the forecast_dataset df
@@ -1857,6 +1917,17 @@ def predicting_exporting_Solina():
 	# Save the workbook with the rounded values
 	workbook.save(filename=file_path)
 	workbook.close()
+	# Open the existing workbook
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
 	return dataset
 
 def predicting_exporting_Consumption_Solina():
@@ -2013,16 +2084,6 @@ def predicting_exporting_RAAL():
 	# Save the workbook with the rounded values
 	workbook.save(filename=file_path)
 	workbook.close()
-	# Open the existing workbook
-	# Load the Excel file into a DataFrame
-	df = pd.read_excel(file_path)
-	# Ensure the 'Data' column is in datetime format
-	df["Data"] = pd.to_datetime(df["Data"])
-	
-	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
-	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
-	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
-	df.to_excel(file_path, index=False)
 	return dataset
 
 def predicting_exporting_Consumption_RAAL():
@@ -2196,6 +2257,7 @@ def render_production_forecast():
 		if st.button("Submit"):
 			# Fetching the Solcast data
 			fetching_Astro_Imperial_data()
+			fetching_Astro_Imperial_data_30min()
 			df = predicting_exporting_Astro()
 			st.dataframe(df)
 			st.success('Forecast Ready', icon="✅")
@@ -2211,11 +2273,114 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
+			# Updating the Weather Input 30min granularity
+			file_path_input = './Astro/Solcast/Bontida_raw_30min.csv'
+			data = pd.read_csv(file_path_input)
+			forecast_dataset = pd.read_excel("./Astro/Input_Astro_30min.xlsx")
+			# Convert 'period_end' to datetime in UTC
+			data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce', utc=True)
+
+			# Manually adjust the time by adding two hours to 'period_end'
+			data['period_end'] = data['period_end'] + pd.DateOffset(hours=1)
+
+			# Extract just the date part in the desired format (as strings)
+			dates = data['period_end'].dt.strftime('%Y-%m-%d')
+			# Write the dates to the Input file
+			forecast_dataset['Data'] = dates.values
+
+			# Fill NaNs in the 'Data' column with next valid observation
+			forecast_dataset['Data'].fillna(method='bfill', inplace=True)
+
+			# Completing the Interval column
+			intervals = data["period_end"].dt.hour
+			forecast_dataset["Interval"] = intervals
+
+			# Replace NaNs in the 'Interval' column with 0
+			forecast_dataset['Interval'].fillna(0, inplace=True)
+
+			# Completing the Temperatura column
+			forecast_dataset["Temperatura"] = data["air_temp"].values
+
+			# Completing the GHI column
+			forecast_dataset["Radiatie"] = data["ghi"].values
+
+			# Completing the Nori column
+			forecast_dataset["Nori"] = data["cloud_opacity"].values
+
+			# Find indices where 'Interval' equals 1
+			indices_of_ones = forecast_dataset.index[forecast_dataset['Interval'] == 1].tolist()
+
+			# Check if there are at least two '1's and replace the first '0' after the second '1'
+			if len(indices_of_ones) >= 2:
+			    second_one_index = indices_of_ones[1]  # Get the index of the second '1'
+			    # Find the next '0' after the second '1'
+			    for i in range(second_one_index + 1, len(data)):
+			        if forecast_dataset.at[i, 'Interval'] == 0:
+			            forecast_dataset.at[i, 'Interval'] = 2
+			            break  # Stop after replacing the first '0' to avoid affecting further data
+
+            # Ensure the data is sorted
+			forecast_dataset.sort_values(by=['Data', 'Interval'], inplace=True)
+
+			# Initialize the 'Half' column
+			forecast_dataset['Half'] = 1  # Start by default with 1
+
+			# Iterate through the DataFrame to manually adjust 'Half'
+			prev_interval = None
+			count = 0
+			for index, row in forecast_dataset.iterrows():
+			    current_interval = row['Interval']
+			    if current_interval == prev_interval:
+			        count += 1
+			    else:
+			        count = 1
+
+			    # Reset count if it exceeds 2
+			    if count > 2:
+			        count = 1
+
+			    # Assign 'Half' based on count
+			    forecast_dataset.at[index, 'Half'] = count
+
+			    # Update the previous interval
+			    prev_interval = current_interval
+		    # Ensure the 'Data' column is in datetime format
+			forecast_dataset["Data"] = pd.to_datetime(forecast_dataset["Data"])
+			
+			# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+			# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+			forecast_dataset['Lookup'] = forecast_dataset["Data"].dt.strftime('%d.%m.%Y') + forecast_dataset["Interval"].astype(str) + forecast_dataset["Half"].astype(str)
+			forecast_dataset.to_excel("./Astro/Input_Astro_30min.xlsx", index=False)
+
+			with open("./Astro/Input_Astro_30min.xlsx", "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Input_Forecast_Astro_30min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Input Forecast</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
+
+			creating_prediction_dataset_Astro()
+			with open("./Astro/predictions_dataset.xlsx", "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Predictions_Dataset_Astro.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Predictions Dataset</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
 	elif PVPP == "Imperial":
 		# Submit button
 		if st.button("Submit"):
 			# Fetching the Solcast data
-			fetching_Astro_Imperial_data()
+			# fetching_Astro_Imperial_data()
 			df = predicting_exporting_Imperial()
 			st.dataframe(df)
 			st.success('Forecast Ready', icon="✅")
