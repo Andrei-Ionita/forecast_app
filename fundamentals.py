@@ -891,7 +891,7 @@ def render_fundamentals_page():
 	# Get Volue data
 	st.subheader("Volue Data", divider = "rainbow")
 	if st.button("Fetch data"):
-		issue_date_str = get_issue_date()
+		issue_date_str = get_issue_date()[0]
 		df_wind_15min = fetch_volue_wind_data(issue_date_str)
 		df_solar_15min = fetch_volue_solar_data(issue_date_str)
 		df_hydro_15min = fetch_volue_hydro_data(issue_date_str)
