@@ -1610,21 +1610,6 @@ def fetching_Astro_Imperial_data_30min():
 	# Adjusting the values to EET time
 	data = pd.read_csv("./Astro/Solcast/Bontida_raw_30min.csv")
 
-	# Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
-	columns_to_shift = data.columns.difference(['period_end'])
-
-	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
-
-	# Combine the fixed 'period_end' with the shifted data columns
-	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
-
-	# Optionally, handle the NaN values in the first two rows after shifting
-	data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
-
-	# Save the adjusted DataFrame
-	data_adjusted.to_csv("./Astro/Solcast/Bontida_raw_30min.csv", index=False)
-
 def predicting_exporting_Astro():
 	# Creating the forecast_dataset df
 	data = pd.read_csv("./Astro/Solcast/Bontida_raw.csv")
@@ -1686,6 +1671,101 @@ def predicting_exporting_Astro():
 	# Formatting the Results file
 	# Step 1: Open the Excel file
 	file_path = "./Astro/Results_Production_Astro_xgb.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value is not None:  # Check if the cell is not empty
+			# Round the value to 3 decimal places and write it back to column C
+			worksheet.cell(row, 3).value = round(original_value, 3)
+		
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value < 0.01:  # Check if the value is less than 0.01
+			# Residual values are rounded to 0.000
+			worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
+	# Open the existing workbook
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return dataset
+
+def predicting_exporting_Astro_15min():
+	# Creating the forecast_dataset df
+	df= pd.read_csv('./Astro/Solcast/Bontida_raw_30min.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	df.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 2 hours
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=3)
+
+	# Set the 'period_end' column as the index
+	df.set_index('period_end', inplace=True)
+
+	# Resample to 15-minute intervals and interpolate
+	df_15min = df.resample('15T').interpolate(method='linear')
+
+	# Save the adjusted DataFrame
+	# output_file_path_15min = '/mnt/data/weather_data_15min.csv'
+	# df_15min.to_csv(output_file_path_15min)
+
+	# Display the first few rows of the resampled dataframe to verify the result
+	df_15min.reset_index(inplace=True)
+	df_15min["Ora"] = df_15min.period_end.dt.hour
+	df_15min['Interval'] = df_15min.period_end.dt.hour * 4 + df_15min.period_end.dt.minute // 15 + 1
+	df_15min.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min.pkl")
+
+	df_15min["Month"] = df_15min.Data.dt.month
+	dataset = df_15min.copy()
+	forecast_dataset = dataset[["Interval", "Ora", "Temperatura", "Nori", "Radiatie", "Month"]]
+
+	preds = xgb_loaded.predict(forecast_dataset.values)
+	
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+	
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./Astro/Results_Production_Astro_xgb_15min.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in rounded_values:
+			worksheet.write(row, col + 2, value, decimal_format)
+			row +=1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+			worksheet.write(row, col + 0, Data, date_format)
+			worksheet.write(row, col + 1, Interval)
+			row +=1
+
+	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./Astro/Results_Production_Astro_xgb_15min.xlsx"
 	workbook = load_workbook(filename=file_path)
 	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
 
@@ -1825,6 +1905,101 @@ def predicting_exporting_Imperial():
 	workbook.save(filename=file_path)
 	workbook.close()
 
+	# Open the existing workbook
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return dataset
+
+def predicting_exporting_Imperial_15min():
+	# Creating the forecast_dataset df
+	df= pd.read_csv('./Astro/Solcast/Bontida_raw_30min.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	df.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 2 hours
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=3)
+
+	# Set the 'period_end' column as the index
+	df.set_index('period_end', inplace=True)
+
+	# Resample to 15-minute intervals and interpolate
+	df_15min = df.resample('15T').interpolate(method='linear')
+
+	# Save the adjusted DataFrame
+	# output_file_path_15min = '/mnt/data/weather_data_15min.csv'
+	# df_15min.to_csv(output_file_path_15min)
+
+	# Display the first few rows of the resampled dataframe to verify the result
+	df_15min.reset_index(inplace=True)
+	df_15min["Ora"] = df_15min.period_end.dt.hour
+	df_15min['Interval'] = df_15min.period_end.dt.hour * 4 + df_15min.period_end.dt.minute // 15 + 1
+	df_15min.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_prod_15min.pkl")
+
+	df_15min["Month"] = df_15min.Data.dt.month
+	dataset = df_15min.copy()
+	forecast_dataset = dataset[["Interval", "Ora", "Temperatura", "Nori", "Radiatie", "Month"]]
+
+	preds = xgb_loaded.predict(forecast_dataset.values)
+	
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+	
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./Imperial/Results_Production_Imperial_xgb_15min.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in rounded_values:
+			worksheet.write(row, col + 2, value, decimal_format)
+			row +=1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+			worksheet.write(row, col + 0, Data, date_format)
+			worksheet.write(row, col + 1, Interval)
+			row +=1
+
+	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./Imperial/Results_Production_Imperial_xgb_15min.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value is not None:  # Check if the cell is not empty
+			# Round the value to 3 decimal places and write it back to column C
+			worksheet.cell(row, 3).value = round(original_value, 3)
+		
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value < 0.01:  # Check if the value is less than 0.01
+			# Residual values are rounded to 0.000
+			worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
 	# Open the existing workbook
 	# Load the Excel file into a DataFrame
 	df = pd.read_excel(file_path)
@@ -2258,6 +2433,7 @@ def render_production_forecast():
 			# Fetching the Solcast data
 			fetching_Astro_Imperial_data()
 			fetching_Astro_Imperial_data_30min()
+
 			df = predicting_exporting_Astro()
 			st.dataframe(df)
 			st.success('Forecast Ready', icon="✅")
@@ -2281,7 +2457,7 @@ def render_production_forecast():
 			data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce', utc=True)
 
 			# Manually adjust the time by adding two hours to 'period_end'
-			data['period_end'] = data['period_end'] + pd.DateOffset(hours=1)
+			data['period_end'] = data['period_end'] + pd.DateOffset(hours=3)
 
 			# Extract just the date part in the desired format (as strings)
 			dates = data['period_end'].dt.strftime('%Y-%m-%d')
@@ -2376,6 +2552,19 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
+			st.dataframe(predicting_exporting_Astro_15min())
+			with open("./Astro/Results_Production_Astro_xgb_15min.xlsx", "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Predictions_Astro_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Predictions Astro 15min</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
+
 	elif PVPP == "Imperial":
 		# Submit button
 		if st.button("Submit"):
@@ -2393,6 +2582,19 @@ def render_production_forecast():
 				button_html = f"""
 					 <a download="Production_Forecast_Imperial.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
 					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
+			st.dataframe(predicting_exporting_Imperial_15min())
+			file_path = './Imperial/Results_Production_Imperial_xgb_15min.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Production_Forecast_Imperial_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
