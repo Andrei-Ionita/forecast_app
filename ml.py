@@ -1593,22 +1593,22 @@ def fetching_Astro_Imperial_data():
 	# Save the adjusted DataFrame
 	data_adjusted.to_csv("./Astro/Solcast/Bontida_raw.csv", index=False)
 
-def fetching_Astro_Imperial_data_30min():
-	lat = 46.914895
-	lon = 23.815583
+def fetching_Astro_Imperial_data_15min():
+	lat = 46.860370
+	lon = 23.795201
 	# Fetch data from the API
-	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT30M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
 	response = requests.get(api_url)
 	print("Fetching data...")
 	if response.status_code == 200:
 		# Write the content to a CSV file
-		with open("./Astro/Solcast/Bontida_raw_30min.csv", 'wb') as file:
+		with open("./Astro/Solcast/Jucu_15min.csv", 'wb') as file:
 			file.write(response.content)
 	else:
 		print(response.text)  # Add this line to see the error message returned by the API
 		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
 	# Adjusting the values to EET time
-	data = pd.read_csv("./Astro/Solcast/Bontida_raw_30min.csv")
+	data = pd.read_csv("./Astro/Solcast/Jucu_15min.csv")
 
 def predicting_exporting_Astro():
 	# Creating the forecast_dataset df
@@ -1704,7 +1704,7 @@ def predicting_exporting_Astro():
 
 def predicting_exporting_Astro_15min():
 	# Creating the forecast_dataset df
-	df= pd.read_csv('./Astro/Solcast/Bontida_raw_30min.csv')
+	df= pd.read_csv('./Astro/Solcast/Jucu_15min.csv')
 	# Convert the 'period_end' column to datetime, handling errors
 	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
 
@@ -1714,27 +1714,18 @@ def predicting_exporting_Astro_15min():
 	# Shift the 'period_end' column by 2 hours
 	df['period_end'] = df['period_end'] + pd.Timedelta(hours=3)
 
-	# Set the 'period_end' column as the index
-	df.set_index('period_end', inplace=True)
+	# Creating the Interval column
+	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
 
-	# Resample to 15-minute intervals and interpolate
-	df_15min = df.resample('15T').interpolate(method='linear')
+	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
 
-	# Save the adjusted DataFrame
-	# output_file_path_15min = '/mnt/data/weather_data_15min.csv'
-	# df_15min.to_csv(output_file_path_15min)
-
-	# Display the first few rows of the resampled dataframe to verify the result
-	df_15min.reset_index(inplace=True)
-	df_15min["Ora"] = df_15min.period_end.dt.hour
-	df_15min['Interval'] = df_15min.period_end.dt.hour * 4 + df_15min.period_end.dt.minute // 15 + 1
-	df_15min.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
 
 	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min.pkl")
 
-	df_15min["Month"] = df_15min.Data.dt.month
-	dataset = df_15min.copy()
-	forecast_dataset = dataset[["Interval", "Ora", "Temperatura", "Nori", "Radiatie", "Month"]]
+	df["Month"] = df.Data.dt.month
+	dataset = df.copy()
+	forecast_dataset = dataset[["Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
 
 	preds = xgb_loaded.predict(forecast_dataset.values)
 	
@@ -1920,7 +1911,7 @@ def predicting_exporting_Imperial():
 
 def predicting_exporting_Imperial_15min():
 	# Creating the forecast_dataset df
-	df= pd.read_csv('./Astro/Solcast/Bontida_raw_30min.csv')
+	df= pd.read_csv('./Astro/Solcast/Jucu_15min.csv')
 	# Convert the 'period_end' column to datetime, handling errors
 	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
 
@@ -1930,27 +1921,20 @@ def predicting_exporting_Imperial_15min():
 	# Shift the 'period_end' column by 2 hours
 	df['period_end'] = df['period_end'] + pd.Timedelta(hours=3)
 
-	# Set the 'period_end' column as the index
-	df.set_index('period_end', inplace=True)
+	# Creating the Interval column
+	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
 
-	# Resample to 15-minute intervals and interpolate
-	df_15min = df.resample('15T').interpolate(method='linear')
+	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
 
-	# Save the adjusted DataFrame
-	# output_file_path_15min = '/mnt/data/weather_data_15min.csv'
-	# df_15min.to_csv(output_file_path_15min)
+	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
 
-	# Display the first few rows of the resampled dataframe to verify the result
-	df_15min.reset_index(inplace=True)
-	df_15min["Ora"] = df_15min.period_end.dt.hour
-	df_15min['Interval'] = df_15min.period_end.dt.hour * 4 + df_15min.period_end.dt.minute // 15 + 1
-	df_15min.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min.pkl")
+
+	df["Month"] = df.Data.dt.month
+	dataset = df.copy()
+	forecast_dataset = dataset[["Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
 
 	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_prod_15min.pkl")
-
-	df_15min["Month"] = df_15min.Data.dt.month
-	dataset = df_15min.copy()
-	forecast_dataset = dataset[["Interval", "Ora", "Temperatura", "Nori", "Radiatie", "Month"]]
 
 	preds = xgb_loaded.predict(forecast_dataset.values)
 	
@@ -2432,7 +2416,7 @@ def render_production_forecast():
 		if st.button("Submit"):
 			# Fetching the Solcast data
 			fetching_Astro_Imperial_data()
-			fetching_Astro_Imperial_data_30min()
+			fetching_Astro_Imperial_data_15min()
 
 			df = predicting_exporting_Astro()
 			st.dataframe(df)
