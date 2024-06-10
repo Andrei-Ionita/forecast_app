@@ -967,52 +967,70 @@ def render_fundamentals_page():
 
 	# Fething the Transelectrica data
 	st.subheader("Transelectrica Data", divider="violet")
-	if st.button("Fetch Transelectrica"):
-		# 1. Consumption
-		# Now you can call this function with the path to your consumption data file
-		processed_data = process_file_consumption_transelectrica('./Market Fundamentals/Transelectrica_data/weekly consumtion 2023.xlsx')
+	st.text("Upload the weekly consumption and production from Transelectrica. Don't change anything.")
+	# Uploading the consumption ad production files from Transelectrica
+	uploaded_files = st.file_uploader("Upload Weekly Consumption and Production files", type=['csv', 'xlsx', "xls"], accept_multiple_files=True)
+	if st.button("Process Transelectrica"):
+		if uploaded_files:
+			for uploaded_file in uploaded_files:
+				if uploaded_file.type == 'application/vnd.ms-excel' or uploaded_file.type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+					# 1. Consumption
+					if uploaded_file.name == "weekly consumtion 2023.xlsx":
+						print(uploaded_file.name)
+						# Now you can call this function with the path to your consumption data file
+						processed_data = process_file_consumption_transelectrica(uploaded_file)
 
-		# First, ensure we're working with string types to avoid errors on non-string types
-		processed_data['Date'] = processed_data['Date'].astype(str)
+						# First, ensure we're working with string types to avoid errors on non-string types
+						processed_data['Date'] = processed_data['Date'].astype(str)
 
-		# Then, filter out any rows where 'Date' does not contain a valid date string (e.g., the string "Data")
-		processed_data = processed_data[processed_data['Date'].str.contains(r'\d{4}-\d{2}-\d{2}')]
+						# Then, filter out any rows where 'Date' does not contain a valid date string (e.g., the string "Data")
+						processed_data = processed_data[processed_data['Date'].str.contains(r'\d{4}-\d{2}-\d{2}')]
 
-		# Now, safely convert 'Date' column to datetime format
-		processed_data['Date'] = pd.to_datetime(processed_data['Date'])
+						# Now, safely convert 'Date' column to datetime format
+						processed_data['Date'] = pd.to_datetime(processed_data['Date'])
 
-		# Filter for current montha and year
-		# Get the current date
-		current_date = datetime.now()
+						# Filter for current montha and year
+						# Get the current date
+						current_date = datetime.now()
 
-		# Extract the current year and month
-		current_year = current_date.year
-		current_month = current_date.month
+						# Extract the current year and month
+						current_year = current_date.year
+						current_month = current_date.month
 
-		# Filter the data for the current year and month
-		filtered_data = processed_data[(processed_data['Date'].dt.year == current_year) & (processed_data['Date'].dt.month == current_month)]
+						# Filter the data for the current year and month
+						filtered_data = processed_data[(processed_data['Date'].dt.year == current_year) & (processed_data['Date'].dt.month == current_month)]
 
-		filtered_data.dropna(inplace=True)
-		filtered_data.to_excel('./Market Fundamentals/Transelectrica_data/Cons_Prod_final/Weekly_Consumption_2024.xlsx', index=False)
+						filtered_data.dropna(inplace=True)
+						filtered_data.to_excel('./Market Fundamentals/Transelectrica_data/Cons_Prod_final/Weekly_Consumption_2024.xlsx', index=False)
+					elif uploaded_file.name == "weekly_production_2023.xls":
+						production = pd.read_excel("./Market Fundamentals/Transelectrica_data/weekly_production_2023.xls")
+						production.to_excel('./Market Fundamentals/Transelectrica_data/weekly_production_2023.xlsx', engine='openpyxl', index=False)
+						# Example usage
+						file_path = './Market Fundamentals/Transelectrica_data/weekly_production_2023.xlsx'  # Change this to your actual file path
+						processed_data = process_file_production_transelectrica(file_path)
 
-		# Example usage
-		file_path = './Market Fundamentals/Transelectrica_data/weekly_production_2023.xlsx'  # Change this to your actual file path
-		processed_data = process_file_production_transelectrica(file_path)
+						# First, ensure we're working with string types to avoid errors on non-string types
+						processed_data['Date'] = processed_data['Date'].astype(str)
 
-		# First, ensure we're working with string types to avoid errors on non-string types
-		processed_data['Date'] = processed_data['Date'].astype(str)
+						# Then, filter out any rows where 'Date' does not contain a valid date string (e.g., the string "Data")
+						processed_data = processed_data[processed_data['Date'].str.contains(r'\d{4}-\d{2}-\d{2}')]
 
-		# Then, filter out any rows where 'Date' does not contain a valid date string (e.g., the string "Data")
-		processed_data = processed_data[processed_data['Date'].str.contains(r'\d{4}-\d{2}-\d{2}')]
+						# Now, safely convert 'Date' column to datetime format
+						processed_data['Date'] = pd.to_datetime(processed_data['Date'])
 
-		# Now, safely convert 'Date' column to datetime format
-		processed_data['Date'] = pd.to_datetime(processed_data['Date'])
+						# Filter for current montha and year
+						# Get the current date
+						current_date = datetime.now()
 
-		# Filter for April 2024
-		filtered_data = filtered_data = processed_data[(processed_data['Date'].dt.year == current_year) & (processed_data['Date'].dt.month == current_month)]
-		filtered_data.dropna(inplace=True)
+						# Extract the current year and month
+						current_year = current_date.year
+						current_month = current_date.month
 
-		filtered_data.to_excel('./Market Fundamentals/Transelectrica_data/Cons_Prod_final/Weekly_Production_2024.xlsx', index=False)
+						# Filter for April 2024
+						filtered_data = processed_data[(processed_data['Date'].dt.year == current_year) & (processed_data['Date'].dt.month == current_month)]
+						filtered_data.dropna(inplace=True)
+
+						filtered_data.to_excel('./Market Fundamentals/Transelectrica_data/Cons_Prod_final/Weekly_Production_2024.xlsx', index=False)
 
 		# Downloading the Files
 		folder_path = './Market Fundamentals/Transelectrica_data/Cons_Prod_final/'

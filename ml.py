@@ -1610,6 +1610,23 @@ def fetching_Astro_Imperial_data_15min():
 	# Adjusting the values to EET time
 	data = pd.read_csv("./Astro/Solcast/Jucu_15min.csv")
 
+def fetching_Astro_Imperial_data_past_15min():
+	lat = 46.860370
+	lon = 23.795201
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/live/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,ghi,cloud_opacity&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./Astro/Solcast/Jucu_15min_past.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		print(response.text)  # Add this line to see the error message returned by the API
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./Astro/Solcast/Jucu_15min_past.csv")
+
 def predicting_exporting_Astro():
 	# Creating the forecast_dataset df
 	data = pd.read_csv("./Astro/Solcast/Bontida_raw.csv")
@@ -1757,6 +1774,361 @@ def predicting_exporting_Astro_15min():
 	# Formatting the Results file
 	# Step 1: Open the Excel file
 	file_path = "./Astro/Results_Production_Astro_xgb_15min.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value is not None:  # Check if the cell is not empty
+			# Round the value to 3 decimal places and write it back to column C
+			worksheet.cell(row, 3).value = round(original_value, 3)
+		
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value < 0.01:  # Check if the value is less than 0.01
+			# Residual values are rounded to 0.000
+			worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
+	# Open the existing workbook
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return dataset
+
+# Function to handle file upload of the real-time consumption data
+def upload_file():
+	uploaded_file = st.file_uploader("Upload Real-Time Production Data File", type=['csv', 'xlsx'])
+	if uploaded_file is not None:
+		if uploaded_file.type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':  # Excel file
+			data = pd.read_excel(uploaded_file)
+		elif uploaded_file.type == 'text/csv':  # CSV file
+			data = pd.read_csv(uploaded_file)
+		
+		# Process the data (e.g., display first few rows)
+		if data is not None:
+			st.write("Uploaded file:")
+			st.write(data.head())
+		else:
+			st.write("Unsupported file format. Please upload a CSV or Excel file.")
+
+def predicting_exporting_Astro_Intraday_15min(real_time_data):
+	# Creating the forecast_dataset df
+	weather_data_future = pd.read_csv('./Astro/Solcast/Jucu_15min.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	weather_data_future['period_end'] = pd.to_datetime(weather_data_future['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	weather_data_future.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 3 hours
+	weather_data_future['period_end'] = weather_data_future['period_end'] + pd.Timedelta(hours=3)
+
+	# Creating the Interval column
+	weather_data_future['Interval'] = weather_data_future.period_end.dt.hour * 4 + weather_data_future.period_end.dt.minute // 15 + 1
+
+	weather_data_future.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	weather_data_future["Month"] = weather_data_future.Timestamp.dt.month
+
+	weather_data_future = weather_data_future[["Timestamp", "Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
+
+	# Data Engineering for the past weather data
+	weather_data_past = pd.read_csv('./Astro/Solcast/Jucu_15min_past.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	weather_data_past['period_end'] = pd.to_datetime(weather_data_past['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	weather_data_past.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 2 hours
+	weather_data_past['period_end'] = weather_data_past['period_end'] + pd.Timedelta(hours=3)
+
+	# Rename 'Data' column to 'Timestamp' for consistency
+	weather_data_past.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	# Creating the Interval column
+	weather_data_past['Interval'] = weather_data_past.Timestamp.dt.hour * 4 + weather_data_past.Timestamp.dt.minute // 15 + 1
+
+	weather_data_past['Month'] = weather_data_past.Timestamp.dt.month
+
+	# Reorder the columns
+	weather_data_past = weather_data_past[['Timestamp', "Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
+
+	# Concatenating the two weather datasets
+	# Ensure 'Timestamp' column in weather_data_future is in datetime format
+	weather_data_future['Timestamp'] = pd.to_datetime(weather_data_future['Timestamp'])
+
+	# Concatenate dataframes
+	weather_data = pd.concat([weather_data_future, weather_data_past], ignore_index=True)
+
+	# Step 2: Sort the DataFrame by 'Timestamp' in ascending order
+	weather_data.sort_values('Timestamp', inplace=True)
+
+	# Step 3: Remove duplicates - assuming you want to keep the first occurrence of each 'Timestamp'
+	weather_data.drop_duplicates(subset='Timestamp', keep='first', inplace=True)
+	st.text("The concatenated weather data for Astro")
+	st.dataframe(weather_data)
+
+	# Data Engineering the Real-Time Production data
+	# Load your data
+	real_time_data = real_time_data.copy()
+
+	# Replace '--' with 0 in the 'Power' column
+	real_time_data['Power'] = real_time_data['Power'].replace('--', 0)
+
+	# Convert the 'Power' column to numeric (will convert invalid parsing to NaN)
+	real_time_data['Power'] = pd.to_numeric(real_time_data['Power'], errors='coerce').fillna(0)
+
+	# Assuming the 'Power' data needs to be in megawatts and currently in watts
+	real_time_data['Power_MW'] = real_time_data['Power'] / 1000000  # Convert W to MW
+
+	# Ensure the 'Timestamp' column is in datetime format
+	real_time_data['Timestamp'] = pd.to_datetime(real_time_data['Timestamp'])
+
+	# Shift the 'Timestamp' column by 3 hours forward
+	real_time_data['Timestamp'] = real_time_data['Timestamp'] + pd.Timedelta(hours=3)
+
+	# Calculate the average of current and next power readings
+	real_time_data['Next_Power_MW'] = real_time_data['Power_MW'].shift(1)  # Shift upwards to get the next reading in the column
+
+	# Calculate the average power
+	real_time_data['Average_Power_MW'] = (real_time_data['Power_MW'] + real_time_data['Next_Power_MW']) / 2
+
+	# Calculate the energy for each interval
+	real_time_data['Energy_MWh'] = real_time_data['Average_Power_MW'] * 0.25
+
+	# Convert the 'Timestamp' column to timezone-naive datetime objects
+	real_time_data['Timestamp'] = pd.to_datetime(real_time_data['Timestamp']).dt.tz_localize(None)
+	st.text("The Real-Time Production")
+	st.dataframe(real_time_data)
+	# Merge datasets on the 'Timestamp' column
+	forecast_dataset = pd.merge(real_time_data, weather_data, on='Timestamp', how='inner')
+	st.text("This is the Forecast Dataset")
+	st.dataframe(forecast_dataset)
+	
+	# Creating rolling and lag features
+	forecast_dataset['Temp_Rolling_Avg'] = forecast_dataset['Temperatura'].rolling(window=4).mean()  # 1-hour rolling average
+	forecast_dataset['Radiation_Rolling_Avg'] = forecast_dataset['Radiatie'].rolling(window=4).mean()  # 1-hour rolling average
+
+	# Renaming columns
+	forecast_dataset.rename(columns={'Energy_MWh': 'Productie'}, inplace=True)
+
+	# Creating lag features for the last four 15-minute intervals
+	for i in range(1, 5):
+		forecast_dataset[f'Productie_Lag_{i}'] = forecast_dataset['Productie'].shift(i)
+		forecast_dataset[f'Radiatie_Lag_{i}'] = forecast_dataset['Radiatie'].shift(i)
+
+	dataset = forecast_dataset.copy()
+
+	forecast_dataset = forecast_dataset[['Interval', 'Temperatura', 'Nori', 'Radiatie', 'Month',
+	   'Temp_Rolling_Avg', 'Radiation_Rolling_Avg', 'Productie_Lag_1',
+	   'Radiatie_Lag_1', 'Productie_Lag_2', 'Radiatie_Lag_2',
+	   'Productie_Lag_3', 'Radiatie_Lag_3', 'Productie_Lag_4',
+	   'Radiatie_Lag_4']]
+
+	forecast_dataset.dropna(inplace=True)
+
+	st.dataframe(forecast_dataset)
+
+	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_intraday_prod_15min.pkl")
+
+	preds = xgb_loaded.predict(forecast_dataset.values)
+	
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+	
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./Astro/Results_Production_Astro_xgb_intraday_15min.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in rounded_values:
+			worksheet.write(row, col + 2, value, decimal_format)
+			row +=1
+	row = 1
+	for data, interval in zip(dataset.Timestamp, dataset.Interval):
+		if interval <= 91:
+			worksheet.write(row, col + 0, data, date_format)
+			worksheet.write(row, col + 1, interval + 5)
+			row +=1
+
+	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./Astro/Results_Production_Astro_xgb_intraday_15min.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value is not None:  # Check if the cell is not empty
+			# Round the value to 3 decimal places and write it back to column C
+			worksheet.cell(row, 3).value = round(original_value, 3)
+		
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value < 0.01:  # Check if the value is less than 0.01
+			# Residual values are rounded to 0.000
+			worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
+	# Open the existing workbook
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return dataset
+
+def predicting_exporting_Imperial_Intraday_15min(real_time_data):
+	# Creating the forecast_dataset df
+	weather_data_future = pd.read_csv('./Astro/Solcast/Jucu_15min.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	weather_data_future['period_end'] = pd.to_datetime(weather_data_future['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	weather_data_future.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 3 hours
+	weather_data_future['period_end'] = weather_data_future['period_end'] + pd.Timedelta(hours=3)
+
+	# Creating the Interval column
+	weather_data_future['Interval'] = weather_data_future.period_end.dt.hour * 4 + weather_data_future.period_end.dt.minute // 15 + 1
+
+	weather_data_future.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	weather_data_future["Month"] = weather_data_future.Timestamp.dt.month
+
+	weather_data_future = weather_data_future[["Timestamp", "Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
+
+	# Data Engineering for the past weather data
+	weather_data_past = pd.read_csv('./Astro/Solcast/Jucu_15min_past.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	weather_data_past['period_end'] = pd.to_datetime(weather_data_past['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	weather_data_past.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 2 hours
+	weather_data_past['period_end'] = weather_data_past['period_end'] + pd.Timedelta(hours=3)
+
+	# Rename 'Data' column to 'Timestamp' for consistency
+	weather_data_past.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	# Creating the Interval column
+	weather_data_past['Interval'] = weather_data_past.Timestamp.dt.hour * 4 + weather_data_past.Timestamp.dt.minute // 15 + 1
+
+	weather_data_past['Month'] = weather_data_past.Timestamp.dt.month
+
+	# Reorder the columns
+	weather_data_past = weather_data_past[['Timestamp', "Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
+
+	# Concatenating the two weather datasets
+	# Ensure 'Timestamp' column in weather_data_future is in datetime format
+	weather_data_future['Timestamp'] = pd.to_datetime(weather_data_future['Timestamp'])
+
+	# Concatenate dataframes
+	weather_data = pd.concat([weather_data_future, weather_data_past], ignore_index=True)
+
+	# Step 2: Sort the DataFrame by 'Timestamp' in ascending order
+	weather_data.sort_values('Timestamp', inplace=True)
+
+	# Step 3: Remove duplicates - assuming you want to keep the first occurrence of each 'Timestamp'
+	weather_data.drop_duplicates(subset='Timestamp', keep='first', inplace=True)
+
+	st.dataframe(weather_data)
+
+	st.dataframe(real_time_data)
+
+	# Convert the 'Timestamp' column to timezone-naive datetime objects
+	real_time_data['Timestamp'] = pd.to_datetime(real_time_data['Timestamp']).dt.tz_localize(None)
+
+	# Merge datasets on the 'Timestamp' column
+	forecast_dataset = pd.merge(real_time_data, weather_data, on='Timestamp', how='inner')
+
+	st.dataframe(forecast_dataset)
+
+	# Creating rolling and lag features
+	forecast_dataset['Temp_Rolling_Avg'] = forecast_dataset['Temperatura'].rolling(window=4).mean()  # 1-hour rolling average
+	forecast_dataset['Radiation_Rolling_Avg'] = forecast_dataset['Radiatie'].rolling(window=4).mean()  # 1-hour rolling average
+
+	# Renaming columns
+	forecast_dataset.rename(columns={'Energy_MWh': 'Productie'}, inplace=True)
+
+	# Creating lag features for the last four 15-minute intervals
+	for i in range(1, 5):
+		forecast_dataset[f'Productie_Lag_{i}'] = forecast_dataset['Productie'].shift(i)
+		forecast_dataset[f'Radiatie_Lag_{i}'] = forecast_dataset['Radiatie'].shift(i)
+
+	dataset = forecast_dataset.copy()
+
+	forecast_dataset = forecast_dataset[['Interval', 'Temperatura', 'Nori', 'Radiatie', 'Month',
+	   'Temp_Rolling_Avg', 'Radiation_Rolling_Avg', 'Productie_Lag_1',
+	   'Radiatie_Lag_1', 'Productie_Lag_2', 'Radiatie_Lag_2',
+	   'Productie_Lag_3', 'Radiatie_Lag_3', 'Productie_Lag_4',
+	   'Radiatie_Lag_4']]
+
+	forecast_dataset.dropna(inplace=True)
+
+	st.dataframe(forecast_dataset)
+
+	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_intraday_prod_15min.pkl")
+
+	preds = xgb_loaded.predict(forecast_dataset.values)
+	
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+	
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./Imperial/Results_Production_Imperial_xgb_intraday_15min.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in rounded_values:
+			worksheet.write(row, col + 2, value, decimal_format)
+			row +=1
+	row = 1
+	for data, interval in zip(dataset.Timestamp, dataset.Interval):
+		if interval <= 91:
+			worksheet.write(row, col + 0, data, date_format)
+			worksheet.write(row, col + 1, interval + 5)
+			row +=1
+
+	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./Imperial/Results_Production_Imperial_xgb_intraday_15min.xlsx"
 	workbook = load_workbook(filename=file_path)
 	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
 
@@ -2412,6 +2784,7 @@ def render_production_forecast():
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
 	elif PVPP == "Astro":
+		st.subheader("Default Forecasting", divider = "red")
 		# Submit button
 		if st.button("Submit"):
 			# Fetching the Solcast data
@@ -2472,14 +2845,14 @@ def render_production_forecast():
 
 			# Check if there are at least two '1's and replace the first '0' after the second '1'
 			if len(indices_of_ones) >= 2:
-			    second_one_index = indices_of_ones[1]  # Get the index of the second '1'
-			    # Find the next '0' after the second '1'
-			    for i in range(second_one_index + 1, len(data)):
-			        if forecast_dataset.at[i, 'Interval'] == 0:
-			            forecast_dataset.at[i, 'Interval'] = 2
-			            break  # Stop after replacing the first '0' to avoid affecting further data
+				second_one_index = indices_of_ones[1]  # Get the index of the second '1'
+				# Find the next '0' after the second '1'
+				for i in range(second_one_index + 1, len(data)):
+					if forecast_dataset.at[i, 'Interval'] == 0:
+						forecast_dataset.at[i, 'Interval'] = 2
+						break  # Stop after replacing the first '0' to avoid affecting further data
 
-            # Ensure the data is sorted
+			# Ensure the data is sorted
 			forecast_dataset.sort_values(by=['Data', 'Interval'], inplace=True)
 
 			# Initialize the 'Half' column
@@ -2489,22 +2862,22 @@ def render_production_forecast():
 			prev_interval = None
 			count = 0
 			for index, row in forecast_dataset.iterrows():
-			    current_interval = row['Interval']
-			    if current_interval == prev_interval:
-			        count += 1
-			    else:
-			        count = 1
+				current_interval = row['Interval']
+				if current_interval == prev_interval:
+					count += 1
+				else:
+					count = 1
 
-			    # Reset count if it exceeds 2
-			    if count > 2:
-			        count = 1
+				# Reset count if it exceeds 2
+				if count > 2:
+					count = 1
 
-			    # Assign 'Half' based on count
-			    forecast_dataset.at[index, 'Half'] = count
+				# Assign 'Half' based on count
+				forecast_dataset.at[index, 'Half'] = count
 
-			    # Update the previous interval
-			    prev_interval = current_interval
-		    # Ensure the 'Data' column is in datetime format
+				# Update the previous interval
+				prev_interval = current_interval
+			# Ensure the 'Data' column is in datetime format
 			forecast_dataset["Data"] = pd.to_datetime(forecast_dataset["Data"])
 			
 			# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
@@ -2549,7 +2922,42 @@ def render_production_forecast():
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
 
+		st.subheader("Forecasting with Real-Time Production:", divider = "red")
+		uploaded_file = st.file_uploader("Upload Real-Time Production Data File", type=['csv', 'xlsx'])
+		if uploaded_file is not None:
+			if uploaded_file.type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':  # Excel file
+				real_time_data = pd.read_excel(uploaded_file, skiprows=4, names=["Timestamp", "Power"])
+			elif uploaded_file.type == 'text/csv':  # CSV file
+				real_time_data = pd.read_csv(uploaded_file, skiprows=4, names=["Timestamp", "Power"])
+			# Process the data (e.g., display first few rows)
+			if real_time_data is not None:
+				st.write("Uploaded file:")
+				st.write(real_time_data.head())
+			else:
+				st.write("Unsupported file format. Please upload a CSV or Excel file.")
+
+			st.dataframe(real_time_data)
+
+		if st.button("Forecast Real-Time"):
+			fetching_Astro_Imperial_data_past_15min()
+			predicting_exporting_Astro_Intraday_15min(real_time_data)
+			# Downloading the Predictions Results
+			file_path = "./Astro/Results_Production_Astro_xgb_intraday_15min.xlsx"
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Production_Forecast_Astro_Intraday_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results Intraday 15min</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
+
 	elif PVPP == "Imperial":
+		# Default 15 min Forecasting
+		st.subheader("Default Forecasting", divider = "blue")
 		# Submit button
 		if st.button("Submit"):
 			# Fetching the Solcast data
@@ -2579,6 +2987,71 @@ def render_production_forecast():
 				button_html = f"""
 					 <a download="Production_Forecast_Imperial_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
 					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
+
+		# Forecasting using the Real-Time production data		
+		st.subheader("Forecasting with Real-Time Production:", divider = "blue")
+		uploaded_files = st.file_uploader("Upload Real-Time Production Data Files", type=['csv', 'xlsx'], accept_multiple_files=True)
+		if uploaded_files:
+			count = 0
+			# Process each uploaded file
+			combined_data = pd.DataFrame()
+			for uploaded_file in uploaded_files:
+				count = count + 1
+				if uploaded_file.type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':  # Excel file
+					real_time_data = pd.read_excel(uploaded_file, skiprows=4, names=["Timestamp", "Power"])
+				elif uploaded_file.type == 'text/csv':  # CSV file
+					real_time_data = pd.read_csv(uploaded_file, skiprows=4, names=["Timestamp", "Power"])
+				
+				# Do data processing here (e.g., remove timezone, change "--" to 0, convert power to energy, etc.)
+	 
+				# Replace '--' with 0 in the 'Power' column
+				real_time_data['Power'] = real_time_data['Power'].replace('--', 0)
+
+				# Convert the 'Power' column to numeric (will convert invalid parsing to NaN)
+				real_time_data['Power'] = pd.to_numeric(real_time_data['Power'], errors='coerce').fillna(0)
+
+				# Assuming the 'Power' data needs to be in megawatts and currently in watts
+				real_time_data['Power_MW'] = real_time_data['Power'] / 1000000  # Convert W to MW
+
+				# Ensure the 'Timestamp' column is in datetime format
+				real_time_data['Timestamp'] = pd.to_datetime(real_time_data['Timestamp'])
+
+				# Shift the 'Timestamp' column by 3 hours forward
+				real_time_data['Timestamp'] = real_time_data['Timestamp'] + pd.Timedelta(hours=3)
+
+				# Calculate the average of current and next power readings
+				real_time_data['Next_Power_MW'] = real_time_data['Power_MW'].shift(1)  # Shift upwards to get the next reading in the column
+
+				# Calculate the average power
+				real_time_data['Average_Power_MW'] = (real_time_data['Power_MW'] + real_time_data['Next_Power_MW']) / 2
+
+				# Calculate the energy for each interval
+				real_time_data['Energy_MWh'] = real_time_data['Average_Power_MW'] * 0.25
+				
+				real_time_data.to_csv("./Imperial/real-time_data_Imperial{}.csv".format(count), index = False)
+
+		if st.button("Forecast Real-Time"):
+			# Creating the real-time production dataframe for Imperial
+			real_time_data = pd.read_csv("./Imperial/real-time_data_Imperial1.csv")
+			second_data = pd.read_csv("./Imperial/real-time_data_Imperial2.csv")
+			# Iterate over columns to add from the second DataFrame
+			for column in ['Power', 'Power_MW', 'Next_Power_MW', 'Average_Power_MW', 'Energy_MWh']:
+				# Sum values from the second DataFrame and add them to the respective column in the final DataFrame
+				real_time_data[column] += second_data[column]
+			predicting_exporting_Imperial_Intraday_15min(real_time_data)
+			# Downloading the Predictions Results
+			file_path = "./Imperial/Results_Production_Imperial_xgb_intraday_15min.xlsx"
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Production_Forecast_Imperial_Intraday_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results Intraday 15min</button>
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
