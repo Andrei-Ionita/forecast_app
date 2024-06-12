@@ -1915,7 +1915,7 @@ def predicting_exporting_Astro_Intraday_15min(real_time_data):
 	forecast_dataset = pd.merge(real_time_data, weather_data, on='Timestamp', how='inner')
 	st.text("This is the Forecast Dataset")
 	st.dataframe(forecast_dataset)
-	
+
 	# Creating rolling and lag features
 	forecast_dataset['Temp_Rolling_Avg'] = forecast_dataset['Temperatura'].rolling(window=4).mean()  # 1-hour rolling average
 	forecast_dataset['Radiation_Rolling_Avg'] = forecast_dataset['Radiatie'].rolling(window=4).mean()  # 1-hour rolling average
@@ -2004,6 +2004,47 @@ def predicting_exporting_Astro_Intraday_15min(real_time_data):
 	df.to_excel(file_path, index=False)
 	return dataset
 
+# Function to create lag features dynamically
+def create_lag_features(data):
+    data['Productie_lag1'] = data['Productie'].shift(1)
+    data['Productie_lag2'] = data['Productie'].shift(2)
+    data['Productie_lag3'] = data['Productie'].shift(3)
+    data['Productie_rolling_mean'] = data['Productie'].rolling(window=5).mean()
+    data['Productie_rolling_std'] = data['Productie'].rolling(window=5).std()
+    return data.dropna()
+
+# Function to make dynamic predictions using the strongest feature
+def make_dynamic_predictions(model, real_time_data, start_interval, end_interval):
+    predictions = []
+    available_data = real_time_data.copy()
+    
+    # Use the last real production value to start predictions
+    for interval in range(start_interval, end_interval + 1):
+        available_data = create_lag_features(available_data)
+        print(available_data)
+        # Get the latest features for the prediction interval
+        latest_data = available_data.iloc[-1]
+
+        features = latest_data[['Interval', 'Temperatura', 'Nori', 'Radiatie', "Month", 'Productie_lag1', 'Productie_lag2', 'Productie_lag3', 'Productie_rolling_mean', 'Productie_rolling_std']].values.reshape(1, -1)
+
+        # Make prediction
+        prediction = model.predict(features)[0]
+        prediction = max(prediction, 0)  # Replace negative predictions with zero
+        predictions.append((interval, prediction))
+
+        # Update the available_data with the new prediction
+        new_data = pd.DataFrame({
+            'Productie': [prediction],
+            'Interval': [interval],
+            'Temperatura': [latest_data['Temperatura']],
+            'Nori': [latest_data['Nori']],
+            'Radiatie': [latest_data['Radiatie']],
+            'Month': [latest_data['Month']]
+        })
+        available_data = pd.concat([available_data, new_data], ignore_index=True)
+
+    return predictions
+
 def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 	# Creating the forecast_dataset df
 	weather_data_future = pd.read_csv('./Astro/Solcast/Jucu_15min.csv')
@@ -2070,95 +2111,89 @@ def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 	# Merge datasets on the 'Timestamp' column
 	forecast_dataset = pd.merge(real_time_data, weather_data, on='Timestamp', how='inner')
 
-	st.dataframe(forecast_dataset)
-
-	# Creating rolling and lag features
-	forecast_dataset['Temp_Rolling_Avg'] = forecast_dataset['Temperatura'].rolling(window=4).mean()  # 1-hour rolling average
-	forecast_dataset['Radiation_Rolling_Avg'] = forecast_dataset['Radiatie'].rolling(window=4).mean()  # 1-hour rolling average
-
-	# Renaming columns
 	forecast_dataset.rename(columns={'Energy_MWh': 'Productie'}, inplace=True)
 
-	# Creating lag features for the last four 15-minute intervals
-	for i in range(1, 5):
-		forecast_dataset[f'Productie_Lag_{i}'] = forecast_dataset['Productie'].shift(i)
-		forecast_dataset[f'Radiatie_Lag_{i}'] = forecast_dataset['Radiatie'].shift(i)
-
-	dataset = forecast_dataset.copy()
-
-	forecast_dataset = forecast_dataset[['Interval', 'Temperatura', 'Nori', 'Radiatie', 'Month',
-	   'Temp_Rolling_Avg', 'Radiation_Rolling_Avg', 'Productie_Lag_1',
-	   'Radiatie_Lag_1', 'Productie_Lag_2', 'Radiatie_Lag_2',
-	   'Productie_Lag_3', 'Radiatie_Lag_3', 'Productie_Lag_4',
-	   'Radiatie_Lag_4']]
-
-	forecast_dataset.dropna(inplace=True)
-
 	st.dataframe(forecast_dataset)
 
-	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_intraday_prod_15min.pkl")
-
-	preds = xgb_loaded.predict(forecast_dataset.values)
+	dataset = forecast_dataset.copy()
 	
-	# Rounding each value in the list to the third decimal
-	rounded_values = [round(value, 3) for value in preds]
+	# Set intervals
+	start_interval = 62  # Assuming the next interval starts at 15:15
+	end_interval = 96    # Assuming intervals go up to the end of the day
+
+	# Make dynamic predictions
+	model = joblib.load("./Imperial/rs_xgb_Imperial_prod_intraday_lags_15min.pkl")
+	real_time_data = forecast_dataset.copy()
+	predictions = make_dynamic_predictions(model, real_time_data, start_interval, end_interval)
+
+	# Display predictions
+	predictions_df = pd.DataFrame(predictions, columns=['Interval', 'Predicted Production'])
+
+	return predictions_df
+
+	# xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_intraday_prod_15min.pkl")
+
+	# preds = xgb_loaded.predict(forecast_dataset.values)
 	
-	#Exporting Results to Excel
-	workbook = xlsxwriter.Workbook("./Imperial/Results_Production_Imperial_xgb_intraday_15min.xlsx")
-	worksheet = workbook.add_worksheet("Production_Predictions")
-	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
-	# Define a format for cells with three decimal places
-	decimal_format = workbook.add_format({'num_format': '0.000'})
-	row = 1
-	col = 0
-	worksheet.write(0,0,"Data")
-	worksheet.write(0,1,"Interval")
-	worksheet.write(0,2,"Prediction")
+	# # Rounding each value in the list to the third decimal
+	# rounded_values = [round(value, 3) for value in preds]
+	
+	# #Exporting Results to Excel
+	# workbook = xlsxwriter.Workbook("./Imperial/Results_Production_Imperial_xgb_intraday_15min.xlsx")
+	# worksheet = workbook.add_worksheet("Production_Predictions")
+	# date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# # Define a format for cells with three decimal places
+	# decimal_format = workbook.add_format({'num_format': '0.000'})
+	# row = 1
+	# col = 0
+	# worksheet.write(0,0,"Data")
+	# worksheet.write(0,1,"Interval")
+	# worksheet.write(0,2,"Prediction")
 
-	for value in rounded_values:
-			worksheet.write(row, col + 2, value, decimal_format)
-			row +=1
-	row = 1
-	for data, interval in zip(dataset.Timestamp, dataset.Interval):
-		if interval <= 91:
-			worksheet.write(row, col + 0, data, date_format)
-			worksheet.write(row, col + 1, interval + 5)
-			row +=1
+	# for value in rounded_values:
+	# 		worksheet.write(row, col + 2, value, decimal_format)
+	# 		row +=1
+	# row = 1
+	# for data, interval in zip(dataset.Timestamp, dataset.Interval):
+	# 	if interval <= 91:
+	# 		worksheet.write(row, col + 0, data, date_format)
+	# 		worksheet.write(row, col + 1, interval + 5)
+	# 		row +=1
 
-	workbook.close()
-	# Formatting the Results file
-	# Step 1: Open the Excel file
-	file_path = "./Imperial/Results_Production_Imperial_xgb_intraday_15min.xlsx"
-	workbook = load_workbook(filename=file_path)
-	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+	# workbook.close()
+	# # Formatting the Results file
+	# # Step 1: Open the Excel file
+	# file_path = "./Imperial/Results_Production_Imperial_xgb_intraday_15min.xlsx"
+	# workbook = load_workbook(filename=file_path)
+	# worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
 
-	# Step 2: Directly round the values in column C and write them back
-	for row in range(2, worksheet.max_row + 1):
-		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
-		if original_value is not None:  # Check if the cell is not empty
-			# Round the value to 3 decimal places and write it back to column C
-			worksheet.cell(row, 3).value = round(original_value, 3)
+	# # Step 2: Directly round the values in column C and write them back
+	# for row in range(2, worksheet.max_row + 1):
+	# 	original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	# 	if original_value is not None:  # Check if the cell is not empty
+	# 		# Round the value to 3 decimal places and write it back to column C
+	# 		worksheet.cell(row, 3).value = round(original_value, 3)
 		
-	for row in range(2, worksheet.max_row + 1):
-		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
-		if original_value < 0.01:  # Check if the value is less than 0.01
-			# Residual values are rounded to 0.000
-			worksheet.cell(row, 3).value = 0
-	# Save the workbook with the rounded values
-	workbook.save(filename=file_path)
-	workbook.close()
-	# Open the existing workbook
-	# Load the Excel file into a DataFrame
-	df = pd.read_excel(file_path)
+	# for row in range(2, worksheet.max_row + 1):
+	# 	original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	# 	if original_value < 0.01:  # Check if the value is less than 0.01
+	# 		# Residual values are rounded to 0.000
+	# 		worksheet.cell(row, 3).value = 0
+	# # Save the workbook with the rounded values
+	# workbook.save(filename=file_path)
+	# workbook.close()
+	# # Open the existing workbook
+	# # Load the Excel file into a DataFrame
+	# df = pd.read_excel(file_path)
 	
-	# Ensure the 'Data' column is in datetime format
-	df["Data"] = pd.to_datetime(df["Data"])
+	# # Ensure the 'Data' column is in datetime format
+	# df["Data"] = pd.to_datetime(df["Data"])
 	
-	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
-	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
-	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
-	df.to_excel(file_path, index=False)
-	return dataset
+	# # Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# # Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	# df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	# df.to_excel(file_path, index=False)
+	# return dataset
 
 def creating_prediction_dataset_Astro():
 	# Creating the forecast_dataset df
@@ -3041,7 +3076,9 @@ def render_production_forecast():
 			for column in ['Power', 'Power_MW', 'Next_Power_MW', 'Average_Power_MW', 'Energy_MWh']:
 				# Sum values from the second DataFrame and add them to the respective column in the final DataFrame
 				real_time_data[column] += second_data[column]
-			predicting_exporting_Imperial_Intraday_15min(real_time_data)
+			real_time_data.to_excel("./Imperial/Real-Time_forecast_dataset.xlsx", index = False)
+			preds = predicting_exporting_Imperial_Intraday_15min(real_time_data)
+			st.dataframe(preds)
 			# Downloading the Predictions Results
 			file_path = "./Imperial/Results_Production_Imperial_xgb_intraday_15min.xlsx"
 			with open(file_path, "rb") as f:

@@ -14,3 +14,4 @@ gdown
 wapi-python
 streamlit_pandas_profiling==0.1.3
 entsoe-py
+xlrd
