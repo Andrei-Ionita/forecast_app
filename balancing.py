@@ -18,3 +18,13 @@ import os, os.path
 import joblib
 import base64
 from pathlib import Path
+
+
+
+
+#=====================================================================BALANGING MARKET INTRADAY===================================================================================================
+
+def render_balancing_market_intraday_page():
+	
+	# Web App Title
+	st.header("Balancing Market :blue[Intraday Dashboard]")

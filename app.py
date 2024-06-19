@@ -12,6 +12,7 @@ from eda import render_eda_page
 from ml import render_forecast_page, render_balancing_market_page
 from assistant import render_assistant_page
 from fundamentals import render_fundamentals_page
+from balancing import render_balancing_market_intraday_page
 
 # Define rendering functions before the main function.
 slideshow_html = """
@@ -319,6 +320,7 @@ def main():
 		render_home_page()
 	elif st.session_state["page"] == "Balancing Market":
 		render_balancing_market_page()
+		render_balancing_market_intraday_page()
 	elif st.session_state['page'] == "Forecast":
 		render_forecast_page()
 	elif st.session_state['page'] == "Market Fundamentals":
