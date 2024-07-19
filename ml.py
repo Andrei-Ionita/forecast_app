@@ -1738,7 +1738,7 @@ def predicting_exporting_Astro_15min():
 
 	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
 
-	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min.pkl")
+	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min_0624.pkl")
 
 	df["Month"] = df.Data.dt.month
 	dataset = df.copy()
@@ -1773,7 +1773,7 @@ def predicting_exporting_Astro_15min():
 	workbook.close()
 	# Formatting the Results file
 	# Step 1: Open the Excel file
-	file_path = "./Astro/Results_Production_Astro_xgb_15min_0624.xlsx"
+	file_path = "./Astro/Results_Production_Astro_xgb_15min.xlsx"
 	workbook = load_workbook(filename=file_path)
 	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
 
