@@ -2932,7 +2932,7 @@ def render_production_forecast():
 				# Create a download link
 				b64 = base64.b64encode(excel_data).decode()
 				button_html = f"""
-					 <a download="Production_Forecast_Astro_15min.xlsx.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <a download="Production_Forecast_Astro_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
 					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Predictions Astro 15min</button>
 					 </a> 
 					 """
