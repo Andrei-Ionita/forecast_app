@@ -1955,7 +1955,7 @@ def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 
 	# Find the last interval with real production data 
 	last_real_interval = forecast_dataset[forecast_dataset['Productie'] > 0]['Interval'].max()
-	model = joblib.load("./Imperial/rs_xgb_Imperial_prod_intraday_1lag_15min.pkl")
+	model = joblib.load("./Imperial/rs_xgb_Imperial_prod_intraday_1lag_15min_0624.pkl")
 
 	for interval in range(last_real_interval, 97):
 		print(forecast_dataset)
@@ -2103,7 +2103,7 @@ def predicting_exporting_Astro_Intraday_15min(real_time_data):
 
 	# Find the last interval with real production data 
 	last_real_interval = forecast_dataset[forecast_dataset['Productie'] > 0]['Interval'].max()
-	model = joblib.load("./Astro/rs_xgb_Astro_prod_intraday_1lag_15min.pkl")
+	model = joblib.load("./Astro/rs_xgb_Astro_prod_intraday_1lag_15min_0624.pkl")
 
 	for interval in range(last_real_interval, 97):
 		print(forecast_dataset)
