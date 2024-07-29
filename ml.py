@@ -1652,7 +1652,7 @@ def predicting_exporting_Astro():
 	forecast_dataset["Nori"] = data["cloud_opacity"].values
 
 
-	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod.pkl")
+	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_0624.pkl")
 
 	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
 	dataset = forecast_dataset.copy()
