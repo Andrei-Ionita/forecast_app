@@ -1561,22 +1561,22 @@ def fetching_RAAL_data():
 	# Save the adjusted DataFrame
 	data_adjusted.to_csv("./RAAL/Solcast/Prundu_raw.csv", index=False)
 
-def fetching_Astro_Imperial_data():
-	lat = 46.914895
-	lon = 23.815583
+def fetching_Astro_data():
+	lat = 46.937810
+	lon = 23.749303
 	# Fetch data from the API
 	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
 	response = requests.get(api_url)
 	print("Fetching data...")
 	if response.status_code == 200:
 		# Write the content to a CSV file
-		with open("./Astro/Solcast/Bontida_raw.csv", 'wb') as file:
+		with open("./Astro/Solcast/Luna_raw.csv", 'wb') as file:
 			file.write(response.content)
 	else:
 		print(response.text)  # Add this line to see the error message returned by the API
 		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
 	# Adjusting the values to EET time
-	data = pd.read_csv("./Astro/Solcast/Bontida_raw.csv")
+	data = pd.read_csv("./Astro/Solcast/Luna_raw.csv")
 
 	# Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
 	columns_to_shift = data.columns.difference(['period_end'])
@@ -1591,7 +1591,39 @@ def fetching_Astro_Imperial_data():
 	data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
 
 	# Save the adjusted DataFrame
-	data_adjusted.to_csv("./Astro/Solcast/Bontida_raw.csv", index=False)
+	data_adjusted.to_csv("./Astro/Solcast/Luna_raw.csv", index=False)
+
+def fetching_Imperial_data():
+	lat = 46.860370
+	lon = 23.795201
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./Imperial/Solcast/Jucu_raw.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		print(response.text)  # Add this line to see the error message returned by the API
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./Imperial/Solcast/Jucu_raw.csv")
+
+	# Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
+	columns_to_shift = data.columns.difference(['period_end'])
+
+	# Shift the data columns by 2 intervals
+	data_shifted = data[columns_to_shift].shift(2)
+
+	# Combine the fixed 'period_end' with the shifted data columns
+	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
+
+	# Optionally, handle the NaN values in the first two rows after shifting
+	data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
+
+	# Save the adjusted DataFrame
+	data_adjusted.to_csv("./Imperial/Solcast/Jucu_raw.csv", index=False)
 
 def fetching_Imperial_data_15min():
 	lat = 46.860370
@@ -1663,7 +1695,7 @@ def fetching_Imperial_data_past_15min():
 
 def predicting_exporting_Astro():
 	# Creating the forecast_dataset df
-	data = pd.read_csv("./Astro/Solcast/Bontida_raw.csv")
+	data = pd.read_csv("./Astro/Solcast/Luna_raw.csv")
 	forecast_dataset = pd.read_excel("./Astro/Input_Astro.xlsx", sheet_name="Forecast_Dataset")
 	# Convert 'period_end' in santimbru to datetime
 	data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce')
@@ -2240,7 +2272,7 @@ def creating_prediction_dataset_Astro():
 
 def predicting_exporting_Imperial():
 	# Creating the forecast_dataset df
-	data = pd.read_csv("./Astro/Solcast/Bontida_raw.csv")
+	data = pd.read_csv("./Imperial/Solcast/Jucu_raw.csv")
 	forecast_dataset = pd.read_excel("./Imperial/Input_Imperial.xlsx", sheet_name="Forecast_Dataset")
 	# Convert 'period_end' in santimbru to datetime
 	data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce')
@@ -2263,7 +2295,7 @@ def predicting_exporting_Imperial():
 	forecast_dataset["Nori"] = data["cloud_opacity"].values
 
 
-	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_prod_clean_data.pkl")
+	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_prod_0624.pkl")
 
 	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
 	dataset = forecast_dataset.copy()
@@ -2836,7 +2868,7 @@ def render_production_forecast():
 		# Submit button
 		if st.button("Submit"):
 			# Fetching the Solcast data
-			fetching_Astro_Imperial_data()
+			fetching_Astro_data()
 			fetching_Astro_data_15min()
 
 			df = predicting_exporting_Astro()
@@ -3035,6 +3067,7 @@ def render_production_forecast():
 		# Submit button
 		if st.button("Submit"):
 			# Fetching the Solcast data
+			fetching_Imperial_data()
 			fetching_Imperial_data_15min()
 			df = predicting_exporting_Imperial()
 			st.dataframe(df)
