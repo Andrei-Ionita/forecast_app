@@ -1593,7 +1593,7 @@ def fetching_Astro_Imperial_data():
 	# Save the adjusted DataFrame
 	data_adjusted.to_csv("./Astro/Solcast/Bontida_raw.csv", index=False)
 
-def fetching_Astro_Imperial_data_15min():
+def fetching_Imperial_data_15min():
 	lat = 46.860370
 	lon = 23.795201
 	# Fetch data from the API
@@ -1602,15 +1602,49 @@ def fetching_Astro_Imperial_data_15min():
 	print("Fetching data...")
 	if response.status_code == 200:
 		# Write the content to a CSV file
-		with open("./Astro/Solcast/Jucu_15min.csv", 'wb') as file:
+		with open("./Imperial/Solcast/Jucu_15min.csv", 'wb') as file:
 			file.write(response.content)
 	else:
 		print(response.text)  # Add this line to see the error message returned by the API
 		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
 	# Adjusting the values to EET time
-	data = pd.read_csv("./Astro/Solcast/Jucu_15min.csv")
+	data = pd.read_csv("./Imperial/Solcast/Jucu_15min.csv")
 
-def fetching_Astro_Imperial_data_past_15min():
+def fetching_Astro_data_15min():
+	lat = 46.937810
+	lon = 23.749303
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./Astro/Solcast/Luna_15min.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		print(response.text)  # Add this line to see the error message returned by the API
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./Astro/Solcast/Luna_15min.csv")
+
+def fetching_Astro_data_past_15min():
+	lat = 46.937810
+	lon = 23.749303
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/live/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,ghi,cloud_opacity&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./Astro/Solcast/Luna_15min_past.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		print(response.text)  # Add this line to see the error message returned by the API
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./Astro/Solcast/Luna_15min_past.csv")
+
+def fetching_Imperial_data_past_15min():
 	lat = 46.860370
 	lon = 23.795201
 	# Fetch data from the API
@@ -1619,13 +1653,13 @@ def fetching_Astro_Imperial_data_past_15min():
 	print("Fetching data...")
 	if response.status_code == 200:
 		# Write the content to a CSV file
-		with open("./Astro/Solcast/Jucu_15min_past.csv", 'wb') as file:
+		with open("./Imperial/Solcast/Jucu_15min_past.csv", 'wb') as file:
 			file.write(response.content)
 	else:
 		print(response.text)  # Add this line to see the error message returned by the API
 		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
 	# Adjusting the values to EET time
-	data = pd.read_csv("./Astro/Solcast/Jucu_15min_past.csv")
+	data = pd.read_csv("./Imperial/Solcast/Jucu_15min_past.csv")
 
 def predicting_exporting_Astro():
 	# Creating the forecast_dataset df
@@ -1721,7 +1755,7 @@ def predicting_exporting_Astro():
 
 def predicting_exporting_Astro_15min():
 	# Creating the forecast_dataset df
-	df= pd.read_csv('./Astro/Solcast/Jucu_15min.csv')
+	df= pd.read_csv('./Astro/Solcast/Luna_15min.csv')
 	# Convert the 'period_end' column to datetime, handling errors
 	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
 
@@ -1883,7 +1917,7 @@ def predicting_rest_of_day(interval, data, model):
 
 def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 	# Creating the forecast_dataset df
-	weather_data_future = pd.read_csv('./Astro/Solcast/Jucu_15min.csv')
+	weather_data_future = pd.read_csv('./Imperial/Solcast/Jucu_15min.csv')
 	# Convert the 'period_end' column to datetime, handling errors
 	weather_data_future['period_end'] = pd.to_datetime(weather_data_future['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
 
@@ -1903,7 +1937,7 @@ def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 	weather_data_future = weather_data_future[["Timestamp", "Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
 
 	# Data Engineering for the past weather data
-	weather_data_past = pd.read_csv('./Astro/Solcast/Jucu_15min_past.csv')
+	weather_data_past = pd.read_csv('./Imperial/Solcast/Jucu_15min_past.csv')
 	# Convert the 'period_end' column to datetime, handling errors
 	weather_data_past['period_end'] = pd.to_datetime(weather_data_past['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
 
@@ -2031,7 +2065,7 @@ def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 
 def predicting_exporting_Astro_Intraday_15min(real_time_data):
 	# Creating the forecast_dataset df
-	weather_data_future = pd.read_csv('./Astro/Solcast/Jucu_15min.csv')
+	weather_data_future = pd.read_csv('./Astro/Solcast/Luna_15min.csv')
 	# Convert the 'period_end' column to datetime, handling errors
 	weather_data_future['period_end'] = pd.to_datetime(weather_data_future['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
 
@@ -2051,7 +2085,7 @@ def predicting_exporting_Astro_Intraday_15min(real_time_data):
 	weather_data_future = weather_data_future[["Timestamp", "Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
 
 	# Data Engineering for the past weather data
-	weather_data_past = pd.read_csv('./Astro/Solcast/Jucu_15min_past.csv')
+	weather_data_past = pd.read_csv('./Astro/Solcast/Luna_15min_past.csv')
 	# Convert the 'period_end' column to datetime, handling errors
 	weather_data_past['period_end'] = pd.to_datetime(weather_data_past['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
 
@@ -2299,7 +2333,7 @@ def predicting_exporting_Imperial():
 
 def predicting_exporting_Imperial_15min():
 	# Creating the forecast_dataset df
-	df= pd.read_csv('./Astro/Solcast/Jucu_15min.csv')
+	df= pd.read_csv('./Imperial/Solcast/Jucu_15min.csv')
 	# Convert the 'period_end' column to datetime, handling errors
 	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
 
@@ -2315,8 +2349,6 @@ def predicting_exporting_Imperial_15min():
 	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
 
 	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
-
-	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min.pkl")
 
 	df["Month"] = df.Data.dt.month
 	dataset = df.copy()
@@ -2805,7 +2837,7 @@ def render_production_forecast():
 		if st.button("Submit"):
 			# Fetching the Solcast data
 			fetching_Astro_Imperial_data()
-			fetching_Astro_Imperial_data_15min()
+			fetching_Astro_data_15min()
 
 			df = predicting_exporting_Astro()
 			st.dataframe(df)
@@ -2981,7 +3013,7 @@ def render_production_forecast():
 			st.dataframe(real_time_data)
 
 		if st.button("Forecast Real-Time"):
-			fetching_Astro_Imperial_data_past_15min()
+			fetching_Astro_data_past_15min()
 			predicting_exporting_Astro_Intraday_15min(real_time_data)
 			# Downloading the Predictions Results
 			file_path = "./Astro/Results_Production_Astro_xgb_intraday_15min.xlsx"
@@ -3003,7 +3035,7 @@ def render_production_forecast():
 		# Submit button
 		if st.button("Submit"):
 			# Fetching the Solcast data
-			# fetching_Astro_Imperial_data()
+			fetching_Imperial_data_15min()
 			df = predicting_exporting_Imperial()
 			st.dataframe(df)
 			st.success('Forecast Ready', icon="✅")
@@ -3076,7 +3108,7 @@ def render_production_forecast():
 				real_time_data.to_csv("./Imperial/real-time_data_Imperial{}.csv".format(count), index = False)
 
 		if st.button("Forecast Real-Time"):
-			fetching_Astro_Imperial_data_past_15min()
+			fetching_Imperial_data_past_15min()
 			# Creating the real-time production dataframe for Imperial
 			real_time_data = pd.read_csv("./Imperial/real-time_data_Imperial1.csv")
 			second_data = pd.read_csv("./Imperial/real-time_data_Imperial2.csv")
