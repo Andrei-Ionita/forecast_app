@@ -67,7 +67,7 @@ Public_Holiday = pd.DataFrame({"holiday": "Public Holiday",
 holidays = pd.concat((New_year_and_day_after, National_holiday, Christmas, St_Andrew, Ziua_Principatelor, Adormirea_Maicii_Domnului, Rusalii, Ziua_Copilului, Ziua_Muncii,
 											Pastele, Vinerea_Mare, Ziua_Unirii, Public_Holiday))
 
-#=============================================================================Feetching the data for Transavia locations========================================================================
+#=============================================================================Fetching the data for Transavia locations========================================================================
 solcast_api_key = os.getenv("solcast_api_key")
 # output_path = "./Transavia/data/Bocsa.csv"
 # print("API Key:", solcast_api_key)  # Remove after debugging
@@ -225,15 +225,19 @@ def creating_input_consumption_Santimbru():
 	santimbru_data = pd.read_csv("./Transavia/data/Santimbru.csv")
 	# Convert 'period_end' in santimbru to datetime
 	santimbru_data['period_end'] = pd.to_datetime(santimbru_data['period_end'], errors='coerce')
+	# Then, convert the datetime to EET (taking into account DST if applicable)
+	santimbru_data['period_end_EET'] = santimbru_data['period_end'].dt.tz_convert('Europe/Bucharest')
+	
 	# Extract just the date part in the desired format (as strings)
-	santimbru_dates = santimbru_data['period_end'].dt.strftime('%Y-%m-%d')
-
+	santimbru_dates = santimbru_data['period_end_EET'].dt.strftime('%Y-%m-%d')
+	# Shift the 'period_end' column by 2 hours
+	# santimbru_dates['period_end'] = santimbru_data['period_end'] + pd.Timedelta(hours=3)
 	# Write the dates from santimbru_dates to input_production.Data
 	input['Data'] = santimbru_dates.values
 	# Fill NaNs in the 'Data' column with next valid observation
 	input['Data'].fillna(method='bfill', inplace=True)
 	# Completing the Interval column
-	santimbru_intervals = santimbru_data["period_end"].dt.hour
+	santimbru_intervals = santimbru_data["period_end_EET"].dt.hour
 	input["Interval"] = santimbru_intervals
 	# Replace NaNs in the 'Interval' column with 0
 	input['Interval'].fillna(0, inplace=True)
@@ -732,15 +736,18 @@ def creating_input_cons_file_Brasov():
 	brasov_data = pd.read_csv("./Transavia/data/Brasov.csv")
 	# Convert 'period_end' in santimbru to datetime
 	brasov_data['period_end'] = pd.to_datetime(brasov_data['period_end'], errors='coerce')
+	# Then, convert the datetime to EET (taking into account DST if applicable)
+	brasov_data['period_end_EET'] = brasov_data['period_end'].dt.tz_convert('Europe/Bucharest')
 	# Extract just the date part in the desired format (as strings)
-	brasov_dates = brasov_data['period_end'].dt.strftime('%Y-%m-%d')
-
+	brasov_dates = brasov_data['period_end_EET'].dt.strftime('%Y-%m-%d')
+	# Shift the 'period_end' column by 3 hours
+	# brasov_dates['period_end'] = brasov_data['period_end'] + pd.Timedelta(hours=3)
 	# Write the dates from santimbru_dates to input_production.Data
 	input_brasov['Data'] = brasov_dates.values
 	# Fill NaNs in the 'Data' column with next valid observation
 	input_brasov['Data'].fillna(method='bfill', inplace=True)
 	# Completing the Interval column
-	brasov_intervals = brasov_data["period_end"].dt.hour
+	brasov_intervals = brasov_data["period_end_EET"].dt.hour
 	input_brasov["Interval"] = brasov_intervals
 	# Replace NaNs in the 'Interval' column with 0
 	input_brasov['Interval'].fillna(0, inplace=True)
@@ -1517,7 +1524,7 @@ def fetching_Solina_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
+	data_shifted = data[columns_to_shift].shift(3)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -1550,7 +1557,7 @@ def fetching_RAAL_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
+	data_shifted = data[columns_to_shift].shift(3)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -1582,7 +1589,7 @@ def fetching_Astro_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
+	data_shifted = data[columns_to_shift].shift(3)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -1614,7 +1621,7 @@ def fetching_Imperial_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
+	data_shifted = data[columns_to_shift].shift(3)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -1803,7 +1810,7 @@ def predicting_exporting_Astro_15min():
 	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
 
 	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
-
+	
 	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min_0624.pkl")
 
 	df["Month"] = df.Data.dt.month
@@ -2244,7 +2251,7 @@ def predicting_exporting_Astro_Intraday_15min(real_time_data):
 
 def creating_prediction_dataset_Astro():
 	# Creating the forecast_dataset df
-	data = pd.read_csv("./Astro/Solcast/Bontida_raw.csv")
+	data = pd.read_csv("./Astro/Solcast/Luna_raw.csv")
 	forecast_dataset = pd.read_excel("./Astro/Input_Astro.xlsx", sheet_name="Forecast_Dataset")
 	# Convert 'period_end' in santimbru to datetime
 	data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce')
