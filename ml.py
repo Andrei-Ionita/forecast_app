@@ -1524,7 +1524,7 @@ def fetching_Solina_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(3)
+	data_shifted = data[columns_to_shift].shift(2)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -1557,7 +1557,7 @@ def fetching_RAAL_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(3)
+	data_shifted = data[columns_to_shift].shift(2)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -1589,7 +1589,7 @@ def fetching_Astro_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(3)
+	data_shifted = data[columns_to_shift].shift(2)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -1621,7 +1621,7 @@ def fetching_Imperial_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(3)
+	data_shifted = data[columns_to_shift].shift(2)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -1810,7 +1810,7 @@ def predicting_exporting_Astro_15min():
 	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
 
 	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
-	
+
 	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min_0624.pkl")
 
 	df["Month"] = df.Data.dt.month
