@@ -97,8 +97,10 @@ def creating_input_production_file(path):
 
 	# Convert 'period_end' in santimbru to datetime
 	santimbru_data['period_end'] = pd.to_datetime(santimbru_data['period_end'], errors='coerce')
+	# Then, convert the datetime to EET (taking into account DST if applicable)
+	santimbru_data['period_end_EET'] = santimbru_data['period_end'].dt.tz_convert('Europe/Bucharest')
 	# Extract just the date part in the desired format (as strings)
-	santimbru_dates = santimbru_data['period_end'].dt.strftime('%Y-%m-%d')
+	santimbru_dates = santimbru_data['period_end_EET'].dt.strftime('%Y-%m-%d')
 
 	# Write the dates from santimbru_dates to input_production.Data
 	input_production['Data'] = santimbru_dates.values
@@ -106,7 +108,7 @@ def creating_input_production_file(path):
 	input_production['Data'].fillna(method='bfill', inplace=True)
 
 	# Completing the Interval column
-	santimbru_intervals = santimbru_data["period_end"].dt.hour
+	santimbru_intervals = santimbru_data["period_end_EET"].dt.hour
 	input_production["Interval"] = santimbru_intervals
 	# Replace NaNs in the 'Interval' column with 0
 	input_production['Interval'].fillna(0, inplace=True)
@@ -1355,21 +1357,20 @@ def render_production_forecast_Transavia(locations_PVPPs):
 		fetch_data(lat, lon, solcast_api_key, output_path)
 		# Adjusting the values to EET time
 		data = pd.read_csv(f"./Transavia/data/{location}.csv")
+		# # Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
+		# columns_to_shift = data.columns.difference(['period_end'])
 
-		# Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
-		columns_to_shift = data.columns.difference(['period_end'])
+		# # Shift the data columns by 2 intervals
+		# data_shifted = data[columns_to_shift].shift(3)
 
-		# Shift the data columns by 2 intervals
-		data_shifted = data[columns_to_shift].shift(2)
+		# # Combine the fixed 'period_end' with the shifted data columns
+		# data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
 
-		# Combine the fixed 'period_end' with the shifted data columns
-		data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
+		# # Optionally, handle the NaN values in the first two rows after shifting
+		# data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
 
-		# Optionally, handle the NaN values in the first two rows after shifting
-		data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
-
-		# Save the adjusted DataFrame
-		data_adjusted.to_csv(f"./Transavia/data/{location}.csv", index=False)
+		# # Save the adjusted DataFrame
+		# data_adjusted.to_csv(f"./Transavia/data/{location}.csv", index=False)
 	# Creating the input_production file
 	path = "./Transavia/data"
 	creating_input_production_file(path)
