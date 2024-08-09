@@ -111,7 +111,7 @@ def creating_input_production_file(path):
 	santimbru_intervals = santimbru_data["period_end_EET"].dt.hour
 	input_production["Interval"] = santimbru_intervals
 	# Replace NaNs in the 'Interval' column with 0
-	input_production['Interval'].fillna(0, inplace=True)
+	input_production['Interval'].fillna(3, inplace=True)
 
 	# Completing the Radiatie column
 	santimbru_radiatie = santimbru_data["ghi"]
@@ -242,7 +242,7 @@ def creating_input_consumption_Santimbru():
 	santimbru_intervals = santimbru_data["period_end_EET"].dt.hour
 	input["Interval"] = santimbru_intervals
 	# Replace NaNs in the 'Interval' column with 0
-	input['Interval'].fillna(0, inplace=True)
+	input['Interval'].fillna(3, inplace=True)
 	# Completing the Temperatura column
 	santimbru_temperatura = santimbru_data["air_temp"]
 	input["Temperatura"] = santimbru_temperatura
@@ -752,7 +752,7 @@ def creating_input_cons_file_Brasov():
 	brasov_intervals = brasov_data["period_end_EET"].dt.hour
 	input_brasov["Interval"] = brasov_intervals
 	# Replace NaNs in the 'Interval' column with 0
-	input_brasov['Interval'].fillna(0, inplace=True)
+	input_brasov['Interval'].fillna(3, inplace=True)
 	# Completing the Temperatura column
 	brasov_temperatura = brasov_data["air_temp"]
 	input_brasov["Temperatura"] = brasov_temperatura
@@ -2482,7 +2482,7 @@ def predicting_exporting_Solina():
 	forecast_dataset["Nori"] = data["cloud_opacity"].values
 
 
-	xgb_loaded = joblib.load("./Solina/Production/rs_xgb_Solina_prod.pkl")
+	xgb_loaded = joblib.load("./Solina/Production/rs_xgb_Solina_prod_0624.pkl")
 
 	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
 	dataset = forecast_dataset.copy()
