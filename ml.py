@@ -1525,7 +1525,7 @@ def fetching_Solina_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
+	data_shifted = data[columns_to_shift].shift(1)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -1714,7 +1714,7 @@ def predicting_exporting_Astro():
 	# Fill NaNs in the 'Data' column with next valid observation
 	forecast_dataset['Data'].fillna(method='bfill', inplace=True)
 	# Completing the Interval column
-	intervals = data["period_end"].dt.hour
+	intervals = data["period_end"].dt.hour + 1
 	forecast_dataset["Interval"] = intervals
 	# Replace NaNs in the 'Interval' column with 0
 	forecast_dataset['Interval'].fillna(0, inplace=True)
@@ -2291,7 +2291,7 @@ def predicting_exporting_Imperial():
 	# Fill NaNs in the 'Data' column with next valid observation
 	forecast_dataset['Data'].fillna(method='bfill', inplace=True)
 	# Completing the Interval column
-	intervals = data["period_end"].dt.hour
+	intervals = data["period_end"].dt.hour + 1
 	forecast_dataset["Interval"] = intervals
 	# Replace NaNs in the 'Interval' column with 0
 	forecast_dataset['Interval'].fillna(0, inplace=True)
