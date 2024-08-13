@@ -1717,7 +1717,7 @@ def predicting_exporting_Astro():
 	intervals = data["period_end"].dt.hour + 1
 	forecast_dataset["Interval"] = intervals
 	# Replace NaNs in the 'Interval' column with 0
-	forecast_dataset['Interval'].fillna(0, inplace=True)
+	forecast_dataset['Interval'].fillna(1, inplace=True)
 	# Completing the Temperatura column
 	forecast_dataset["Temperatura"] = data["air_temp"].values
 	# Completing the GHI column
@@ -2294,7 +2294,7 @@ def predicting_exporting_Imperial():
 	intervals = data["period_end"].dt.hour + 1
 	forecast_dataset["Interval"] = intervals
 	# Replace NaNs in the 'Interval' column with 0
-	forecast_dataset['Interval'].fillna(0, inplace=True)
+	forecast_dataset['Interval'].fillna(1, inplace=True)
 	# Completing the Temperatura column
 	forecast_dataset["Temperatura"] = data["air_temp"].values
 	# Completing the GHI column
