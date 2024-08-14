@@ -1200,7 +1200,6 @@ def render_fundamentals_page():
 			worksheet.set_column(0, 0, None, date_format)  # Column 'A:A' if your dates are in the first column
 
 	if st.button("Load Forecast CET"):
-		st.write(start_cet, end_cet)
 		load_forecast_CET(start_cet, end_cet)
 
 		# Creating a download button for the Volue data
