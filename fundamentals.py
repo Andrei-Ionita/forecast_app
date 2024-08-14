@@ -1201,6 +1201,7 @@ def render_fundamentals_page():
 
 	if st.button("Load Forecast CET"):
 		load_forecast_CET(start_cet, end_cet)
+		print(start_cet, end_cet)
 		# Creating a download button for the Volue data
 		file_path = './Market Fundamentals/Entsoe_data/Load_Forecast.xlsx'
 		with open(file_path, "rb") as f:
