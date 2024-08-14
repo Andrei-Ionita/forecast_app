@@ -13,6 +13,7 @@ from datetime import datetime
 import gdown
 import requests
 from openpyxl import load_workbook
+import pytz
 
 session_start_time = time.time()
 
@@ -2831,6 +2832,19 @@ def render_production_forecast():
 	PVPP = st.radio("Choose PVPP:", options=["Solina", "RAAL", "Astro", "Imperial"], index=None)
 
 	if PVPP == "Solina":
+		# Setting the Indisponibility, if any
+		# Widget for Grid Limitation
+		st.subheader("Grid Limitation")
+		eet_timezone = pytz.timezone('Europe/Bucharest')
+		grid_start_date = st.date_input("Grid Limitation Start Date", value=datetime.now(eet_timezone).date())
+		grid_end_date = st.date_input("Grid Limitation End Date", value=datetime.now(eet_timezone).date())
+		grid_limitation_percentage = st.number_input("Grid Limitation Percentage", min_value=0.0, max_value=100.0, value=00.0)
+		# Widget for Asset Limitation
+		st.header("Asset Limitation")
+		asset_start_date = st.date_input("Asset Limitation Start Date", value=datetime.now(eet_timezone).date())
+		asset_end_date = st.date_input("Asset Limitation End Date", value=datetime.now(eet_timezone).date())
+		asset_limitation_percentage = st.number_input("Asset Limitation Percentage", min_value=0.0, max_value=100.0, value=00.0)
+
 		# Submit button
 		if st.button('Submit'):
 			# Fetching the data from Solcast
