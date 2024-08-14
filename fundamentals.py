@@ -860,6 +860,8 @@ def load_forecast_CET(start_cet, end_cet):
 
 	# Set the country code for Romania
 	country_code = 'RO'  # ISO-3166 alpha-2 code for Romania
+	st.session_state.start_cet = start_cet
+	st.session_state.end_cet = end_cet
 	st.write(start_cet, end_cet)
 	# Fetch Load Forecast
 	load_forecast_cet = client.query_load_forecast(country_code, start=start_cet, end=end_cet)
