@@ -1200,8 +1200,9 @@ def render_fundamentals_page():
 			worksheet.set_column(0, 0, None, date_format)  # Column 'A:A' if your dates are in the first column
 
 	if st.button("Load Forecast CET"):
-		load_forecast_CET(start_cet, end_cet)
 		st.write(start_cet, end_cet)
+		load_forecast_CET(start_cet, end_cet)
+
 		# Creating a download button for the Volue data
 		file_path = './Market Fundamentals/Entsoe_data/Load_Forecast.xlsx'
 		with open(file_path, "rb") as f:
