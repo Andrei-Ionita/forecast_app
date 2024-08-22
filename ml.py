@@ -1754,7 +1754,7 @@ def predicting_exporting_Astro(interval_from, interval_to, limitation_percentage
 	worksheet.write(0,2,"Prediction")
 
 	for value, interval in zip(rounded_values, dataset.Interval):
-		if interval_from - 1 <= interval <= interval_to - 1:
+		if interval_from <= interval <= interval_to:
 			worksheet.write(row, col + 2, value * (1 - limitation_percentage / 100), decimal_format)
 			row += 1
 		else:
@@ -1801,7 +1801,7 @@ def predicting_exporting_Astro(interval_from, interval_to, limitation_percentage
 	df.to_excel(file_path, index=False)
 	return dataset
 
-def predicting_exporting_Astro_15min():
+def predicting_exporting_Astro_15min(interval_from, interval_to, limitation_percentage):
 	# Creating the forecast_dataset df
 	df= pd.read_csv('./Astro/Solcast/Luna_15min.csv')
 	# Convert the 'period_end' column to datetime, handling errors
@@ -1843,15 +1843,19 @@ def predicting_exporting_Astro_15min():
 	worksheet.write(0,1,"Interval")
 	worksheet.write(0,2,"Prediction")
 
-	for value in rounded_values:
+	for value, interval in zip(rounded_values, dataset.Interval):
+		if interval_from * 4 <= interval <= interval_to * 4:
+			worksheet.write(row, col + 2, value * (1 - limitation_percentage / 100), decimal_format)
+			row += 1
+		else:
 			worksheet.write(row, col + 2, value, decimal_format)
-			row +=1
+			row += 1
+
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):
-			worksheet.write(row, col + 0, Data, date_format)
-			worksheet.write(row, col + 1, Interval)
-			row +=1
-
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
 	workbook.close()
 	# Formatting the Results file
 	# Step 1: Open the Excel file
@@ -2335,7 +2339,7 @@ def predicting_exporting_Imperial(interval_from, interval_to, limitation_percent
 	worksheet.write(0,2,"Prediction")
 
 	for value, interval in zip(rounded_values, dataset.Interval):
-		if interval_from - 1 <= interval <= interval_to - 1:
+		if interval_from <= interval <= interval_to:
 			worksheet.write(row, col + 2, value * (1 - limitation_percentage / 100), decimal_format)
 			row += 1
 		else:
@@ -2384,7 +2388,7 @@ def predicting_exporting_Imperial(interval_from, interval_to, limitation_percent
 	df.to_excel(file_path, index=False)
 	return dataset
 
-def predicting_exporting_Imperial_15min():
+def predicting_exporting_Imperial_15min(interval_to, interval_from, limitation_percentage):
 	# Creating the forecast_dataset df
 	df= pd.read_csv('./Imperial/Solcast/Jucu_15min.csv')
 	# Convert the 'period_end' column to datetime, handling errors
@@ -2426,14 +2430,19 @@ def predicting_exporting_Imperial_15min():
 	worksheet.write(0,1,"Interval")
 	worksheet.write(0,2,"Prediction")
 
-	for value in rounded_values:
+	for value, interval in zip(rounded_values, dataset.Interval):
+		if interval_from * 4 <= interval <= interval_to * 4:
+			worksheet.write(row, col + 2, value * (1 - limitation_percentage / 100), decimal_format)
+			row += 1
+		else:
 			worksheet.write(row, col + 2, value, decimal_format)
-			row +=1
+			row += 1
+
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):
-			worksheet.write(row, col + 0, Data, date_format)
-			worksheet.write(row, col + 1, Interval)
-			row +=1
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
 
 	workbook.close()
 	# Formatting the Results file
@@ -3055,7 +3064,7 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
-			st.dataframe(predicting_exporting_Astro_15min())
+			st.dataframe(predicting_exporting_Astro_15min(interval_from, interval_to, limitation_percentage))
 			with open("./Astro/Results_Production_Astro_xgb_15min.xlsx", "rb") as f:
 				excel_data = f.read()
 
@@ -3169,7 +3178,7 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
-			st.dataframe(predicting_exporting_Imperial_15min())
+			st.dataframe(predicting_exporting_Imperial_15min(interval_to, interval_from, limitation_percentage))
 			file_path = './Imperial/Results_Production_Imperial_xgb_15min.xlsx'
 			with open(file_path, "rb") as f:
 				excel_data = f.read()

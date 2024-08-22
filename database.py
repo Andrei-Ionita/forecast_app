@@ -264,7 +264,7 @@ def render_indisponibility_db_Imperial():
     # Function to add indisponibility data to the database
     def add_indisponibility_to_db(limitation_type, start_date, end_date, interval_from, interval_to, percentage):
         c.execute('''
-            INSERT INTO indisponibility_Astro (type, start_date, end_date, interval_from, interval_to, limitation_percentage)
+            INSERT INTO indisponibility_Imperial (type, start_date, end_date, interval_from, interval_to, limitation_percentage)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (limitation_type, start_date, end_date, interval_from, interval_to, percentage))
         conn.commit()
