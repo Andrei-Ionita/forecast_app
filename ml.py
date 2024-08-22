@@ -1766,6 +1766,7 @@ def predicting_exporting_Astro(interval_from, interval_to, limitation_percentage
 		worksheet.write(row, col + 0, Data, date_format)
 		worksheet.write(row, col + 1, Interval)
 		row += 1
+	workbook.close()
 	# Formatting the Results file
 	# Step 1: Open the Excel file
 	file_path = "./Astro/Results_Production_Astro_xgb.xlsx"
