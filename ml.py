@@ -15,6 +15,9 @@ import requests
 from openpyxl import load_workbook
 import pytz
 
+# Importing apps and pages
+from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial
+
 session_start_time = time.time()
 
 # Creating the holidays dataframe
@@ -1702,7 +1705,7 @@ def fetching_Imperial_data_past_15min():
 	# Adjusting the values to EET time
 	data = pd.read_csv("./Imperial/Solcast/Jucu_15min_past.csv")
 
-def predicting_exporting_Astro():
+def predicting_exporting_Astro(interval_from, interval_to, limitation_percentage):
 	# Creating the forecast_dataset df
 	data = pd.read_csv("./Astro/Solcast/Luna_raw.csv")
 	forecast_dataset = pd.read_excel("./Astro/Input_Astro.xlsx", sheet_name="Forecast_Dataset")
@@ -1750,16 +1753,19 @@ def predicting_exporting_Astro():
 	worksheet.write(0,1,"Interval")
 	worksheet.write(0,2,"Prediction")
 
-	for value in rounded_values:
+	for value, interval in zip(rounded_values, dataset.Interval):
+		if interval_from - 1 <= interval <= interval_to - 1:
+			worksheet.write(row, col + 2, value * (1 - limitation_percentage / 100), decimal_format)
+			row += 1
+		else:
 			worksheet.write(row, col + 2, value, decimal_format)
-			row +=1
+			row += 1
+
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):
-			worksheet.write(row, col + 0, Data, date_format)
-			worksheet.write(row, col + 1, Interval)
-			row +=1
-
-	workbook.close()
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
 	# Formatting the Results file
 	# Step 1: Open the Excel file
 	file_path = "./Astro/Results_Production_Astro_xgb.xlsx"
@@ -2279,7 +2285,7 @@ def creating_prediction_dataset_Astro():
 	df_final = pd.merge(forecast_dataset, df_predictions, on=['Data', 'Interval'], how='left')
 	df_final.to_excel("./Astro/predictions_dataset.xlsx", index=False)
 
-def predicting_exporting_Imperial():
+def predicting_exporting_Imperial(interval_from, interval_to, limitation_percentage):
 	# Creating the forecast_dataset df
 	data = pd.read_csv("./Imperial/Solcast/Jucu_raw.csv")
 	forecast_dataset = pd.read_excel("./Imperial/Input_Imperial.xlsx", sheet_name="Forecast_Dataset")
@@ -2327,14 +2333,19 @@ def predicting_exporting_Imperial():
 	worksheet.write(0,1,"Interval")
 	worksheet.write(0,2,"Prediction")
 
-	for value in rounded_values:
+	for value, interval in zip(rounded_values, dataset.Interval):
+		if interval_from - 1 <= interval <= interval_to - 1:
+			worksheet.write(row, col + 2, value * (1 - limitation_percentage / 100), decimal_format)
+			row += 1
+		else:
 			worksheet.write(row, col + 2, value, decimal_format)
-			row +=1
+			row += 1
+
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):
-			worksheet.write(row, col + 0, Data, date_format)
-			worksheet.write(row, col + 1, Interval)
-			row +=1
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
 
 	workbook.close()
 	# Formatting the Results file
@@ -2458,7 +2469,7 @@ def predicting_exporting_Imperial_15min():
 	df.to_excel(file_path, index=False)
 	return dataset
 
-def predicting_exporting_Solina():
+def predicting_exporting_Solina(interval_from, interval_to, limitation_percentage):
 	# Creating the forecast_dataset df
 	data = pd.read_csv("./Solina/Solcast/Alba_Iulia_raw.csv")
 	forecast_dataset = pd.read_excel("./Solina/Production/Input_Solina.xlsx", sheet_name="Forecast_Dataset")
@@ -2506,14 +2517,19 @@ def predicting_exporting_Solina():
 	worksheet.write(0,1,"Interval")
 	worksheet.write(0,2,"Prediction")
 
-	for value in rounded_values:
+	for value, interval in zip(rounded_values, dataset.Interval):
+		if interval_from - 1 <= interval <= interval_to - 1:
+			worksheet.write(row, col + 2, value * (1 - limitation_percentage / 100), decimal_format)
+			row += 1
+		else:
 			worksheet.write(row, col + 2, value, decimal_format)
-			row +=1
+			row += 1
+
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):
-			worksheet.write(row, col + 0, Data, date_format)
-			worksheet.write(row, col + 1, Interval)
-			row +=1
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
 
 	workbook.close()
 	# Formatting the Results file
@@ -2832,25 +2848,33 @@ def render_production_forecast():
 	PVPP = st.radio("Choose PVPP:", options=["Solina", "RAAL", "Astro", "Imperial"], index=None)
 
 	if PVPP == "Solina":
-		# Setting the Indisponibility, if any
-		# Widget for Grid Limitation
-		st.subheader("Grid Limitation")
-		eet_timezone = pytz.timezone('Europe/Bucharest')
-		grid_start_date = st.date_input("Grid Limitation Start Date", value=datetime.now(eet_timezone).date())
-		grid_end_date = st.date_input("Grid Limitation End Date", value=datetime.now(eet_timezone).date())
-		grid_limitation_percentage = st.number_input("Grid Limitation Percentage", min_value=0.0, max_value=100.0, value=00.0)
-		# Widget for Asset Limitation
-		st.header("Asset Limitation")
-		asset_start_date = st.date_input("Asset Limitation Start Date", value=datetime.now(eet_timezone).date())
-		asset_end_date = st.date_input("Asset Limitation End Date", value=datetime.now(eet_timezone).date())
-		asset_limitation_percentage = st.number_input("Asset Limitation Percentage", min_value=0.0, max_value=100.0, value=00.0)
-
+		# Updating the indisponibility, if any
+		try:
+			# Attempt to retrieve indisponibility data for tomorrow
+			result = render_indisponibility_db_Solina()
+			
+			if result is not None:
+				interval_from, interval_to, limitation_percentage = result
+				st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
+			else:
+				# Handle the case where no data is found
+				raise ValueError("No indisponibility found for tomorrow")
+		except ValueError as e:
+			# If no data is found, this block will execute
+			st.warning(str(e))
+			# Fallback logic: Add your fallback actions here
+			# st.write("Running fallback logic because no indisponibility data is found.")
+			interval_from = 1
+			interval_to = 24
+			limitation_percentage = 0
 		# Submit button
+		st.divider()
 		if st.button('Submit'):
 			# Fetching the data from Solcast
 			fetching_Solina_data()
 			# Your code to generate the forecast
-			df = predicting_exporting_Solina()
+			st.write(interval_from, interval_to, limitation_percentage)
+			df = predicting_exporting_Solina(interval_from, interval_to, limitation_percentage)
 			st.dataframe(df)
 			st.success('Forecast Ready', icon="✅")
 			file_path = './Solina/Production/Results_Production_xgb.xlsx'
@@ -2886,6 +2910,25 @@ def render_production_forecast():
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
 	elif PVPP == "Astro":
+		# Updating the indisponibility, if any
+		try:
+			# Attempt to retrieve indisponibility data for tomorrow
+			result = render_indisponibility_db_Astro()
+			
+			if result is not None:
+				interval_from, interval_to, limitation_percentage = result
+				st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
+			else:
+				# Handle the case where no data is found
+				raise ValueError("No indisponibility found for tomorrow")
+		except ValueError as e:
+			# If no data is found, this block will execute
+			st.warning(str(e))
+			# Fallback logic: Add your fallback actions here
+			# st.write("Running fallback logic because no indisponibility data is found.")
+			interval_from = 1
+			interval_to = 24
+			limitation_percentage = 0
 		st.subheader("Default Forecasting", divider = "red")
 		# Submit button
 		if st.button("Submit"):
@@ -2893,7 +2936,7 @@ def render_production_forecast():
 			fetching_Astro_data()
 			fetching_Astro_data_15min()
 
-			df = predicting_exporting_Astro()
+			df = predicting_exporting_Astro(interval_from, interval_to, limitation_percentage)
 			st.dataframe(df)
 			st.success('Forecast Ready', icon="✅")
 			file_path = './Astro/Results_Production_Astro_xgb.xlsx'
@@ -3084,6 +3127,25 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 
 	elif PVPP == "Imperial":
+		# Updating the indisponibility, if any
+		try:
+			# Attempt to retrieve indisponibility data for tomorrow
+			result = render_indisponibility_db_Imperial()
+			
+			if result is not None:
+				interval_from, interval_to, limitation_percentage = result
+				st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
+			else:
+				# Handle the case where no data is found
+				raise ValueError("No indisponibility found for tomorrow")
+		except ValueError as e:
+			# If no data is found, this block will execute
+			st.warning(str(e))
+			# Fallback logic: Add your fallback actions here
+			# st.write("Running fallback logic because no indisponibility data is found.")
+			interval_from = 1
+			interval_to = 24
+			limitation_percentage = 0
 		# Default 15 min Forecasting
 		st.subheader("Default Forecasting", divider = "blue")
 		# Submit button
@@ -3091,7 +3153,7 @@ def render_production_forecast():
 			# Fetching the Solcast data
 			fetching_Imperial_data()
 			fetching_Imperial_data_15min()
-			df = predicting_exporting_Imperial()
+			df = predicting_exporting_Imperial(interval_from, interval_to, limitation_percentage)
 			st.dataframe(df)
 			st.success('Forecast Ready', icon="✅")
 			file_path = './Imperial/Results_Production_Imperial_xgb.xlsx'
