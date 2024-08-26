@@ -197,15 +197,15 @@ def fetch_volue_wind_data(issue_date_str):
 	st.dataframe(df_wind_15min)
 	df_wind_15min.to_csv("./Market Fundamentals/Wind_data_15min.csv")
 	# INSTANCES curve hour
-	curve = session.get_curve(name='pro ro wnd fwd mw cet h f')
-	# INSTANCES curves contain a timeseries for each defined issue dates
-	# Get a list of available curves with issue dates within a timerange with:
-	# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
-	ts_h = curve.get_instance(issue_date=issue_date_str)
-	pd_s_h = ts_h.to_pandas() # convert TS object to pandas.Series object
-	pd_df_h = pd_s_h.to_frame() # convert pandas.Series to pandas.DataFrame
-	st.dataframe(pd_df_h)
-	pd_df_h.to_csv("./Market Fundamentals/Wind_data_hourly.csv")
+	# curve = session.get_curve(name='pro ro wnd fwd mw cet h f')
+	# # INSTANCES curves contain a timeseries for each defined issue dates
+	# # Get a list of available curves with issue dates within a timerange with:
+	# # curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
+	# ts_h = curve.get_instance(issue_date=issue_date_str)
+	# pd_s_h = ts_h.to_pandas() # convert TS object to pandas.Series object
+	# pd_df_h = pd_s_h.to_frame() # convert pandas.Series to pandas.DataFrame
+	# st.dataframe(pd_df_h)
+	# pd_df_h.to_csv("./Market Fundamentals/Wind_data_hourly.csv")
 
 	# Writing the hourly values to the Trading Tool file
 	# Load the wind data from CSV without altering the date format
@@ -217,27 +217,27 @@ def fetch_volue_wind_data(issue_date_str):
 
 	# Filter rows based on the string representation of tomorrow's date
 	# Assuming the date in your CSV is in the format 'YYYY-MM-DD' and is in the first column
-	tomorrow_data = wind_data[wind_data.iloc[:, 0].str.startswith(tomorrow)]
-	st.dataframe(tomorrow_data)
-	# Write to Excel
-	excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
-	workbook = load_workbook(excel_file_path)
-	sheet = workbook["Volue_Data_eng"] 
+	# tomorrow_data = wind_data[wind_data.iloc[:, 0].str.startswith(tomorrow)]
+	# st.dataframe(tomorrow_data)
+	# # Write to Excel
+	# excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
+	# workbook = load_workbook(excel_file_path)
+	# sheet = workbook["Volue_Data_eng"] 
 
-	# Confirm we have data to write
-	if len(tomorrow_data) > 0:
-		excel_row = 4
-		for index, row in tomorrow_data.iterrows():
-			if excel_row == 12 or excel_row == 25:
-				excel_row += 1
-			cell = f'E{excel_row}'
-			sheet[cell] = row[1]  # Assuming data to write is in the second column
-			print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
-			excel_row += 1
-		workbook.save(filename=excel_file_path)
-		print("Excel file has been updated.")
-	else:
-		print("No data available for tomorrow to write into the Excel file.")
+	# # Confirm we have data to write
+	# if len(tomorrow_data) > 0:
+	# 	excel_row = 4
+	# 	for index, row in tomorrow_data.iterrows():
+	# 		if excel_row == 12 or excel_row == 25:
+	# 			excel_row += 1
+	# 		cell = f'E{excel_row}'
+	# 		sheet[cell] = row[1]  # Assuming data to write is in the second column
+	# 		print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
+	# 		excel_row += 1
+	# 	workbook.save(filename=excel_file_path)
+	# 	print("Excel file has been updated.")
+	# else:
+	# 	print("No data available for tomorrow to write into the Excel file.")
 
 	# Writing the quarterly wind data to the Volue data Excel file
 	wind_data_path = './Market Fundamentals/Wind_data_15min.csv'  # Update with the actual path
@@ -271,46 +271,46 @@ def fetch_volue_solar_data(issue_date_str):
 	st.dataframe(df_solar_15min)
 	df_solar_15min.to_csv("./Market Fundamentals/PV_data_15min.csv")
 	## INSTANCE curve hour
-	curve = session.get_curve(name='pro ro spv fwd mw cet h f')
+	# curve = session.get_curve(name='pro ro spv fwd mw cet h f')
 	# INSTANCES curves contain a timeseries for each defined issue dates
 	# Get a list of available curves with issue dates within a timerange with:
 	# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
-	ts_h = curve.get_instance(issue_date=issue_date_str)
-	pd_s_h = ts_h.to_pandas() # convert TS object to pandas.Series object
-	pd_df_h = pd_s_h.to_frame() # convert pandas.Series to pandas.DataFrame
-	st.dataframe(pd_df_h)
-	# Writing the hourly values to the Trading Tool file
-	pd_df_h.to_csv("./Market Fundamentals/PV_data_hourly.csv")
-	# Load the wind data from CSV without altering the date format
-	pv_data_path = './Market Fundamentals/PV_data_hourly.csv'  # Update with the actual path
-	pv_data = pd.read_csv(pv_data_path)
+	# ts_h = curve.get_instance(issue_date=issue_date_str)
+	# pd_s_h = ts_h.to_pandas() # convert TS object to pandas.Series object
+	# pd_df_h = pd_s_h.to_frame() # convert pandas.Series to pandas.DataFrame
+	# st.dataframe(pd_df_h)
+	# # Writing the hourly values to the Trading Tool file
+	# pd_df_h.to_csv("./Market Fundamentals/PV_data_hourly.csv")
+	# # Load the wind data from CSV without altering the date format
+	# pv_data_path = './Market Fundamentals/PV_data_hourly.csv'  # Update with the actual path
+	# pv_data = pd.read_csv(pv_data_path)
 
-	# Determine tomorrow's date as a string to match your CSV format
-	tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+	# # Determine tomorrow's date as a string to match your CSV format
+	# tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
 
-	# Filter rows based on the string representation of tomorrow's date
-	# Assuming the date in your CSV is in the format 'YYYY-MM-DD' and is in the first column
-	tomorrow_data = pv_data[pv_data.iloc[:, 0].str.startswith(tomorrow)]
-	st.dataframe(tomorrow_data)
-	# Write to Excel
-	excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
-	workbook = load_workbook(excel_file_path)
-	sheet = workbook["Volue_Data_eng"] 
+	# # Filter rows based on the string representation of tomorrow's date
+	# # Assuming the date in your CSV is in the format 'YYYY-MM-DD' and is in the first column
+	# tomorrow_data = pv_data[pv_data.iloc[:, 0].str.startswith(tomorrow)]
+	# st.dataframe(tomorrow_data)
+	# # Write to Excel
+	# excel_file_path = './Market Fundamentals/Volue_data.xlsx'  # Update with the actual path
+	# workbook = load_workbook(excel_file_path)
+	# sheet = workbook["Volue_Data_eng"] 
 
-	# Confirm we have data to write
-	if len(tomorrow_data) > 0:
-		excel_row = 4
-		for index, row in tomorrow_data.iterrows():
-			if excel_row == 12 or excel_row == 25:
-				excel_row += 1
-			cell = f'P{excel_row}'
-			sheet[cell] = row[1]  # Assuming data to write is in the second column
-			print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
-			excel_row += 1
-		workbook.save(filename=excel_file_path)
-		print("Excel file has been updated.")
-	else:
-		print("No data available for tomorrow to write into the Excel file.")
+	# # Confirm we have data to write
+	# if len(tomorrow_data) > 0:
+	# 	excel_row = 4
+	# 	for index, row in tomorrow_data.iterrows():
+	# 		if excel_row == 12 or excel_row == 25:
+	# 			excel_row += 1
+	# 		cell = f'P{excel_row}'
+	# 		sheet[cell] = row[1]  # Assuming data to write is in the second column
+	# 		print(f"Writing {row[1]} to {cell}")  # Diagnostic print to confirm writing
+	# 		excel_row += 1
+	# 	workbook.save(filename=excel_file_path)
+	# 	print("Excel file has been updated.")
+	# else:
+	# 	print("No data available for tomorrow to write into the Excel file.")
 
 	# Writing the quarterly pv data to the Volue data Excel file
 	pv_data_path = './Market Fundamentals/PV_data_15min.csv'  # Update with the actual path
