@@ -4,12 +4,14 @@ import sqlite3
 from datetime import date, timedelta
 
 # =============================================================== Rendering the Indisponibility database for Solina=========================================================
-def render_indisponibility_db_Solina():
-    # Initialize the database connection
-    conn = sqlite3.connect('indisponibility.db')
-    c = conn.cursor()
+def get_connection():
+    """Get a connection to the SQLite database."""
+    return sqlite3.connect('indisponibility.db')
 
-    # Create the table if it doesn't exist
+def create_table():
+    """Create the indisponibility table if it does not exist."""
+    conn = get_connection()
+    c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS indisponibility_Solina (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,21 +24,33 @@ def render_indisponibility_db_Solina():
         )
     ''')
     conn.commit()
+    conn.close()
 
-    # Function to add indisponibility data to the database
-    def add_indisponibility_to_db(limitation_type, start_date, end_date, interval_from, interval_to, percentage):
-        c.execute('''
-            INSERT INTO indisponibility_Solina (type, start_date, end_date, interval_from, interval_to, limitation_percentage)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (limitation_type, start_date, end_date, interval_from, interval_to, percentage))
-        conn.commit()
+def add_indisponibility_to_db(limitation_type, start_date, end_date, interval_from, interval_to, percentage):
+    """Add indisponibility data to the database."""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO indisponibility_Solina (type, start_date, end_date, interval_from, interval_to, limitation_percentage)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (limitation_type, start_date, end_date, interval_from, interval_to, percentage))
+    conn.commit()
+    conn.close()
 
-    # Function to delete indisponibility data from the database
-    def delete_indisponibility_from_db(entry_id):
-        c.execute('''
-            DELETE FROM indisponibility_Solina WHERE id = ?
-        ''', (entry_id,))
-        conn.commit()
+def delete_indisponibility_from_db(entry_id):
+    """Delete indisponibility data from the database."""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('''
+        DELETE FROM indisponibility_Solina WHERE id = ?
+    ''', (entry_id,))
+    conn.commit()
+    conn.close()
+
+def render_indisponibility_db_Solina():
+    """Render and manage the indisponibility database for Solina client."""
+    create_table()
+
     # Widget for Grid Limitation
     st.subheader("Grid Limitation")
     grid_start_date = st.date_input("Grid Limitation Start Date", value=date.today())
@@ -62,9 +76,11 @@ def render_indisponibility_db_Solina():
         st.success("Asset Limitation added successfully!")
 
     # Retrieve and display the stored indisponibility data from the database
-    st.subheader("Indisponibility Data")
+    conn = get_connection()
     indisponibility_df = pd.read_sql_query("SELECT * FROM indisponibility_Solina", conn)
+    st.subheader("Indisponibility Data")
     st.dataframe(indisponibility_df)
+    conn.close()
 
     # Widget to select and remove an entry
     st.subheader("Remove an Entry")
@@ -79,6 +95,8 @@ def render_indisponibility_db_Solina():
     tomorrow = date.today() + timedelta(days=1)
 
     # Query the database for any indisponibility scheduled for tomorrow
+    conn = get_connection()
+    c = conn.cursor()
     c.execute('''
         SELECT Interval_from, Interval_to, limitation_percentage 
         FROM indisponibility_Solina 
@@ -87,22 +105,15 @@ def render_indisponibility_db_Solina():
 
     # Fetch the result
     result = c.fetchone()
+    conn.close()
 
     # Assign the values to variables if there is an indisponibility for tomorrow
     if result:
         interval_from, interval_to, limitation_percentage = result
-        limitation_percentage = result[2]
-        interval_from = result[0]
-        interval_to = result[1]
-        # st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
-    else:
-        pass
-        # st.write("No indisponibility scheduled for tomorrow.")
-
-    # Close the database connection when done
-    conn.close()
-    if result:
         return interval_from, interval_to, limitation_percentage
+
+    return None
+
 # Initialize the database connection
 # conn = sqlite3.connect('indisponibility.db')
 # c = conn.cursor()
