@@ -10,18 +10,18 @@ def render_indisponibility_db_Solina():
     c = conn.cursor()
 
     # Create the table if it doesn't exist
-    # c.execute('''
-    #     CREATE TABLE IF NOT EXISTS indisponibility_Solina (
-    #         id INTEGER PRIMARY KEY AUTOINCREMENT,
-    #         type TEXT NOT NULL,
-    #         start_date DATE NOT NULL,
-    #         end_date DATE NOT NULL,
-    #         Interval_from INT NOT NULL,
-    #         Interval_to INT NOT NULL,
-    #         limitation_percentage REAL NOT NULL
-    #     )
-    # ''')
-    # conn.commit()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS indisponibility_Solina (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            type TEXT NOT NULL,
+            start_date DATE NOT NULL,
+            end_date DATE NOT NULL,
+            Interval_from INT NOT NULL,
+            Interval_to INT NOT NULL,
+            limitation_percentage REAL NOT NULL
+        )
+    ''')
+    conn.commit()
 
     # Function to add indisponibility data to the database
     def add_indisponibility_to_db(limitation_type, start_date, end_date, interval_from, interval_to, percentage):
