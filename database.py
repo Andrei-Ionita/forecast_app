@@ -94,7 +94,7 @@ def render_indisponibility_db_Solina():
         limitation_percentage = result[2]
         interval_from = result[0]
         interval_to = result[1]
-        st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
+        # st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
     else:
         pass
         # st.write("No indisponibility scheduled for tomorrow.")

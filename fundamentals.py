@@ -897,10 +897,10 @@ def render_fundamentals_page():
 		df_wind_15min = fetch_volue_wind_data(issue_date_str)
 		df_solar_15min = fetch_volue_solar_data(issue_date_str)
 		df_hydro_15min = fetch_volue_hydro_data(issue_date_str)
-		df_temps_15min = fetch_volue_temperature_data(issue_date_str)
+		# df_temps_15min = fetch_volue_temperature_data(issue_date_str)
 		# df_price_15min = fetch_volue_price_data(issue_date_str)
-		st.write("Volue Price dataframe")
-		st.dataframe(df_price_15min)
+		# st.write("Volue Price dataframe")
+		# st.dataframe(df_price_15min)
 		# Creatiung the Volue dataframe
 		# 1. Creating the first layer of the big dataframe containing the Wind and Solar Energy
 		df_wind_15min.reset_index(inplace=True)
@@ -933,21 +933,21 @@ def render_fundamentals_page():
 		df_final_2 = pd.merge(df_final, df_hydro_15min, on=['Date', 'Interval'], how='left')
 
 		# Adding the Temperatures to the Volue dataframe
-		df_temps_15min = fetch_volue_temperature_data(issue_date_str)
-		df_temps_15min.reset_index(inplace=True)
-		df_temps_15min.columns = ['Timestamp', "Temperature"]
+		# df_temps_15min = fetch_volue_temperature_data(issue_date_str)
+		# df_temps_15min.reset_index(inplace=True)
+		# df_temps_15min.columns = ['Timestamp', "Temperature"]
 
-		# Convert 'Timestamp' to datetime format
-		df_temps_15min['Timestamp'] = pd.to_datetime(df_temps_15min['Timestamp'])
+		# # Convert 'Timestamp' to datetime format
+		# df_temps_15min['Timestamp'] = pd.to_datetime(df_temps_15min['Timestamp'])
 
-		# Create 'Date' and 'Interval' columns from 'Timestamp'
-		df_temps_15min['Date'] = df_temps_15min['Timestamp'].dt.strftime('%d.%m.%Y')
-		df_temps_15min['Interval'] = ((df_temps_15min['Timestamp'].dt.hour * 60 + df_temps_15min['Timestamp'].dt.minute) // 15 + 1)
-		df_temps_15min.drop(columns=["Timestamp"], inplace=True)
-		st.dataframe(df_temps_15min)
-		# Creating the Volue dataframe containing Wind, Solar, Hydro and Temperatures
-		df_final_3 = pd.merge(df_final_2, df_temps_15min, on=['Date', 'Interval'], how='left')
-		st.dataframe(df_final_3)
+		# # Create 'Date' and 'Interval' columns from 'Timestamp'
+		# df_temps_15min['Date'] = df_temps_15min['Timestamp'].dt.strftime('%d.%m.%Y')
+		# df_temps_15min['Interval'] = ((df_temps_15min['Timestamp'].dt.hour * 60 + df_temps_15min['Timestamp'].dt.minute) // 15 + 1)
+		# df_temps_15min.drop(columns=["Timestamp"], inplace=True)
+		# st.dataframe(df_temps_15min)
+		# # Creating the Volue dataframe containing Wind, Solar, Hydro and Temperatures
+		# df_final_3 = pd.merge(df_final_2, df_temps_15min, on=['Date', 'Interval'], how='left')
+		# st.dataframe(df_final_3)
 
 		# Adding the Price to the Volue dataframe
 		# df_final_4 = pd.merge(df_final_3, df_price_15min, on=['Date', 'Interval'], how='left')
