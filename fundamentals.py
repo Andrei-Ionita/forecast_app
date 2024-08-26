@@ -898,7 +898,7 @@ def render_fundamentals_page():
 		df_solar_15min = fetch_volue_solar_data(issue_date_str)
 		df_hydro_15min = fetch_volue_hydro_data(issue_date_str)
 		df_temps_15min = fetch_volue_temperature_data(issue_date_str)
-		df_price_15min = fetch_volue_price_data(issue_date_str)
+		# df_price_15min = fetch_volue_price_data(issue_date_str)
 		st.write("Volue Price dataframe")
 		st.dataframe(df_price_15min)
 		# Creatiung the Volue dataframe
@@ -950,8 +950,8 @@ def render_fundamentals_page():
 		st.dataframe(df_final_3)
 
 		# Adding the Price to the Volue dataframe
-		df_final_4 = pd.merge(df_final_3, df_price_15min, on=['Date', 'Interval'], how='left')
-		st.dataframe(df_final_4)
+		# df_final_4 = pd.merge(df_final_3, df_price_15min, on=['Date', 'Interval'], how='left')
+		# st.dataframe(df_final_4)
 
 		# Creating a download button for the Volue data
 		file_path = './Market Fundamentals/Volue_data.xlsx'
