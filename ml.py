@@ -2921,24 +2921,24 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 	elif PVPP == "Astro":
 		# Updating the indisponibility, if any
-		# try:
-		# 	# Attempt to retrieve indisponibility data for tomorrow
-		# 	result = render_indisponibility_db_Astro()
+		try:
+			# Attempt to retrieve indisponibility data for tomorrow
+			result = render_indisponibility_db_Astro()
 			
-		# 	if result is not None:
-		# 		interval_from, interval_to, limitation_percentage = result
-		# 		st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
-		# 	else:
-		# 		# Handle the case where no data is found
-		# 		raise ValueError("No indisponibility found for tomorrow")
-		# except ValueError as e:
-		# 	# If no data is found, this block will execute
-		# 	st.warning(str(e))
-		# 	# Fallback logic: Add your fallback actions here
-		# 	# st.write("Running fallback logic because no indisponibility data is found.")
-		# 	interval_from = 1
-		# 	interval_to = 24
-		# 	limitation_percentage = 0
+			if result is not None:
+				interval_from, interval_to, limitation_percentage = result
+				st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
+			else:
+				# Handle the case where no data is found
+				raise ValueError("No indisponibility found for tomorrow")
+		except ValueError as e:
+			# If no data is found, this block will execute
+			st.warning(str(e))
+			# Fallback logic: Add your fallback actions here
+			# st.write("Running fallback logic because no indisponibility data is found.")
+			interval_from = 1
+			interval_to = 24
+			limitation_percentage = 0
 		st.subheader("Default Forecasting", divider = "red")
 		# Submit button
 		if st.button("Submit"):
@@ -3138,24 +3138,24 @@ def render_production_forecast():
 
 	elif PVPP == "Imperial":
 		# Updating the indisponibility, if any
-		# try:
-		# 	# Attempt to retrieve indisponibility data for tomorrow
-		# 	result = render_indisponibility_db_Imperial()
+		try:
+			# Attempt to retrieve indisponibility data for tomorrow
+			result = render_indisponibility_db_Imperial()
 			
-		# 	if result is not None:
-		# 		interval_from, interval_to, limitation_percentage = result
-		# 		st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
-		# 	else:
-		# 		# Handle the case where no data is found
-		# 		raise ValueError("No indisponibility found for tomorrow")
-		# except ValueError as e:
-		# 	# If no data is found, this block will execute
-		# 	st.warning(str(e))
-		# 	# Fallback logic: Add your fallback actions here
-		# 	# st.write("Running fallback logic because no indisponibility data is found.")
-		# 	interval_from = 1
-		# 	interval_to = 24
-		# 	limitation_percentage = 0
+			if result is not None:
+				interval_from, interval_to, limitation_percentage = result
+				st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
+			else:
+				# Handle the case where no data is found
+				raise ValueError("No indisponibility found for tomorrow")
+		except ValueError as e:
+			# If no data is found, this block will execute
+			st.warning(str(e))
+			# Fallback logic: Add your fallback actions here
+			# st.write("Running fallback logic because no indisponibility data is found.")
+			interval_from = 1
+			interval_to = 24
+			limitation_percentage = 0
 		# Default 15 min Forecasting
 		st.subheader("Default Forecasting", divider = "blue")
 		# Submit button
