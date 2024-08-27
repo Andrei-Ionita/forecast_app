@@ -115,41 +115,41 @@ def render_indisponibility_db_Solina():
     return None
 
 # Initialize the database connection
-conn = sqlite3.connect('indisponibility.db')
-c = conn.cursor()
+# conn = sqlite3.connect('indisponibility.db')
+# c = conn.cursor()
 
-# Function to get all table names
-def get_all_tables():
-    c.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = c.fetchall()
-    return [table[0] for table in tables]
+# # Function to get all table names
+# def get_all_tables():
+#     c.execute("SELECT name FROM sqlite_master WHERE type='table';")
+#     tables = c.fetchall()
+#     return [table[0] for table in tables]
 
-# Function to delete a selected table
-def delete_table(table_name):
-    c.execute(f"DROP TABLE IF EXISTS {table_name}")
-    conn.commit()
+# # Function to delete a selected table
+# def delete_table(table_name):
+#     c.execute(f"DROP TABLE IF EXISTS {table_name}")
+#     conn.commit()
 
-# Retrieve and display all table names
-st.header("Database Tables")
-tables = get_all_tables()
+# # Retrieve and display all table names
+# st.header("Database Tables")
+# tables = get_all_tables()
 
-if tables:
-    st.subheader("Available Tables")
-    st.write(tables)
+# if tables:
+#     st.subheader("Available Tables")
+#     st.write(tables)
 
-    # Widget to select and delete a table
-    st.subheader("Delete a Table")
-    table_to_delete = st.selectbox("Select a Table to Delete", tables)
+#     # Widget to select and delete a table
+#     st.subheader("Delete a Table")
+#     table_to_delete = st.selectbox("Select a Table to Delete", tables)
 
-    if st.button("Delete Selected Table"):
-        delete_table(table_to_delete)
-        st.success(f"Table '{table_to_delete}' deleted successfully!")
-        st.experimental_rerun()  # Rerun to refresh the list of tables
-else:
-    st.warning("No tables found in the database.")
+#     if st.button("Delete Selected Table"):
+#         delete_table(table_to_delete)
+#         st.success(f"Table '{table_to_delete}' deleted successfully!")
+#         st.experimental_rerun()  # Rerun to refresh the list of tables
+# else:
+#     st.warning("No tables found in the database.")
 
-# Close the database connection when done
-conn.close()
+# # Close the database connection when done
+# conn.close()
 
 # =============================================================== Rendering the Indisponibility database for Astro=========================================================
 def render_indisponibility_db_Astro():

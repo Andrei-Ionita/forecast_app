@@ -16,7 +16,7 @@ from openpyxl import load_workbook
 import pytz
 
 # Importing apps and pages
-from database import render_indisponibility_db_Solina
+from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial
 
 session_start_time = time.time()
 
