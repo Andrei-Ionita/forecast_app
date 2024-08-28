@@ -126,7 +126,7 @@ def render_indisponibility_db(sheet_name, title):
             st.error(f"Entry ID {entry_id_to_delete} was NOT removed from the Excel file.")
         
         time.sleep(3)  # Delay for 3 seconds
-        st.experimental_rerun()
+        st.rerun()
 
     # Check for tomorrow's indisponibilities
     interval_from, interval_to, limitation_percentage = check_tomorrow_indisponibilities(sheet_name)
