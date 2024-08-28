@@ -16,7 +16,7 @@ from openpyxl import load_workbook
 import pytz
 
 # Importing apps and pages
-from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial
+from excel_db import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial
 
 session_start_time = time.time()
 
@@ -2862,10 +2862,9 @@ def render_production_forecast():
 		try:
 			# Attempt to retrieve indisponibility data for tomorrow
 			result = render_indisponibility_db_Solina()
-			
-			if result is not None:
+		
+			if result is not None and all(v is not None for v in result):
 				interval_from, interval_to, limitation_percentage = result
-				st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
 			else:
 				# Handle the case where no data is found
 				raise ValueError("No indisponibility found for tomorrow")
@@ -2873,7 +2872,6 @@ def render_production_forecast():
 			# If no data is found, this block will execute
 			st.warning(str(e))
 			# Fallback logic: Add your fallback actions here
-			# st.write("Running fallback logic because no indisponibility data is found.")
 			interval_from = 1
 			interval_to = 24
 			limitation_percentage = 0
@@ -2927,7 +2925,6 @@ def render_production_forecast():
 			
 			if result is not None:
 				interval_from, interval_to, limitation_percentage = result
-				st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
 			else:
 				# Handle the case where no data is found
 				raise ValueError("No indisponibility found for tomorrow")
@@ -3140,14 +3137,7 @@ def render_production_forecast():
 		# Updating the indisponibility, if any
 		try:
 			# Attempt to retrieve indisponibility data for tomorrow
-			result = render_indisponibility_db_Imperial()
-			
-			if result is not None:
-				interval_from, interval_to, limitation_percentage = result
-				st.write(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
-			else:
-				# Handle the case where no data is found
-				raise ValueError("No indisponibility found for tomorrow")
+			interval_from, interval_to, limitation_percentage = render_indisponibility_db_Imperial()
 		except ValueError as e:
 			# If no data is found, this block will execute
 			st.warning(str(e))
@@ -3267,7 +3257,9 @@ def render_forecast_page():
 	# **The Forecast Section**
 
 	''')
-
+	# st.subheader("Indisponibility Management", divider = "grey")
+	# render_indisponibility_management()
+	st.subheader("Forecast", divider = "grey")
 	# Allow the user to choose between Consumption and Production
 	forecast_type = st.radio("Choose Forecast Type:", options=["Consumption", "Production", "Transavia"])
 
