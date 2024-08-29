@@ -2859,19 +2859,14 @@ def render_production_forecast():
 
 	if PVPP == "Solina":
 		# Updating the indisponibility, if any
-		try:
-			# Attempt to retrieve indisponibility data for tomorrow
-			result = render_indisponibility_db_Solina()
-		
-			if result is not None and all(v is not None for v in result):
-				interval_from, interval_to, limitation_percentage = result
-			else:
-				# Handle the case where no data is found
-				raise ValueError("No indisponibility found for tomorrow")
-		except ValueError as e:
-			# If no data is found, this block will execute
-			st.warning(str(e))
+		result = render_indisponibility_db_Solina()
+		if result[0] is not None:
+			interval_from, interval_to, limitation_percentage = result
+		else:
+			# Handle the case where no data is found
+			st.text("No indisponibility found for tomorrow")
 			# Fallback logic: Add your fallback actions here
+			# st.write("Running fallback logic because no indisponibility data is found.")
 			interval_from = 1
 			interval_to = 24
 			limitation_percentage = 0
@@ -2919,18 +2914,12 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 	elif PVPP == "Astro":
 		# Updating the indisponibility, if any
-		try:
-			# Attempt to retrieve indisponibility data for tomorrow
-			result = render_indisponibility_db_Astro()
-			
-			if result is not None:
-				interval_from, interval_to, limitation_percentage = result
-			else:
-				# Handle the case where no data is found
-				raise ValueError("No indisponibility found for tomorrow")
-		except ValueError as e:
-			# If no data is found, this block will execute
-			st.warning(str(e))
+		result = render_indisponibility_db_Astro()
+		if result[0] is not None:
+			interval_from, interval_to, limitation_percentage = result
+		else:
+			# Handle the case where no data is found
+			st.text("No indisponibility found for tomorrow")
 			# Fallback logic: Add your fallback actions here
 			# st.write("Running fallback logic because no indisponibility data is found.")
 			interval_from = 1
@@ -3135,12 +3124,12 @@ def render_production_forecast():
 
 	elif PVPP == "Imperial":
 		# Updating the indisponibility, if any
-		try:
-			# Attempt to retrieve indisponibility data for tomorrow
-			interval_from, interval_to, limitation_percentage = render_indisponibility_db_Imperial()
-		except ValueError as e:
-			# If no data is found, this block will execute
-			st.warning(str(e))
+		result = render_indisponibility_db_Imperial()
+		if result[0] is not None:
+			interval_from, interval_to, limitation_percentage = result
+		else:
+			# Handle the case where no data is found
+			st.text("No indisponibility found for tomorrow")
 			# Fallback logic: Add your fallback actions here
 			# st.write("Running fallback logic because no indisponibility data is found.")
 			interval_from = 1

@@ -69,7 +69,6 @@ def check_tomorrow_indisponibilities(sheet_name):
     if not upcoming.empty:
         interval_from, interval_to, limitation_percentage = upcoming.iloc[0][['Interval_from', 'Interval_to', 'limitation_percentage']]
         st.warning(f"Indisponibility found for tomorrow: Interval from {interval_from} to {interval_to}, Limitation percentage: {limitation_percentage}%")
-
     return interval_from, interval_to, limitation_percentage
 
 # Render and manage the indisponibility database for the given client
