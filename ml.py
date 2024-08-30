@@ -2492,10 +2492,10 @@ def predicting_exporting_Solina(interval_from, interval_to, limitation_percentag
 	# Fill NaNs in the 'Data' column with next valid observation
 	forecast_dataset['Data'].fillna(method='bfill', inplace=True)
 	# Completing the Interval column
-	intervals = data["period_end"].dt.hour
+	intervals = data["period_end"].dt.hour + 1
 	forecast_dataset["Interval"] = intervals
 	# Replace NaNs in the 'Interval' column with 0
-	forecast_dataset['Interval'].fillna(0, inplace=True)
+	forecast_dataset['Interval'].fillna(1, inplace=True)
 	# Completing the Temperatura column
 	forecast_dataset["Temperatura"] = data["air_temp"].values
 	# Completing the GHI column
