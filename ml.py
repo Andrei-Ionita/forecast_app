@@ -16,7 +16,7 @@ from openpyxl import load_workbook
 import pytz
 
 # Importing apps and pages
-from excel_db import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial
+from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial
 
 session_start_time = time.time()
 
@@ -2864,7 +2864,7 @@ def render_production_forecast():
 			interval_from, interval_to, limitation_percentage = result
 		else:
 			# Handle the case where no data is found
-			st.text("No indisponibility found for tomorrow")
+			# st.text("No indisponibility found for tomorrow")
 			# Fallback logic: Add your fallback actions here
 			# st.write("Running fallback logic because no indisponibility data is found.")
 			interval_from = 1
@@ -2919,7 +2919,7 @@ def render_production_forecast():
 			interval_from, interval_to, limitation_percentage = result
 		else:
 			# Handle the case where no data is found
-			st.text("No indisponibility found for tomorrow")
+			# st.text("No indisponibility found for tomorrow")
 			# Fallback logic: Add your fallback actions here
 			# st.write("Running fallback logic because no indisponibility data is found.")
 			interval_from = 1
@@ -3129,7 +3129,7 @@ def render_production_forecast():
 			interval_from, interval_to, limitation_percentage = result
 		else:
 			# Handle the case where no data is found
-			st.text("No indisponibility found for tomorrow")
+			# st.text("No indisponibility found for tomorrow")
 			# Fallback logic: Add your fallback actions here
 			# st.write("Running fallback logic because no indisponibility data is found.")
 			interval_from = 1

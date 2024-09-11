@@ -1,32 +1,26 @@
 import streamlit as st
 import pandas as pd
-import os
-import time
+from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta
 
-# Ensure the Excel file exists and return its path
-def get_excel_file():
-    file_path = "indisponibility.xlsx"
-    if not os.path.exists(file_path):
-        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-            pd.DataFrame(columns=["id", "type", "start_date", "end_date", "Interval_from", "Interval_to", "limitation_percentage"]).to_excel(writer, sheet_name='indisponibility_Solina', index=False)
-            pd.DataFrame(columns=["id", "type", "start_date", "end_date", "Interval_from", "Interval_to", "limitation_percentage"]).to_excel(writer, sheet_name='indisponibility_Astro', index=False)
-            pd.DataFrame(columns=["id", "type", "start_date", "end_date", "Interval_from", "Interval_to", "limitation_percentage"]).to_excel(writer, sheet_name='indisponibility_Imperial', index=False)
-    return file_path
+# Google Sheets URL
+url = "https://docs.google.com/spreadsheets/d/1zTx9eJV67sNHxUEGvIQiMOR7LarLZWqmsVi3hfZz1gw/edit?usp=sharing"
+
+# Create a connection object
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 # Load data from the specified sheet
 def load_data(sheet_name):
-    file_path = get_excel_file()
-    return pd.read_excel(file_path, sheet_name=sheet_name)
+    data = conn.read(spreadsheet=url, worksheet=sheet_name)
+    df = pd.DataFrame(data)
+    return df
 
 # Save the DataFrame back to the specified sheet
 def save_data(sheet_name, df):
-    file_path = get_excel_file()
-    with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
+    conn.write(df, spreadsheet=url, sheet=sheet_name)
 
 # Add a new indisponibility entry to the database
-def add_indisponibility_to_excel(sheet_name, limitation_type, start_date, end_date, interval_from, interval_to, percentage):
+def add_indisponibility_to_gsheets(sheet_name, limitation_type, start_date, end_date, interval_from, interval_to, percentage):
     df = load_data(sheet_name)
     
     # Generate a new ID (assuming IDs are integers and incrementing by 1)
