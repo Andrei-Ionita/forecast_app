@@ -3240,7 +3240,7 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 
 def render_forecast_page():
-	
+	st.write(st.secretss)
 	# Web App Title
 	st.markdown('''
 	# **The Forecast Section**
