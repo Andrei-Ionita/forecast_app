@@ -2,6 +2,7 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 from datetime import date, timedelta
+import os
 
 # Heroku PostgreSQL connection details
 # DB_URL = "postgresql://u6vgnrtb422bju:p593a702cae233b84c4a2a29ad9f8f13116fa3a407ea6b2ed91d97280a5e17d9c@c8lj070d5ubs83.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d67n79bcvb33fq"
