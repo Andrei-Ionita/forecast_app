@@ -14,6 +14,38 @@ from assistant import render_assistant_page
 from fundamentals import render_fundamentals_page
 from balancing import render_balancing_market_intraday_page
 
+import streamlit as st
+
+st.markdown(
+    """
+    <style>
+    /* Custom Netflix-inspired styles */
+    .css-18e3th9 {  /* Main background */
+        background-color: #141414;
+    }
+    .css-1d391kg {  /* Sidebar */
+        background-color: #2c2c2c;
+    }
+    .css-1v0mbdj, .css-10trblm {  /* Streamlit titles and headers */
+        color: #e50914;
+    }
+    .css-1d391kg h2 {
+        color: #e50914;
+    }
+    button {
+        background-color: #e50914 !important;
+        color: white !important;
+        border-radius: 5px;
+        border: none;
+    }
+    button:hover {
+        background-color: #f40612 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Define rendering functions before the main function.
 slideshow_html = """
 <style>
