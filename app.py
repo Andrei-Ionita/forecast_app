@@ -16,6 +16,7 @@ from balancing import render_balancing_market_intraday_page
 
 import streamlit as st
 
+#================================================CSS=================================
 st.markdown(
     """
     <style>
@@ -46,6 +47,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+#========================================================HTML Components==========================
 # Define rendering functions before the main function.
 slideshow_html = """
 <style>
