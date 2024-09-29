@@ -16,7 +16,7 @@ from openpyxl import load_workbook
 import pytz
 
 # Importing apps and pages
-from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial, render_indisponibility_db_RES_Energy
+from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial
 
 session_start_time = time.time()
 
@@ -1573,38 +1573,6 @@ def fetching_RAAL_data():
 	# Save the adjusted DataFrame
 	data_adjusted.to_csv("./RAAL/Solcast/Prundu_raw.csv", index=False)
 
-def fetching_RES_data():
-	lat = 47.256595
-	lon = 21.935745
-	# Fetch data from the API
-	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
-	response = requests.get(api_url)
-	print("Fetching data...")
-	if response.status_code == 200:
-		# Write the content to a CSV file
-		with open("./RES Energy/Solcast/Mihai_Bravu_raw.csv", 'wb') as file:
-			file.write(response.content)
-	else:
-		print(response.text)  # Add this line to see the error message returned by the API
-		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
-	# Adjusting the values to EET time
-	data = pd.read_csv("./RES Energy/Solcast/Mihai_Bravu_raw.csv")
-
-	# Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
-	columns_to_shift = data.columns.difference(['period_end'])
-
-	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
-
-	# Combine the fixed 'period_end' with the shifted data columns
-	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
-
-	# Optionally, handle the NaN values in the first two rows after shifting
-	data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
-
-	# Save the adjusted DataFrame
-	data_adjusted.to_csv("./RES Energy/Solcast/MIhai_Bravu_raw.csv", index=False)
-
 def fetching_Astro_data():
 	lat = 46.937810
 	lon = 23.749303
@@ -2608,103 +2576,6 @@ def predicting_exporting_Solina(interval_from, interval_to, limitation_percentag
 	df.to_excel(file_path, index=False)
 	return dataset
 
-def predicting_exporting_RES(interval_from, interval_to, limitation_percentage):
-	# Creating the forecast_dataset df
-	data = pd.read_csv("./RES Energy/Solcast/Mihai_Bravu_raw.csv")
-	forecast_dataset = pd.read_excel("./RES Energy/Production/Input_RES.xlsx", sheet_name="Forecast_Dataset")
-	# Convert 'period_end' in santimbru to datetime
-	data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce')
-	# Extract just the date part in the desired format (as strings)
-	dates = data['period_end'].dt.strftime('%Y-%m-%d')
-	# Write the dates to the Input file
-	forecast_dataset['Data'] = dates.values
-	# Fill NaNs in the 'Data' column with next valid observation
-	forecast_dataset['Data'].fillna(method='bfill', inplace=True)
-	# Completing the Interval column
-	intervals = data["period_end"].dt.hour + 1
-	forecast_dataset["Interval"] = intervals
-	# Replace NaNs in the 'Interval' column with 0
-	forecast_dataset['Interval'].fillna(1, inplace=True)
-	# Completing the Temperatura column
-	forecast_dataset["Temperatura"] = data["air_temp"].values
-	# Completing the GHI column
-	forecast_dataset["Radiatie"] = data["ghi"].values
-	# Completing the Nori column
-	forecast_dataset["Nori"] = data["cloud_opacity"].values
-
-
-	xgb_loaded = joblib.load("./RES Energy/Production/rs_xgb_RES_prod_0824.pkl")
-
-	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
-	dataset = forecast_dataset.copy()
-	forecast_dataset = forecast_dataset.drop("Data", axis=1)
-
-	preds = xgb_loaded.predict(forecast_dataset.values)
-	
-	# Rounding each value in the list to the third decimal
-	rounded_values = [round(value, 3) for value in preds]
-	
-	#Exporting Results to Excel
-	workbook = xlsxwriter.Workbook("./RES Energy/Production/Results_Production_xgb.xlsx")
-	worksheet = workbook.add_worksheet("Production_Predictions")
-	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
-	# Define a format for cells with three decimal places
-	decimal_format = workbook.add_format({'num_format': '0.000'})
-	row = 1
-	col = 0
-	worksheet.write(0,0,"Data")
-	worksheet.write(0,1,"Interval")
-	worksheet.write(0,2,"Prediction")
-
-	for value, interval in zip(rounded_values, dataset.Interval):
-		if interval_from - 1 <= interval <= interval_to - 1:
-			worksheet.write(row, col + 2, value * (1 - limitation_percentage / 100), decimal_format)
-			row += 1
-		else:
-			worksheet.write(row, col + 2, value, decimal_format)
-			row += 1
-
-	row = 1
-	for Data, Interval in zip(dataset.Data, dataset.Interval):
-		worksheet.write(row, col + 0, Data, date_format)
-		worksheet.write(row, col + 1, Interval)
-		row += 1
-
-	workbook.close()
-	# Formatting the Results file
-	# Step 1: Open the Excel file
-	file_path = "./RES Energy/Production/Results_Production_xgb.xlsx"
-	workbook = load_workbook(filename=file_path)
-	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
-
-	# Step 2: Directly round the values in column C and write them back
-	for row in range(2, worksheet.max_row + 1):
-		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
-		if original_value is not None:  # Check if the cell is not empty
-			# Round the value to 3 decimal places and write it back to column C
-			worksheet.cell(row, 3).value = round(original_value, 3)
-		
-	for row in range(2, worksheet.max_row + 1):
-		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
-		if original_value < 0.01:  # Check if the value is less than 0.01
-			# Residual values are rounded to 0.000
-			worksheet.cell(row, 3).value = 0
-	# Save the workbook with the rounded values
-	workbook.save(filename=file_path)
-	workbook.close()
-	# Open the existing workbook
-	# Load the Excel file into a DataFrame
-	df = pd.read_excel(file_path)
-	
-	# Ensure the 'Data' column is in datetime format
-	df["Data"] = pd.to_datetime(df["Data"])
-	
-	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
-	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
-	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
-	df.to_excel(file_path, index=False)
-	return dataset
-
 def predicting_exporting_Consumption_Solina():
 	# Creating the forecast_dataset df
 	data = pd.read_csv("./Solina/Solcast/Alba_Iulia_raw.csv")
@@ -2984,7 +2855,7 @@ def render_production_forecast():
 	st.write("Production Forecast Section")
 
 	# Allow the user to choose between Consumption and Production
-	PVPP = st.radio("Choose PVPP:", options=["Solina", "RAAL", "Astro", "Imperial", "RES Energy"], index=None)
+	PVPP = st.radio("Choose PVPP:", options=["Solina", "RAAL", "Astro", "Imperial"], index=None)
 
 	if PVPP == "Solina":
 		# Updating the indisponibility, if any
@@ -3017,41 +2888,6 @@ def render_production_forecast():
 				b64 = base64.b64encode(excel_data).decode()
 				button_html = f"""
 					 <a download="Production_Forecast_Solina.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
-	elif PVPP == "RES Energy":
-		# Updating the indisponibility, if any
-		result = render_indisponibility_db_RES_Energy()
-		if result[0] is not None:
-			interval_from, interval_to, limitation_percentage = result
-		else:
-			# Handle the case where no data is found
-			# st.text("No indisponibility found for tomorrow")
-			# Fallback logic: Add your fallback actions here
-			# st.write("Running fallback logic because no indisponibility data is found.")
-			interval_from = 1
-			interval_to = 24
-			limitation_percentage = 0
-		# Submit button
-		st.divider()
-		if st.button('Submit'):
-			# Fetching the data from Solcast
-			fetching_RES_data()
-			# Your code to generate the forecast
-			st.write(interval_from, interval_to, limitation_percentage)
-			df = predicting_exporting_RES(interval_from, interval_to, limitation_percentage)
-			st.dataframe(df)
-			st.success('Forecast Ready', icon="✅")
-			file_path = './RES Energy/Production/Results_Production_xgb.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_RES.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
 					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
 					 </a> 
 					 """
@@ -3246,7 +3082,7 @@ def render_production_forecast():
 				real_time_data['Power'] = pd.to_numeric(real_time_data['Power'], errors='coerce').fillna(0)
 
 				# Assuming the 'Power' data needs to be in megawatts and currently in watts
-				real_time_data['Power_MW'] = real_time_data['Power'] / 1000000 * 1.12 # Convert W to MW
+				real_time_data['Power_MW'] = real_time_data['Power'] / 1000000  # Convert W to MW
 
 				# Ensure the 'Timestamp' column is in datetime format
 				real_time_data['Timestamp'] = pd.to_datetime(real_time_data['Timestamp'])

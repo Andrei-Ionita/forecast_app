@@ -134,6 +134,7 @@ def check_tomorrow_indisponibilities(table_name):
     return interval_from, interval_to, limitation_percentage
 
 
+
 # Render and manage the indisponibility database for the given client
 def render_indisponibility_db(table_name, title):
     # Add new Grid Limitation
@@ -228,6 +229,3 @@ def render_indisponibility_db_Astro():
 
 def render_indisponibility_db_Imperial():
     return render_indisponibility_db("indisponibility_imperial", "Imperial")
-
-def render_indisponibility_db_RES_Energy():
-    return render_indisponibility_db("indisponibility_res", "RES")
