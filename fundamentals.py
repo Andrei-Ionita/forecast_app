@@ -434,7 +434,7 @@ def fetch_volue_temperature_data(issue_date_str):
 #=================================Fetching the Price data==================================================
 def fetch_volue_price_data(issue_date_str):
 	# INSTANCE curve hour
-	curve = session.get_curve(name='pri ro spot ec12ens ron/mwh cet h f')
+	curve = session.get_curve(name='pri ro spot merged ron/mwh cet h f')
 	# INSTANCES curves contain a timeseries for each defined issue dates
 	# Get a list of available curves with issue dates within a timerange with:
 	# curve.search_instances(issue_date_from='2018-01-01', issue_date_to='2018-01-01')
@@ -991,10 +991,11 @@ def predicting_wind_production():
 # Defining the function for forecasting
 def predicting_price_forecast():
 	# Creating the forecast_dataset df
-	forecast_dataset = pd.read_excel("./Market Fundamentals/Spot_Price_Forecast/Input_Price_datasetxlsx")
-	xgb_loaded = joblib.load("./Market Fundamentals/Wind_Production_Forecast/rs_xgb_wind_production_0924.pkl")
+	forecast_dataset = pd.read_excel("./Market Fundamentals/Spot_Price_Forecast/Input_Price_dataset.xlsx")
+	xgb_loaded = joblib.load("./Market Fundamentals/Spot_Price_Forecast/rs_xgb_price_forecast_0924.pkl")
 
 	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
+	dataset = forecast_dataset.copy()
 	forecast_dataset = forecast_dataset.drop("Data", axis=1)
 
 	preds = xgb_loaded.predict(forecast_dataset.values)
@@ -1003,7 +1004,7 @@ def predicting_price_forecast():
 	rounded_values = [round(value, 3) for value in preds]
 	
 	#Exporting Results to Excel
-	workbook = xlsxwriter.Workbook("./Market Fundamentals/Wind_Production_Forecast/Results_Wind_Forecast_Production_xgb.xlsx")
+	workbook = xlsxwriter.Workbook("./Market Fundamentals/Spot_Price_Forecast/Results_Price_Forecast.xlsx")
 	worksheet = workbook.add_worksheet("Production_Predictions")
 	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
 	# Define a format for cells with three decimal places
@@ -1024,7 +1025,19 @@ def predicting_price_forecast():
 		row += 1
 
 	workbook.close()
-
+	# Adding the Lookup column
+	file_path = "./Market Fundamentals/Spot_Price_Forecast/Results_Price_Forecast.xlsx"
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return dataset
 #====================================================================================Rendering into App================================================================================
 
 if "df_wind_15min" and "df_solar_15min" not in st.session_state:
@@ -1044,9 +1057,9 @@ def render_fundamentals_page():
 		df_solar_15min = fetch_volue_solar_data(issue_date_str)
 		df_hydro_15min = fetch_volue_hydro_data(issue_date_str)
 		# df_temps_15min = fetch_volue_temperature_data(issue_date_str)
-		# df_price_15min = fetch_volue_price_data(issue_date_str)
-		# st.write("Volue Price dataframe")
-		# st.dataframe(df_price_15min)
+		df_price_15min = fetch_volue_price_data(issue_date_str)
+		st.write("Volue Price dataframe")
+		st.dataframe(df_price_15min)
 		# Creatiung the Volue dataframe
 		# 1. Creating the first layer of the big dataframe containing the Wind and Solar Energy
 		df_wind_15min.reset_index(inplace=True)
@@ -1096,8 +1109,8 @@ def render_fundamentals_page():
 		# st.dataframe(df_final_3)
 
 		# Adding the Price to the Volue dataframe
-		# df_final_4 = pd.merge(df_final_3, df_price_15min, on=['Date', 'Interval'], how='left')
-		# st.dataframe(df_final_4)
+		df_final_3 = pd.merge(df_final_2, df_price_15min, on=['Date', 'Interval'], how='left')
+		st.dataframe(df_final_3)
 
 		# Creating a download button for the Volue data
 		file_path = './Market Fundamentals/Volue_data.xlsx'
@@ -1381,8 +1394,18 @@ def render_fundamentals_page():
 			st.markdown(button_html, unsafe_allow_html=True)
 	st.header("Spot Price Forecast", divider = "gray")
 	if st.button("Forecast Price"):
-		predicting_price_forecast()
+		st.dataframe(predicting_price_forecast())
+		with open("./Market Fundamentals/Spot_Price_Forecast/Results_Price_Forecast.xlsx", "rb") as f:
+			excel_data = f.read()
 
+			# Create a download link
+			b64 = base64.b64encode(excel_data).decode()
+			button_html = f"""
+				 <a download="Price_Forecast.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+				 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Price Forecast</button>
+				 </a> 
+				 """
+			st.markdown(button_html, unsafe_allow_html=True)
 		
 
 
