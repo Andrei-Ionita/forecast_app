@@ -2113,7 +2113,7 @@ def predicting_exporting_Astro_15min(interval_from, interval_to, limitation_perc
 
 	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
 
-	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min_0624.pkl")
+	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min_0624_v2.pkl")
 
 	df["Month"] = df.Data.dt.month
 	dataset = df.copy()
@@ -2703,7 +2703,7 @@ def predicting_exporting_Imperial_15min(interval_to, interval_from, limitation_p
 	dataset = df.copy()
 	forecast_dataset = dataset[["Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
 
-	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_prod_15min_0624.pkl")
+	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_prod_15min_0624_v2.pkl")
 
 	preds = xgb_loaded.predict(forecast_dataset.values)
 	
