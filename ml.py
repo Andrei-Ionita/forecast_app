@@ -1749,6 +1749,91 @@ def fetching_RES_data_15min():
 	# Adjusting the values to EET time
 	data = pd.read_csv("./RES Energy/Solcast/Mihai_Bravu_15min.csv")
 
+def fetching_Danutz_data_15min():
+	lat = 44.413445
+	lon = 26.658963
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./CEF Danutz/Solcast/Sarulesti_15min.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		print(response.text)  # Add this line to see the error message returned by the API
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./CEF Danutz/Solcast/Sarulesti_15min.csv")
+
+def fetching_Ignaenerg_data_15min():
+	lat = 47.044649031061
+	lon = 21.966308653830996 
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./CEF Ignaenerg/Solcast/Sinmartin_15min.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		print(response.text)  # Add this line to see the error message returned by the API
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./CEF Ignaenerg/Sinmartin_15min.csv")
+
+def fetching_Bors_data_15min():
+	lat = 47.113958
+	lon = 21.818250
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./CEF Ganatran/Solcast/Bors_15min.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		print(response.text)  # Add this line to see the error message returned by the API
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./CEF Ganatran/Solcast/Bors_15min.csv")
+
+def fetching_Herculane_data_15min():
+	lat = 44.868180
+	lon = 22.408513
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./CEF Baile Herculane/Solcast/Herculane_15min.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		print(response.text)  # Add this line to see the error message returned by the API
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./CEF Baile Herculane/Solcast/Herculane_15min.csv")
+
+def fetching_Calmatuiu_data_15min():
+	lat = 43.968809
+	lon = 24.862886
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./CEF Calmatuiu/Solcast/Calmatuiu_15min.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		print(response.text)  # Add this line to see the error message returned by the API
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./RES Energy/Solcast/Mihai_Bravu_15min.csv")
+
 def fetching_RAAL_data():
 	lat = 47.2229
 	lon = 24.7244
@@ -2723,7 +2808,7 @@ def predicting_exporting_Solina(interval_from, interval_to, limitation_percentag
 	rounded_values = [round(value, 3) for value in preds]
 	
 	#Exporting Results to Excel
-	workbook = xlsxwriter.Workbook("./Solina/Production/Results_Production_xgb.xlsx")
+	workbook = xlsxwriter.Workbook("C:/Users/AndreiIonita/OneDrive - nextEHoldingAG/0453_2_Energy_markets/000. Trade/01. Solina Romania")
 	worksheet = workbook.add_worksheet("Production_Predictions")
 	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
 	# Define a format for cells with three decimal places
@@ -2939,6 +3024,516 @@ def predicting_exporting_RES_15min(interval_from, interval_to, limitation_percen
 	# Formatting the Results file
 	# Step 1: Open the Excel file
 	file_path = "./RES Energy/Results_Production_RES_xgb_15min.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value is not None:  # Check if the cell is not empty
+			# Round the value to 3 decimal places and write it back to column C
+			worksheet.cell(row, 3).value = round(original_value, 3)
+		
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value < 0.01:  # Check if the value is less than 0.01
+			# Residual values are rounded to 0.000
+			worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
+	# Open the existing workbook
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return dataset
+
+def predicting_exporting_CEF_Calmatuiu_15min():
+	# Creating the forecast_dataset df
+	df= pd.read_csv('./CEF Calmatuiu/Solcast/Calmatuiu_15min.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	df.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 2 hours
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=3)
+
+	# Creating the Interval column
+	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
+
+	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
+
+	xgb_loaded = joblib.load("./CEF Calmatuiu/Production/rs_xgb_CEF_Calmatuiu_prod_15min_1223.pkl")
+
+	df["Month"] = df.Data.dt.month
+	dataset = df.copy()
+	forecast_dataset = dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Month"]]
+
+	preds = xgb_loaded.predict(forecast_dataset.values)
+	
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+	
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./CEF Calmatuiu/Results_Production_CEF_Calmatuiu_xgb_15min.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in rounded_values:
+		worksheet.write(row, col + 2, value, decimal_format)
+		row += 1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
+	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./CEF Calmatuiu/Results_Production_CEF_Calmatuiu_xgb_15min.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value is not None:  # Check if the cell is not empty
+			# Round the value to 3 decimal places and write it back to column C
+			worksheet.cell(row, 3).value = round(original_value, 3)
+		
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value < 0.01:  # Check if the value is less than 0.01
+			# Residual values are rounded to 0.000
+			worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
+	# Open the existing workbook
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return dataset
+
+def predicting_exporting_CEF_Comuna_Bors_15min():
+	# Creating the forecast_dataset df
+	df= pd.read_csv('./CEF Ganatran/Solcast/Bors_15min.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	df.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 2 hours
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=3)
+
+	# Creating the Interval column
+	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
+
+	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
+
+	xgb_loaded = joblib.load("./CEF Comuna Bors/Production/rs_xgb_CEF_Comuna_Bors_prod_15min_0824.pkl")
+
+	df["Month"] = df.Data.dt.month
+	dataset = df.copy()
+	forecast_dataset = dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Month"]]
+
+	preds = xgb_loaded.predict(forecast_dataset.values)
+	
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+	
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./CEF Comuna Bors/Results_Production_CEF_Comuna_Bors_xgb_15min.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in rounded_values:
+		worksheet.write(row, col + 2, value, decimal_format)
+		row += 1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
+	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./CEF Comuna Bors/Results_Production_CEF_Comuna_Bors_xgb_15min.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value is not None:  # Check if the cell is not empty
+			# Round the value to 3 decimal places and write it back to column C
+			worksheet.cell(row, 3).value = round(original_value, 3)
+		
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value < 0.01:  # Check if the value is less than 0.01
+			# Residual values are rounded to 0.000
+			worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
+	# Open the existing workbook
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return dataset
+
+def predicting_exporting_CEF_Ganatran_15min():
+	# Creating the forecast_dataset df
+	df= pd.read_csv('./CEF Ganatran/Solcast/Bors_15min.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	df.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 2 hours
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=3)
+
+	# Creating the Interval column
+	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
+
+	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
+
+	xgb_loaded = joblib.load("./CEF Ganatran/Production/rs_xgb_CEF_Ganatran_prod_15min_0824.pkl")
+
+	df["Month"] = df.Data.dt.month
+	dataset = df.copy()
+	forecast_dataset = dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Month"]]
+
+	preds = xgb_loaded.predict(forecast_dataset.values)
+	
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+	
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./CEF Ganatran/Results_Production_CEF_Ganatran_xgb_15min.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in rounded_values:
+		worksheet.write(row, col + 2, value, decimal_format)
+		row += 1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
+	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./CEF Ganatran/Results_Production_CEF_Ganatran_xgb_15min.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value is not None:  # Check if the cell is not empty
+			# Round the value to 3 decimal places and write it back to column C
+			worksheet.cell(row, 3).value = round(original_value, 3)
+		
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value < 0.01:  # Check if the value is less than 0.01
+			# Residual values are rounded to 0.000
+			worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
+	# Open the existing workbook
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return dataset
+
+def predicting_exporting_CEF_Baile_Herculane_15min():
+	# Creating the forecast_dataset df
+	df= pd.read_csv('./CEF Baile Herculane/Solcast/Herculane_15min.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	df.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 2 hours
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=3)
+
+	# Creating the Interval column
+	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
+
+	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
+
+	xgb_loaded = joblib.load("./CEF Baile Herculane/Production/rs_xgb_CEF_Baile_Herculane_prod_15min_0824.pkl")
+
+	df["Month"] = df.Data.dt.month
+	dataset = df.copy()
+	forecast_dataset = dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Month"]]
+
+	preds = xgb_loaded.predict(forecast_dataset.values)
+	
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+	
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./CEF Baile Herculane/Results_Production_CEF_Baile_Herculane_xgb_15min.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in rounded_values:
+		worksheet.write(row, col + 2, value, decimal_format)
+		row += 1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
+	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./CEF Baile Herculane/Results_Production_CEF_Baile_Herculane_xgb_15min.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value is not None:  # Check if the cell is not empty
+			# Round the value to 3 decimal places and write it back to column C
+			worksheet.cell(row, 3).value = round(original_value, 3)
+		
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value < 0.01:  # Check if the value is less than 0.01
+			# Residual values are rounded to 0.000
+			worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
+	# Open the existing workbook
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return dataset
+
+def predicting_exporting_CEF_Ignaenerg_15min():
+	# Creating the forecast_dataset df
+	df= pd.read_csv('./CEF Ignaenerg/Solcast/Sinmartin_15min.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	df.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 2 hours
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=3)
+
+	# Creating the Interval column
+	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
+
+	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
+
+	xgb_loaded = joblib.load("./CEF Ignaenerg/Production/rs_xgb_CEF_Ignaenerg_prod_15min_0824.pkl")
+
+	df["Month"] = df.Data.dt.month
+	dataset = df.copy()
+	forecast_dataset = dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Month"]]
+
+	preds = xgb_loaded.predict(forecast_dataset.values)
+	
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+	
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./CEF Ignaenerg/Results_Production_CEF_Ignaenerg_xgb_15min.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in rounded_values:
+		worksheet.write(row, col + 2, value, decimal_format)
+		row += 1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
+	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./CEF Ignaenerg/Results_Production_CEF_Ignaenerg_xgb_15min.xlsx"
+	workbook = load_workbook(filename=file_path)
+	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
+
+	# Step 2: Directly round the values in column C and write them back
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value is not None:  # Check if the cell is not empty
+			# Round the value to 3 decimal places and write it back to column C
+			worksheet.cell(row, 3).value = round(original_value, 3)
+		
+	for row in range(2, worksheet.max_row + 1):
+		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+		if original_value < 0.01:  # Check if the value is less than 0.01
+			# Residual values are rounded to 0.000
+			worksheet.cell(row, 3).value = 0
+	# Save the workbook with the rounded values
+	workbook.save(filename=file_path)
+	workbook.close()
+	# Open the existing workbook
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return dataset
+
+def predicting_exporting_CEF_Danutz_15min():
+	# Creating the forecast_dataset df
+	df= pd.read_csv('./CEF Danutz/Solcast/Sarulesti_15min.csv')
+	# Convert the 'period_end' column to datetime, handling errors
+	df['period_end'] = pd.to_datetime(df['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+
+	# Drop any rows with NaT in 'period_end'
+	df.dropna(subset=['period_end'], inplace=True)
+
+	# Shift the 'period_end' column by 2 hours
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=3)
+
+	# Creating the Interval column
+	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
+
+	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+
+	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
+
+	xgb_loaded = joblib.load("./CEF Ignaenerg/Production/rs_xgb_CEF_Ignaenerg_prod_15min_0824.pkl")
+
+	df["Month"] = df.Data.dt.month
+	dataset = df.copy()
+	forecast_dataset = dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Month"]]
+
+	preds = xgb_loaded.predict(forecast_dataset.values)
+	
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+	
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./CEF Danutz/Results_Production_CEF_Danutz_xgb_15min.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in rounded_values:
+		worksheet.write(row, col + 2, value, decimal_format)
+		row += 1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
+	workbook.close()
+	# Formatting the Results file
+	# Step 1: Open the Excel file
+	file_path = "./CEF Danutz/Results_Production_CEF_Danutz_xgb_15min.xlsx"
 	workbook = load_workbook(filename=file_path)
 	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
 
@@ -3303,25 +3898,25 @@ def predicting_exporting_Consumption_Danutz():
 	workbook.close()
 	# Formatting the Results file
 	# Step 1: Open the Excel file
-	file_path = "./CEF Danutz/Consumption/Results/Results_Consumption_Danutz.xlsx"
-	workbook = load_workbook(filename=file_path)
-	worksheet = workbook.active  # Adjust the sheet name as necessary
+	# file_path = "./CEF Danutz/Consumption/Results/Results_Consumption_Danutz.xlsx"
+	# workbook = load_workbook(filename=file_path)
+	# worksheet = workbook.active  # Adjust the sheet name as necessary
 
-	# Step 2: Directly round the values in column C and write them back
-	for row in range(2, worksheet.max_row + 1):
-		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
-		if original_value is not None:  # Check if the cell is not empty
-			# Round the value to 3 decimal places and write it back to column C
-			worksheet.cell(row, 3).value = round(original_value, 3)
+	# # Step 2: Directly round the values in column C and write them back
+	# for row in range(2, worksheet.max_row + 1):
+	# 	original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	# 	if original_value is not None:  # Check if the cell is not empty
+	# 		# Round the value to 3 decimal places and write it back to column C
+	# 		worksheet.cell(row, 3).value = round(original_value, 3)
 		
-	for row in range(2, worksheet.max_row + 1):
-		original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
-		if original_value < 0.01:  # Check if the value is less than 0.01
-			# Residual values are rounded to 0.000
-			worksheet.cell(row, 3).value = 0
-	# Save the workbook with the rounded values
-	workbook.save(filename=file_path)
-	workbook.close()
+	# for row in range(2, worksheet.max_row + 1):
+	# 	original_value = worksheet.cell(row, 3).value  # Column C is the 3rd column
+	# 	if original_value < 0.01:  # Check if the value is less than 0.01
+	# 		# Residual values are rounded to 0.000
+	# 		worksheet.cell(row, 3).value = 0
+	# # Save the workbook with the rounded values
+	# workbook.save(filename=file_path)
+	# workbook.close()
 	return forecast_dataset
 
 def predicting_exporting_Consumption_Calmatuiu():
@@ -3823,7 +4418,7 @@ def predicting_exporting_CEF_Ignaenerg():
 
 def predicting_exporting_CEF_Comuna_Bors():
 	# Creating the forecast_dataset df
-	data = pd.read_csv("./CEF Comuna Bors/Solcast/Bors_raw.csv")
+	data = pd.read_csv("./CEF Ganatran/Solcast/Bors_raw.csv")
 	forecast_dataset = pd.read_excel("./CEF Comuna Bors/Production/Input_CEF_Comuna_Bors.xlsx", sheet_name="Forecast_Dataset")
 	# Convert 'period_end' in santimbru to datetime
 	data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce')
@@ -3991,24 +4586,6 @@ def render_consumption_forecast():
 				 """
 			st.markdown(button_html, unsafe_allow_html=True)
 
-def render_CEF_Calmatuiu():
-	if st.button("Submit"):
-		fetching_Calmatuiu_data()
-		st.dataframe(predicting_exporting_CEF_Calmatuiu())
-		st.success('Forecast Ready', icon="✅")
-		file_path = './CEF Calmatuiu/Production/Results_Production_xgb.xlsx'
-		with open(file_path, "rb") as f:
-			excel_data = f.read()
-
-			# Create a download link
-			b64 = base64.b64encode(excel_data).decode()
-			button_html = f"""
-				 <a download="Production_Forecast_CEF_Calmatuiu.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-				 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-				 </a> 
-				 """
-			st.markdown(button_html, unsafe_allow_html=True)
-
 def render_production_forecast():
 	st.write("Production Forecast Section")
 
@@ -4052,7 +4629,41 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 
 	elif PVPP == "CEF Calmatuiu":
-		render_CEF_Calmatuiu()
+		if st.button("Submit"):
+			fetching_Calmatuiu_data()
+			st.dataframe(predicting_exporting_CEF_Calmatuiu())
+			st.success('Forecast Ready', icon="✅")
+			file_path = './CEF Calmatuiu/Production/Results_Production_xgb.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Production_Forecast_CEF_Calmatuiu.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
+		# Default 15 min Forecasting
+		st.subheader("Quarterly Production Forecast", divider = "red")
+		# Submit button
+		if st.button("Submit Quarterly Forecast"):	
+			# Fetching the Solcast data
+			fetching_Calmatuiu_data_15min()
+			st.dataframe(predicting_exporting_CEF_Calmatuiu_15min())
+			file_path = './CEF Calmatuiu/Results_Production_CEF_Calmatuiu_xgb_15min.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Production_Forecast_CEF_Calmatuiu_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
 
 	elif PVPP == "RES Energy":
 		# Updating the indisponibility, if any
@@ -4126,6 +4737,25 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
+		# Default 15 min Forecasting
+		st.subheader("Quarterly Production Forecast", divider = "red")
+		# Submit button
+		if st.button("Submit Quarterly Forecast"):	
+			# Fetching the Solcast data
+			fetching_Bors_data_15min()
+			st.dataframe(predicting_exporting_CEF_Ganatran_15min())
+			file_path = './CEF Ganatran/Results_Production_CEF_Ganatran_xgb_15min.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Production_Forecast_CEF_Ganatran_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
 
 	elif PVPP == "CEF Baile Herculane":
 		if st.button("Submit"):
@@ -4141,6 +4771,25 @@ def render_production_forecast():
 				button_html = f"""
 					 <a download="Production_Forecast_CEF_Baile_Herculane.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
 					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
+		# Default 15 min Forecasting
+		st.subheader("Quarterly Production Forecast", divider = "red")
+		# Submit button
+		if st.button("Submit Quarterly Forecast"):	
+			# Fetching the Solcast data
+			fetching_Herculane_data_15min()
+			st.dataframe(predicting_exporting_CEF_Baile_Herculane_15min())
+			file_path = './CEF Baile Herculane/Results_Production_CEF_Baile_Herculane_xgb_15min.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Production_Forecast_CEF_Baile_Herculane_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
@@ -4162,7 +4811,26 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
+		# Default 15 min Forecasting
+		st.subheader("Quarterly Production Forecast", divider = "red")
+		# Submit button
+		if st.button("Submit Quarterly Forecast"):	
+			# Fetching the Solcast data
+			fetching_Bors_data_15min()
+			st.dataframe(predicting_exporting_CEF_Comuna_Bors_15min())
+			file_path = './CEF Comuna Bors/Results_Production_CEF_Comuna_Bors_xgb_15min.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
 
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Production_Forecast_CEF_Comuna_Bors_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
+	
 	elif PVPP == "CEF Ignaenerg":
 		if st.button("Submit"):
 			fetching_Ignaenerg_data()
@@ -4177,6 +4845,25 @@ def render_production_forecast():
 				button_html = f"""
 					 <a download="Production_Forecast_CEF_Ignaenerg.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
 					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
+		# Default 15 min Forecasting
+		st.subheader("Quarterly Production Forecast", divider = "red")
+		# Submit button
+		if st.button("Submit Quarterly Forecast"):	
+			# Fetching the Solcast data
+			fetching_Ignaenerg_data_15min()
+			st.dataframe(predicting_exporting_CEF_Ignaenerg_15min())
+			file_path = './CEF Ignaenerg/Results_Production_CEF_Ignaenerg_xgb_15min.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Production_Forecast_CEF_Ignaenerg_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
@@ -4195,6 +4882,25 @@ def render_production_forecast():
 				button_html = f"""
 					 <a download="Production_Forecast_CEF_Danutz.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
 					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
+					 </a> 
+					 """
+				st.markdown(button_html, unsafe_allow_html=True)
+		# Default 15 min Forecasting
+		st.subheader("Quarterly Production Forecast", divider = "red")
+		# Submit button
+		if st.button("Submit Quarterly Forecast"):	
+			# Fetching the Solcast data
+			fetching_Danutz_data_15min()
+			st.dataframe(predicting_exporting_CEF_Danutz_15min())
+			file_path = './CEF Danutz/Results_Production_CEF_Danutz_xgb_15min.xlsx'
+			with open(file_path, "rb") as f:
+				excel_data = f.read()
+
+				# Create a download link
+				b64 = base64.b64encode(excel_data).decode()
+				button_html = f"""
+					 <a download="Production_Forecast_CEF_Danutz_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
