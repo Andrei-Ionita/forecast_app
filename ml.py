@@ -2808,7 +2808,7 @@ def predicting_exporting_Solina(interval_from, interval_to, limitation_percentag
 	rounded_values = [round(value, 3) for value in preds]
 	
 	#Exporting Results to Excel
-	workbook = xlsxwriter.Workbook("C:/Users/AndreiIonita/OneDrive - nextEHoldingAG/0453_2_Energy_markets/000. Trade/01. Solina Romania")
+	workbook = xlsxwriter.Workbook("./Solina/Production/Results_Production_xgb.xlsx")
 	worksheet = workbook.add_worksheet("Production_Predictions")
 	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
 	# Define a format for cells with three decimal places
