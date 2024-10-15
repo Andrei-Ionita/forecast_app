@@ -3898,7 +3898,7 @@ def predicting_exporting_Consumption_Danutz():
 	workbook.close()
 	# Formatting the Results file
 	# Step 1: Open the Excel file
-	# file_path = "./CEF Danutz/Consumption/Results/Results_Consumption_Danutz.xlsx"
+	file_path = "./CEF Danutz/Consumption/Results/Results_Consumption_Danutz.xlsx"
 	# workbook = load_workbook(filename=file_path)
 	# worksheet = workbook.active  # Adjust the sheet name as necessary
 
@@ -3917,6 +3917,18 @@ def predicting_exporting_Consumption_Danutz():
 	# # Save the workbook with the rounded values
 	# workbook.save(filename=file_path)
 	# workbook.close()
+
+	# Creating the Lookup Column
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
 	return forecast_dataset
 
 def predicting_exporting_Consumption_Calmatuiu():
@@ -3995,6 +4007,18 @@ def predicting_exporting_Consumption_Calmatuiu():
 	# Save the workbook with the rounded values
 	workbook.save(filename=file_path)
 	workbook.close()
+	
+	# Creating the Lookup Column
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+	
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+	
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
 	return forecast_dataset
 
 def predicting_exporting_Consumption_Solina():
@@ -4508,6 +4532,10 @@ def predicting_exporting_CEF_Comuna_Bors():
 	df.to_excel(file_path, index=False)
 	return dataset
 
+# Defining the function that uploads the forecast results to the root folder
+access_token = os.getenv("access_token")
+def uploading_onedrive_file():
+	pass
 #=====================================================================================Rendering Interface=====================================================================================================
 def render_consumption_forecast():
 	st.write("Consumption Forecast Section")
