@@ -4602,7 +4602,6 @@ def upload_file_with_retries(file_path, access_token, retries=5):
 			print(response.json())
 			return
 
-	print(f"Failed to upload file after {retries} retries.")
 #===============================================================================Rendering Interface=====================================================================================================
 def render_consumption_forecast():
 	st.write("Consumption Forecast Section")
