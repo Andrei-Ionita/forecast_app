@@ -14,9 +14,14 @@ import gdown
 import requests
 from openpyxl import load_workbook
 import pytz
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Importing apps and pages
 from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial, render_indisponibility_db_RES_Energy
+from OneDriveAPI_token import upload_file_to_onedrive
 
 session_start_time = time.time()
 
@@ -2808,7 +2813,7 @@ def predicting_exporting_Solina(interval_from, interval_to, limitation_percentag
 	rounded_values = [round(value, 3) for value in preds]
 	
 	#Exporting Results to Excel
-	workbook = xlsxwriter.Workbook("./Solina/Production/Results_Production_xgb.xlsx")
+	workbook = xlsxwriter.Workbook("./Solina/Production/Results_Production_xgb_Solina.xlsx")
 	worksheet = workbook.add_worksheet("Production_Predictions")
 	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
 	# Define a format for cells with three decimal places
@@ -2836,7 +2841,7 @@ def predicting_exporting_Solina(interval_from, interval_to, limitation_percentag
 	workbook.close()
 	# Formatting the Results file
 	# Step 1: Open the Excel file
-	file_path = "./Solina/Production/Results_Production_xgb.xlsx"
+	file_path = "./Solina/Production/Results_Production_xgb_Solina.xlsx"
 	workbook = load_workbook(filename=file_path)
 	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
 
@@ -4533,10 +4538,34 @@ def predicting_exporting_CEF_Comuna_Bors():
 	return dataset
 
 # Defining the function that uploads the forecast results to the root folder
-access_token = os.getenv("access_token")
-def uploading_onedrive_file():
-	pass
-#=====================================================================================Rendering Interface=====================================================================================================
+access_token = upload_file_to_onedrive()[0]
+
+def uploading_onedrive_file(file_path):
+	root_drive_id = "b!TGvJUv5JHkmAbCbXuExuZEQWkaIcH_lHhm6UbmPuFWJzfSKiPtw1T6q_osjbJ5k-"
+	forecasts_id = "01O2OB5LJLE55COAGX35DKZH6R7KYMT7V7"
+	# Extract the file name using os.path.basename
+	file_name = os.path.basename(file_path)
+	# Specify the correct upload URL with the folder ID
+	upload_url = f"https://graph.microsoft.com/v1.0/drives/{root_drive_id}/items/{forecasts_id}:/{file_name}:/content"
+	# Read the file content
+	with open(file_path, 'rb') as file:
+	    file_content = file.read()
+
+	# Set headers
+	headers = {
+	    "Authorization": f"Bearer {access_token}",
+	    "Content-Type": "application/octet-stream"
+	}
+
+	# Make the PUT request to upload the file
+	response = requests.put(upload_url, headers=headers, data=file_content)
+
+	if response.status_code == 201:
+	    print("File uploaded successfully to the Forecasts folder!")
+	else:
+	    print(f"Failed to upload file to Trade. Status code: {response.status_code}")
+	    print(response.json())
+#===============================================================================Rendering Interface=====================================================================================================
 def render_consumption_forecast():
 	st.write("Consumption Forecast Section")
 
@@ -4643,7 +4672,7 @@ def render_production_forecast():
 			df = predicting_exporting_Solina(interval_from, interval_to, limitation_percentage)
 			st.dataframe(df)
 			st.success('Forecast Ready', icon="✅")
-			file_path = './Solina/Production/Results_Production_xgb.xlsx'
+			file_path = './Solina/Production/Results_Production_xgb_Solina.xlsx'
 			with open(file_path, "rb") as f:
 				excel_data = f.read()
 
@@ -4655,7 +4684,7 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
-
+			uploading_onedrive_file(file_path)
 	elif PVPP == "CEF Calmatuiu":
 		if st.button("Submit"):
 			fetching_Calmatuiu_data()
@@ -4989,6 +5018,9 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
+			# Uploading the file to the OneDrive root
+			file_path = "./Astro/Results_Production_Astro_xgb.xlsx"
+			uploading_onedrive_file(file_path)
 			# Updating the Weather Input 30min granularity
 			file_path_input = './Astro/Solcast/Bontida_raw_30min.csv'
 			data = pd.read_csv(file_path_input)
@@ -5104,7 +5136,9 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
-
+			# Uploading the file to the OneDrive root
+			file_path = "./Astro/Results_Production_Astro_xgb_15min.xlsx"
+			uploading_onedrive_file(file_path)
 		st.subheader("Forecasting with Real-Time Production:", divider = "red")
 		uploaded_file = st.file_uploader("Upload Real-Time Production Data File", type=['csv', 'xlsx'])
 		if uploaded_file is not None:
@@ -5199,6 +5233,9 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
+			# Uploading the file to the OneDrive root
+			file_path = "./Imperial/Results_Production_Imperial_xgb.xlsx"
+			uploading_onedrive_file(file_path)
 			st.dataframe(predicting_exporting_Imperial_15min(interval_to, interval_from, limitation_percentage))
 			file_path = './Imperial/Results_Production_Imperial_xgb_15min.xlsx'
 			with open(file_path, "rb") as f:
@@ -5212,7 +5249,9 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
-
+			# Uploading the file to the OneDrive root
+			file_path = "./Imperial/Results_Production_Imperial_xgb_15min.xlsx"
+			uploading_onedrive_file(file_path)
 		# Forecasting using the Real-Time production data		
 		st.subheader("Forecasting with Real-Time Production:", divider = "blue")
 		uploaded_files = st.file_uploader("Upload Real-Time Production Data Files", type=['csv', 'xlsx'], accept_multiple_files=True)
@@ -5282,7 +5321,6 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 
 def render_forecast_page():
-	print(st.secrets)
 	# Web App Title
 	st.markdown('''
 	# **The Forecast Section**
