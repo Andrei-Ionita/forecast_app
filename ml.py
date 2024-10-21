@@ -21,7 +21,7 @@ load_dotenv()
 
 # Importing apps and pages
 from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial, render_indisponibility_db_RES_Energy
-from OneDriveAPI_token import upload_file_to_onedrive
+from OneDriveAPI_token import get_token
 
 session_start_time = time.time()
 
@@ -4538,9 +4538,9 @@ def predicting_exporting_CEF_Comuna_Bors():
 	return dataset
 
 # Defining the function that uploads the forecast results to the root folder
-access_token = upload_file_to_onedrive()[0]
+access_token = get_token()
 
-def uploading_onedrive_file(file_path):
+def uploading_onedrive_file(file_path, access_token):
 	root_drive_id = "b!TGvJUv5JHkmAbCbXuExuZEQWkaIcH_lHhm6UbmPuFWJzfSKiPtw1T6q_osjbJ5k-"
 	forecasts_id = "01O2OB5LJLE55COAGX35DKZH6R7KYMT7V7"
 	# Extract the file name using os.path.basename
@@ -4565,6 +4565,44 @@ def uploading_onedrive_file(file_path):
 	else:
 	    print(f"Failed to upload file to Trade. Status code: {response.status_code}")
 	    print(response.json())
+
+def upload_file_with_retries(file_path, access_token, retries=5):
+    """Uploads a file to OneDrive with retry logic for handling rate limiting."""
+    root_drive_id = "b!TGvJUv5JHkmAbCbXuExuZEQWkaIcH_lHhm6UbmPuFWJzfSKiPtw1T6q_osjbJ5k-"
+    forecasts_id = "01O2OB5LJLE55COAGX35DKZH6R7KYMT7V7"
+    
+    # Extract the file name
+    file_name = os.path.basename(file_path)
+    
+    # Specify the upload URL
+    upload_url = f"https://graph.microsoft.com/v1.0/drives/{root_drive_id}/items/{forecasts_id}:/{file_name}:/content"
+    
+    # Read the file content
+    with open(file_path, 'rb') as file:
+        file_content = file.read()
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/octet-stream"
+    }
+
+    for attempt in range(retries):
+        # Make the PUT request
+        response = requests.put(upload_url, headers=headers, data=file_content)
+
+        if response.status_code == 201:
+            print("File uploaded successfully!")
+            return
+        elif response.status_code == 429:  # Rate limited
+            retry_after = int(response.headers.get('Retry-After', 5))  # Default to 5 seconds
+            print(f"Rate limited. Retrying after {retry_after} seconds...")
+            time.sleep(retry_after)
+        else:
+            print(f"Failed to upload file. Status code: {response.status_code}")
+            print(response.json())
+            return
+
+    print(f"Failed to upload file after {retries} retries.")
 #===============================================================================Rendering Interface=====================================================================================================
 def render_consumption_forecast():
 	st.write("Consumption Forecast Section")
@@ -4684,7 +4722,8 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
-			uploading_onedrive_file(file_path)
+			# uploading_onedrive_file(file_path, access_token)
+			upload_file_with_retries(file_path, access_token)
 	elif PVPP == "CEF Calmatuiu":
 		if st.button("Submit"):
 			fetching_Calmatuiu_data()
@@ -5020,7 +5059,8 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 			# Uploading the file to the OneDrive root
 			file_path = "./Astro/Results_Production_Astro_xgb.xlsx"
-			uploading_onedrive_file(file_path)
+			# uploading_onedrive_file(file_path, access_token)
+			upload_file_with_retries(file_path, access_token)
 			# Updating the Weather Input 30min granularity
 			file_path_input = './Astro/Solcast/Bontida_raw_30min.csv'
 			data = pd.read_csv(file_path_input)
@@ -5138,7 +5178,8 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 			# Uploading the file to the OneDrive root
 			file_path = "./Astro/Results_Production_Astro_xgb_15min.xlsx"
-			uploading_onedrive_file(file_path)
+			# uploading_onedrive_file(file_path, access_token)
+			upload_file_with_retries(file_path, access_token)
 		st.subheader("Forecasting with Real-Time Production:", divider = "red")
 		uploaded_file = st.file_uploader("Upload Real-Time Production Data File", type=['csv', 'xlsx'])
 		if uploaded_file is not None:
@@ -5235,7 +5276,8 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 			# Uploading the file to the OneDrive root
 			file_path = "./Imperial/Results_Production_Imperial_xgb.xlsx"
-			uploading_onedrive_file(file_path)
+			# uploading_onedrive_file(file_path, access_token)
+			upload_file_with_retries(file_path, access_token)
 			st.dataframe(predicting_exporting_Imperial_15min(interval_to, interval_from, limitation_percentage))
 			file_path = './Imperial/Results_Production_Imperial_xgb_15min.xlsx'
 			with open(file_path, "rb") as f:
@@ -5251,7 +5293,8 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 			# Uploading the file to the OneDrive root
 			file_path = "./Imperial/Results_Production_Imperial_xgb_15min.xlsx"
-			uploading_onedrive_file(file_path)
+			# uploading_onedrive_file(file_path, access_token)
+			upload_file_with_retries(file_path, access_token)
 		# Forecasting using the Real-Time production data		
 		st.subheader("Forecasting with Real-Time Production:", divider = "blue")
 		uploaded_files = st.file_uploader("Upload Real-Time Production Data Files", type=['csv', 'xlsx'], accept_multiple_files=True)
