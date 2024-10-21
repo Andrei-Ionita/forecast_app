@@ -4590,9 +4590,9 @@ def upload_file_with_retries(file_path, access_token, retries=5):
         # Make the PUT request
         response = requests.put(upload_url, headers=headers, data=file_content)
 
-        if response.status_code == 201:
-            print("File uploaded successfully!")
-            return
+        if response.status_code in [200, 201]:
+		    st.success(f"File uploaded successfully! {response.json()['name']}")
+		    st.write(f"File URL: {response.json()['webUrl']}")
         elif response.status_code == 429:  # Rate limited
             retry_after = int(response.headers.get('Retry-After', 5))  # Default to 5 seconds
             print(f"Rate limited. Retrying after {retry_after} seconds...")
