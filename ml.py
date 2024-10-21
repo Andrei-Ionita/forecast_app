@@ -4549,60 +4549,60 @@ def uploading_onedrive_file(file_path, access_token):
 	upload_url = f"https://graph.microsoft.com/v1.0/drives/{root_drive_id}/items/{forecasts_id}:/{file_name}:/content"
 	# Read the file content
 	with open(file_path, 'rb') as file:
-	    file_content = file.read()
+		file_content = file.read()
 
 	# Set headers
 	headers = {
-	    "Authorization": f"Bearer {access_token}",
-	    "Content-Type": "application/octet-stream"
+		"Authorization": f"Bearer {access_token}",
+		"Content-Type": "application/octet-stream"
 	}
 
 	# Make the PUT request to upload the file
 	response = requests.put(upload_url, headers=headers, data=file_content)
 
 	if response.status_code == 201:
-	    print("File uploaded successfully to the Forecasts folder!")
+		print("File uploaded successfully to the Forecasts folder!")
 	else:
-	    print(f"Failed to upload file to Trade. Status code: {response.status_code}")
-	    print(response.json())
+		print(f"Failed to upload file to Trade. Status code: {response.status_code}")
+		print(response.json())
 
 def upload_file_with_retries(file_path, access_token, retries=5):
-    """Uploads a file to OneDrive with retry logic for handling rate limiting."""
-    root_drive_id = "b!TGvJUv5JHkmAbCbXuExuZEQWkaIcH_lHhm6UbmPuFWJzfSKiPtw1T6q_osjbJ5k-"
-    forecasts_id = "01O2OB5LJLE55COAGX35DKZH6R7KYMT7V7"
-    
-    # Extract the file name
-    file_name = os.path.basename(file_path)
-    
-    # Specify the upload URL
-    upload_url = f"https://graph.microsoft.com/v1.0/drives/{root_drive_id}/items/{forecasts_id}:/{file_name}:/content"
-    
-    # Read the file content
-    with open(file_path, 'rb') as file:
-        file_content = file.read()
+	"""Uploads a file to OneDrive with retry logic for handling rate limiting."""
+	root_drive_id = "b!TGvJUv5JHkmAbCbXuExuZEQWkaIcH_lHhm6UbmPuFWJzfSKiPtw1T6q_osjbJ5k-"
+	forecasts_id = "01O2OB5LJLE55COAGX35DKZH6R7KYMT7V7"
+	
+	# Extract the file name
+	file_name = os.path.basename(file_path)
+	
+	# Specify the upload URL
+	upload_url = f"https://graph.microsoft.com/v1.0/drives/{root_drive_id}/items/{forecasts_id}:/{file_name}:/content"
+	
+	# Read the file content
+	with open(file_path, 'rb') as file:
+		file_content = file.read()
 
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/octet-stream"
-    }
+	headers = {
+		"Authorization": f"Bearer {access_token}",
+		"Content-Type": "application/octet-stream"
+	}
 
-    for attempt in range(retries):
-        # Make the PUT request
-        response = requests.put(upload_url, headers=headers, data=file_content)
+	for attempt in range(retries):
+		# Make the PUT request
+		response = requests.put(upload_url, headers=headers, data=file_content)
 
-        if response.status_code in [200, 201]:
-		    st.success(f"File uploaded successfully! {response.json()['name']}")
-		    st.write(f"File URL: {response.json()['webUrl']}")
-        elif response.status_code == 429:  # Rate limited
-            retry_after = int(response.headers.get('Retry-After', 5))  # Default to 5 seconds
-            print(f"Rate limited. Retrying after {retry_after} seconds...")
-            time.sleep(retry_after)
-        else:
-            print(f"Failed to upload file. Status code: {response.status_code}")
-            print(response.json())
-            return
+		if response.status_code in [200, 201]:
+			st.success(f"File uploaded successfully! {response.json()['name']}")
+			st.write(f"File URL: {response.json()['webUrl']}")
+		elif response.status_code == 429:  # Rate limited
+			retry_after = int(response.headers.get('Retry-After', 5))  # Default to 5 seconds
+			print(f"Rate limited. Retrying after {retry_after} seconds...")
+			time.sleep(retry_after)
+		else:
+			print(f"Failed to upload file. Status code: {response.status_code}")
+			print(response.json())
+			return
 
-    print(f"Failed to upload file after {retries} retries.")
+	print(f"Failed to upload file after {retries} retries.")
 #===============================================================================Rendering Interface=====================================================================================================
 def render_consumption_forecast():
 	st.write("Consumption Forecast Section")
