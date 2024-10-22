@@ -4567,6 +4567,8 @@ def uploading_onedrive_file(file_path, access_token):
 		print(response.json())
 
 def upload_file_with_retries(file_path, access_token, retries=5):
+	# Get the access token (will refresh if expired)
+	access_token = get_token()
 	"""Uploads a file to OneDrive with retry logic for handling rate limiting."""
 	root_drive_id = "b!TGvJUv5JHkmAbCbXuExuZEQWkaIcH_lHhm6UbmPuFWJzfSKiPtw1T6q_osjbJ5k-"
 	forecasts_id = "01O2OB5LJLE55COAGX35DKZH6R7KYMT7V7"
