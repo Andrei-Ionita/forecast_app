@@ -4593,8 +4593,9 @@ def upload_file_with_retries(file_path, access_token, retries=5):
 		response = requests.put(upload_url, headers=headers, data=file_content)
 
 		if response.status_code in [200, 201]:
-			st.success(f"File uploaded successfully! {response.json()['name']}")
-			st.write(f"File URL: {response.json()['webUrl']}")
+			pass
+			# st.success(f"File uploaded successfully! {response.json()['name']}")
+			# st.write(f"File URL: {response.json()['webUrl']}")
 		elif response.status_code == 429:  # Rate limited
 			retry_after = int(response.headers.get('Retry-After', 5))  # Default to 5 seconds
 			print(f"Rate limited. Retrying after {retry_after} seconds...")
@@ -4604,6 +4605,42 @@ def upload_file_with_retries(file_path, access_token, retries=5):
 			print(response.json())
 			return
 
+def check_file_sync(file_path, access_token, max_retries=5, wait_seconds=10):
+    """Uploads a file to OneDrive with retry logic for handling rate limiting."""
+    root_drive_id = "b!TGvJUv5JHkmAbCbXuExuZEQWkaIcH_lHhm6UbmPuFWJzfSKiPtw1T6q_osjbJ5k-"
+    forecasts_id = "01O2OB5LJLE55COAGX35DKZH6R7KYMT7V7"
+    
+    # Extract the file name
+    file_name = os.path.basename(file_path)
+    
+    for attempt in range(max_retries):
+        st.write(f"Checking for {file_name} in OneDrive (Attempt {attempt + 1})...")
+        
+        # Build URL to list the contents of the folder
+        url = f"https://graph.microsoft.com/v1.0/drives/{root_drive_id}/items/{forecasts_id}/children"
+        headers = {
+            "Authorization": f"Bearer {access_token}"
+        }
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            try:
+                items = response.json().get('value', [])
+                for item in items:
+                    if item['name'] == file_name:
+                        st.write(f"{file_name} is now available on OneDrive.")
+                        return True
+            except ValueError:
+                st.write("Failed to decode JSON response.")
+        
+        else:
+            st.write(f"Error: {response.status_code} - {response.text}")
+        
+        st.write(f"{file_name} not found yet. Retrying in {wait_seconds} seconds...")
+        time.sleep(wait_seconds)  # Wait and retry
+
+    st.write(f"Failed to find {file_name} after {max_retries} attempts.")
+    return False
 #===============================================================================Rendering Interface=====================================================================================================
 def render_consumption_forecast():
 	st.write("Consumption Forecast Section")
@@ -4725,6 +4762,7 @@ def render_production_forecast():
 				st.markdown(button_html, unsafe_allow_html=True)
 			# uploading_onedrive_file(file_path, access_token)
 			upload_file_with_retries(file_path, access_token)
+			check_file_sync(file_path, access_token)
 	elif PVPP == "CEF Calmatuiu":
 		if st.button("Submit"):
 			fetching_Calmatuiu_data()
@@ -5062,6 +5100,7 @@ def render_production_forecast():
 			file_path = "./Astro/Results_Production_Astro_xgb.xlsx"
 			# uploading_onedrive_file(file_path, access_token)
 			upload_file_with_retries(file_path, access_token)
+			check_file_sync(file_path, access_token)
 			# Updating the Weather Input 30min granularity
 			file_path_input = './Astro/Solcast/Bontida_raw_30min.csv'
 			data = pd.read_csv(file_path_input)
@@ -5181,6 +5220,7 @@ def render_production_forecast():
 			file_path = "./Astro/Results_Production_Astro_xgb_15min.xlsx"
 			# uploading_onedrive_file(file_path, access_token)
 			upload_file_with_retries(file_path, access_token)
+			check_file_sync(file_path, access_token)
 		st.subheader("Forecasting with Real-Time Production:", divider = "red")
 		uploaded_file = st.file_uploader("Upload Real-Time Production Data File", type=['csv', 'xlsx'])
 		if uploaded_file is not None:
@@ -5279,6 +5319,7 @@ def render_production_forecast():
 			file_path = "./Imperial/Results_Production_Imperial_xgb.xlsx"
 			# uploading_onedrive_file(file_path, access_token)
 			upload_file_with_retries(file_path, access_token)
+			check_file_sync(file_path, access_token)
 			st.dataframe(predicting_exporting_Imperial_15min(interval_to, interval_from, limitation_percentage))
 			file_path = './Imperial/Results_Production_Imperial_xgb_15min.xlsx'
 			with open(file_path, "rb") as f:
@@ -5296,6 +5337,7 @@ def render_production_forecast():
 			file_path = "./Imperial/Results_Production_Imperial_xgb_15min.xlsx"
 			# uploading_onedrive_file(file_path, access_token)
 			upload_file_with_retries(file_path, access_token)
+			check_file_sync(file_path, access_token)
 		# Forecasting using the Real-Time production data		
 		st.subheader("Forecasting with Real-Time Production:", divider = "blue")
 		uploaded_files = st.file_uploader("Upload Real-Time Production Data Files", type=['csv', 'xlsx'], accept_multiple_files=True)
