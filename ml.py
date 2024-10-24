@@ -4566,11 +4566,14 @@ def uploading_onedrive_file(file_path, access_token):
 		print(f"Failed to upload file to Trade. Status code: {response.status_code}")
 		print(response.json())
 
-def upload_file_with_retries(file_path, access_token, retries=5):
+def upload_file_with_retries(file_path, access_token=None, retries=5):
     """Uploads a file to OneDrive with retry logic for handling rate limiting."""
     
     # Ensure retries is an integer
-    retries = int(retries)
+    try:
+        retries = int(retries)
+    except ValueError:
+        raise ValueError(f"Invalid retries value: {retries}. It must be an integer.")
 
     # Get the access token (will refresh if expired)
     access_token = get_token()
@@ -4594,6 +4597,8 @@ def upload_file_with_retries(file_path, access_token, retries=5):
     }
 
     for attempt in range(retries):
+        print(f"Attempt {attempt+1} to upload {file_name}...")
+
         # Make the PUT request
         response = requests.put(upload_url, headers=headers, data=file_content)
 
@@ -4604,7 +4609,7 @@ def upload_file_with_retries(file_path, access_token, retries=5):
         elif response.status_code == 401:
             print("Token expired. Refreshing the token and retrying...")
             # Refresh the token immediately if expired during the process
-            access_token = get_token()
+            access_token = get_token()  # Refresh the token
             headers["Authorization"] = f"Bearer {access_token}"
         elif response.status_code == 429:  # Rate limited
             retry_after = int(response.headers.get('Retry-After', 5))  # Default to 5 seconds
