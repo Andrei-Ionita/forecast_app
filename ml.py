@@ -3866,7 +3866,7 @@ def fetching_Herculane_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(3)
+	data_shifted = data[columns_to_shift].shift(1)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -4562,7 +4562,7 @@ def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 	weather_data_past.dropna(subset=['period_end'], inplace=True)
 
 	# Shift the 'period_end' column by 2 hours
-	weather_data_past['period_end'] = weather_data_past['period_end'] + pd.Timedelta(hours=3)
+	weather_data_past['period_end'] = weather_data_past['period_end'] + pd.Timedelta(hours=1)
 
 	# Rename 'Data' column to 'Timestamp' for consistency
 	weather_data_past.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
@@ -4710,7 +4710,7 @@ def predicting_exporting_Astro_Intraday_15min(real_time_data):
 	weather_data_past.dropna(subset=['period_end'], inplace=True)
 
 	# Shift the 'period_end' column by 2 hours
-	weather_data_past['period_end'] = weather_data_past['period_end'] + pd.Timedelta(hours=3)
+	weather_data_past['period_end'] = weather_data_past['period_end'] + pd.Timedelta(hours=1)
 
 	# Rename 'Data' column to 'Timestamp' for consistency
 	weather_data_past.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
