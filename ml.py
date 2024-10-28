@@ -2372,6 +2372,8 @@ def creating_input_production_file(path):
 
 	# Convert 'period_end' in santimbru to datetime
 	santimbru_data['period_end'] = pd.to_datetime(santimbru_data['period_end'], errors='coerce')
+	# Shift the 'period_end' column by 2 hours
+	santimbru_data['period_end'] = santimbru_data['period_end'] + pd.Timedelta(hours=2)
 	# Then, convert the datetime to EET (taking into account DST if applicable)
 	santimbru_data['period_end_EET'] = santimbru_data['period_end'].dt.tz_convert('Europe/Bucharest')
 	# Extract just the date part in the desired format (as strings)
@@ -3800,7 +3802,7 @@ def fetching_Solina_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
+	data_shifted = data[columns_to_shift].shift(1)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -3992,7 +3994,7 @@ def fetching_RES_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
+	data_shifted = data[columns_to_shift].shift(1)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -4158,7 +4160,7 @@ def fetching_Astro_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
+	data_shifted = data[columns_to_shift].shift(1)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -4190,7 +4192,7 @@ def fetching_Imperial_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
+	data_shifted = data[columns_to_shift].shift(1)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
@@ -4375,7 +4377,7 @@ def predicting_exporting_Astro_15min(interval_from, interval_to, limitation_perc
 	df.dropna(subset=['period_end'], inplace=True)
 
 	# Shift the 'period_end' column by 2 hours
-	df['period_end'] = df['period_end'] + pd.Timedelta(hours=2)
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=1)
 
 	# Creating the Interval column
 	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
@@ -4540,7 +4542,7 @@ def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 	weather_data_future.dropna(subset=['period_end'], inplace=True)
 
 	# Shift the 'period_end' column by 3 hours
-	weather_data_future['period_end'] = weather_data_future['period_end'] + pd.Timedelta(hours=2)
+	weather_data_future['period_end'] = weather_data_future['period_end'] + pd.Timedelta(hours=1)
 
 	# Creating the Interval column
 	weather_data_future['Interval'] = weather_data_future.period_end.dt.hour * 4 + weather_data_future.period_end.dt.minute // 15 + 1
@@ -4688,7 +4690,7 @@ def predicting_exporting_Astro_Intraday_15min(real_time_data):
 	weather_data_future.dropna(subset=['period_end'], inplace=True)
 
 	# Shift the 'period_end' column by 3 hours
-	weather_data_future['period_end'] = weather_data_future['period_end'] + pd.Timedelta(hours=2)
+	weather_data_future['period_end'] = weather_data_future['period_end'] + pd.Timedelta(hours=1)
 
 	# Creating the Interval column
 	weather_data_future['Interval'] = weather_data_future.period_end.dt.hour * 4 + weather_data_future.period_end.dt.minute // 15 + 1
@@ -4961,7 +4963,7 @@ def predicting_exporting_Imperial_15min(interval_to, interval_from, limitation_p
 	df.dropna(subset=['period_end'], inplace=True)
 
 	# Shift the 'period_end' column by 2 hours
-	df['period_end'] = df['period_end'] + pd.Timedelta(hours=2)
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=1)
 
 	# Creating the Interval column
 	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
@@ -5246,7 +5248,7 @@ def predicting_exporting_RES_15min(interval_from, interval_to, limitation_percen
 	df.dropna(subset=['period_end'], inplace=True)
 
 	# Shift the 'period_end' column by 2 hours
-	df['period_end'] = df['period_end'] + pd.Timedelta(hours=2)
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=1)
 
 	# Creating the Interval column
 	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
