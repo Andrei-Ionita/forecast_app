@@ -1536,7 +1536,7 @@ def fetching_Solina_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(1)
+	data_shifted = data[columns_to_shift].shift(0)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
