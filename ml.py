@@ -107,7 +107,7 @@ def creating_input_production_file(path):
 	# Convert 'period_end' in santimbru to datetime
 	santimbru_data['period_end'] = pd.to_datetime(santimbru_data['period_end'], errors='coerce')
 	# Shift the 'period_end' column by 2 hours
-	santimbru_data['period_end'] = santimbru_data['period_end'] + pd.Timedelta(hours=2)
+	santimbru_data['period_end'] = santimbru_data['period_end'] + pd.Timedelta(hours=-2)
 	# Then, convert the datetime to EET (taking into account DST if applicable)
 	santimbru_data['period_end_EET'] = santimbru_data['period_end'].dt.tz_convert('Europe/Bucharest')
 	# Extract just the date part in the desired format (as strings)
@@ -122,7 +122,7 @@ def creating_input_production_file(path):
 	santimbru_intervals = santimbru_data["period_end_EET"].dt.hour
 	input_production["Interval"] = santimbru_intervals
 	# Replace NaNs in the 'Interval' column with 0
-	input_production['Interval'].fillna(3, inplace=True)
+	input_production['Interval'].fillna(0, inplace=True)
 
 	# Completing the Radiatie column
 	santimbru_radiatie = santimbru_data["ghi"]
