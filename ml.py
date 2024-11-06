@@ -1745,7 +1745,7 @@ def fetching_Imperial_data_15min():
 	lat = 46.860370
 	lon = 23.795201
 	# Fetch data from the API
-	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,ghi,azimuth,cloud_opacity,dewpoint_temp,relative_humidity,zenith&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
 	response = requests.get(api_url)
 	print("Fetching data...")
 	if response.status_code == 200:
@@ -1762,7 +1762,7 @@ def fetching_Astro_data_15min():
 	lat = 46.937810
 	lon = 23.749303
 	# Fetch data from the API
-	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,ghi,azimuth,cloud_opacity,dewpoint_temp,relative_humidity,zenith&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
 	response = requests.get(api_url)
 	print("Fetching data...")
 	if response.status_code == 200:
@@ -1922,20 +1922,20 @@ def predicting_exporting_Astro_15min(interval_from, interval_to, limitation_perc
 	df.dropna(subset=['period_end'], inplace=True)
 
 	# Shift the 'period_end' column by 2 hours
-	df['period_end'] = df['period_end'] + pd.Timedelta(hours=1)
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=2)
 
 	# Creating the Interval column
 	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
 
-	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori", "azimuth": "Azimuth", "zenith": "Zenith", "dewpoint_temp": "Dewpoint", "relative_humidity": "Umiditate"}, inplace=True)
 
-	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
+	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie", "Dewpoint", "Zenith", "Azimuth", "Umiditate"]]
 
-	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min_0624_v2.pkl")
+	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_15min_0924.pkl")
 
 	df["Month"] = df.Data.dt.month
 	dataset = df.copy()
-	forecast_dataset = dataset[["Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
+	forecast_dataset = dataset[["Interval", "Temperatura", "Nori", "Radiatie", "Dewpoint", "Azimuth", "Umiditate", "Month"]]
 
 	preds = xgb_loaded.predict(forecast_dataset.values)
 	
@@ -2515,20 +2515,20 @@ def predicting_exporting_Imperial_15min(interval_to, interval_from, limitation_p
 	df.dropna(subset=['period_end'], inplace=True)
 
 	# Shift the 'period_end' column by 2 hours
-	df['period_end'] = df['period_end'] + pd.Timedelta(hours=1)
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=2)
 
 	# Creating the Interval column
 	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
 
-	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori", "azimuth": "Azimuth", "zenith": "Zenith", "dewpoint_temp": "Dewpoint", "relative_humidity": "Umiditate"}, inplace=True)
 
-	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
+	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie", "Dewpoint", "Zenith", "Azimuth", "Umiditate"]]
 
 	df["Month"] = df.Data.dt.month
 	dataset = df.copy()
-	forecast_dataset = dataset[["Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
+	forecast_dataset = dataset[["Interval", "Temperatura", "Nori", "Radiatie", "Dewpoint", "Umiditate", "Azimuth", "Month"]]
 
-	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_prod_15min_0624_v2.pkl")
+	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_prod_15min_0924.pkl")
 
 	preds = xgb_loaded.predict(forecast_dataset.values)
 	
