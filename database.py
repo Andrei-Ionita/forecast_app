@@ -3,6 +3,7 @@ import psycopg2
 import pandas as pd
 from datetime import date, timedelta
 import os
+import uuid
 
 # Heroku PostgreSQL connection details
 DB_URL = "postgresql://u6vgnrtb422bju:p593a702cae233b84c4a2a29ad9f8f13116fa3a407ea6b2ed91d97280a5e17d9c@c8lj070d5ubs83.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d67n79bcvb33fq"
@@ -137,34 +138,34 @@ def check_tomorrow_indisponibilities(table_name):
 
 # Render and manage the indisponibility database for the given client
 def render_indisponibility_db(table_name, title):
+    def generate_key(prefix):
+        # Generate a unique key with a prefix for each widget
+        return f"{prefix}_{uuid.uuid4().hex}"
+
     # Add new Grid Limitation
     st.subheader(f"{title} - Add Grid Limitation")
-    grid_start_date = st.date_input(f"Grid Limitation Start Date ({title})", value=date.today())
-    grid_end_date = st.date_input(f"Grid Limitation End Date ({title})", value=date.today())
-    grid_limitation_percentage = st.number_input(f"Grid Limitation Percentage ({title})", min_value=0.0, max_value=100.0, value=50.0)
+    grid_start_date = st.date_input(f"Grid Limitation Start Date ({title})", value=date.today(), key=generate_key("grid_start_date"))
+    grid_end_date = st.date_input(f"Grid Limitation End Date ({title})", value=date.today(), key=generate_key("grid_end_date"))
+    grid_limitation_percentage = st.number_input(f"Grid Limitation Percentage ({title})", min_value=0.0, max_value=100.0, value=50.0, key=generate_key("grid_limitation_percentage"))
 
     # Cast to integers and add debug prints
-    grid_interval_from = int(st.number_input(f"Interval From (Grid) ({title})", min_value=0, max_value=24, value=1))
-    grid_interval_to = int(st.number_input(f"Interval To (Grid)", min_value=0, max_value=24, value=24))
+    grid_interval_from = int(st.number_input(f"Interval From (Grid) ({title})", min_value=0, max_value=24, value=1, key=generate_key("grid_interval_from")))
+    grid_interval_to = int(st.number_input(f"Interval To (Grid)", min_value=0, max_value=24, value=24, key=generate_key("grid_interval_to")))
 
-    # st.write(f"Grid Interval From: {grid_interval_from}, Grid Interval To: {grid_interval_to}")  # Debugging statement
-
-    if st.button(f"Add Grid Limitation ({title})"):
+    if st.button(f"Add Grid Limitation ({title})", key=generate_key("add_grid_limitation")):
         add_indisponibility_to_postgres(table_name, "Grid Limitation", grid_start_date, grid_end_date, grid_interval_from, grid_interval_to, grid_limitation_percentage)
 
     # Add new Asset Limitation
     st.subheader(f"{title} - Add Asset Limitation")
-    asset_start_date = st.date_input(f"Asset Limitation Start Date ({title})", value=date.today())
-    asset_end_date = st.date_input(f"Asset Limitation End Date ({title})", value=date.today())
-    asset_limitation_percentage = st.number_input(f"Asset Limitation Percentage ({title})", min_value=0.0, max_value=100.0, value=50.0)
+    asset_start_date = st.date_input(f"Asset Limitation Start Date ({title})", value=date.today(), key=generate_key("asset_start_date"))
+    asset_end_date = st.date_input(f"Asset Limitation End Date ({title})", value=date.today(), key=generate_key("asset_end_date"))
+    asset_limitation_percentage = st.number_input(f"Asset Limitation Percentage ({title})", min_value=0.0, max_value=100.0, value=50.0, key=generate_key("asset_limitation_percentage"))
 
     # Cast to integers and add debug prints
-    asset_interval_from = int(st.number_input(f"Interval From (Asset)", min_value=0, max_value=24, value=1))
-    asset_interval_to = int(st.number_input(f"Interval To (Asset)", min_value=0, max_value=24, value=24))
+    asset_interval_from = int(st.number_input(f"Interval From (Asset)", min_value=0, max_value=24, value=1, key=generate_key("asset_interval_from")))
+    asset_interval_to = int(st.number_input(f"Interval To (Asset)", min_value=0, max_value=24, value=24, key=generate_key("asset_interval_to")))
 
-    # st.write(f"Asset Interval From: {asset_interval_from}, Asset Interval To: {asset_interval_to}")  # Debugging statement
-
-    if st.button(f"Add Asset Limitation ({title})"):
+    if st.button(f"Add Asset Limitation ({title})", key=generate_key("add_asset_limitation")):
         add_indisponibility_to_postgres(table_name, "Asset Limitation", asset_start_date, asset_end_date, asset_interval_from, asset_interval_to, asset_limitation_percentage)
 
     # Loading the indisponibilities for the selected Client
@@ -175,11 +176,11 @@ def render_indisponibility_db(table_name, title):
     st.subheader(f"Remove an Entry ({title})")
 
     # Selecting the ID to delete
-    entry_id_to_delete = st.selectbox(f"Select Entry ID to Delete ({title})", df['id'].tolist())
+    entry_id_to_delete = st.selectbox(f"Select Entry ID to Delete ({title})", df['id'].tolist(), key=generate_key("entry_id_to_delete"))
     st.write(f"Selected ID to delete: {entry_id_to_delete}")
 
     # Deleting the selected entry from the database
-    if st.button(f"Delete Selected Entry ({title})"):
+    if st.button(f"Delete Selected Entry ({title})", key=generate_key("delete_entry")):
         
         st.write("Data before deletion:")
         st.write(df)
@@ -215,10 +216,10 @@ def render_indisponibility_db(table_name, title):
         except Exception as e:
             st.error(f"Error while deleting entry: {e}")
 
-
     # Check for tomorrow's indisponibilities
     interval_from, interval_to, limitation_percentage = check_tomorrow_indisponibilities(table_name)
     return interval_from, interval_to, limitation_percentage
+
 
 # Specific functions for each client
 def render_indisponibility_db_Solina():

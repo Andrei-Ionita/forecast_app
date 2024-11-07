@@ -1836,17 +1836,13 @@ def predicting_exporting_Astro(interval_from, interval_to, limitation_percentage
 	forecast_dataset["Dewpoint"] = data["dewpoint_temp"].values
 	# Completing the Humidity column
 	forecast_dataset["Umiditate"] = data["relative_humidity"].values
-	# Completing the Azimuth column
-	forecast_dataset["Azimuth"] = data["azimuth"].values
-	# Completing the Zenith column
-	forecast_dataset["Zenith"] = data["zenith"].values
 
-	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_prod_0924.pkl")
+	xgb_loaded = joblib.load("./Astro/rs_xgb_Astro_default_0924.pkl")
 
 	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
 	dataset = forecast_dataset.copy()
 	forecast_dataset = forecast_dataset.drop("Data", axis=1)
-	forecast_dataset = forecast_dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Dewpoint", "Umiditate", "Azimuth", "Zenith", "Month"]]
+	forecast_dataset = forecast_dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Dewpoint", "Umiditate", "Month"]]
 	preds = xgb_loaded.predict(forecast_dataset.values)
 	
 	# Rounding each value in the list to the third decimal
@@ -2427,17 +2423,13 @@ def predicting_exporting_Imperial(interval_from, interval_to, limitation_percent
 	forecast_dataset["Dewpoint"] = data["dewpoint_temp"].values
 	# Completing the Humidity column
 	forecast_dataset["Umiditate"] = data["relative_humidity"].values
-	# Completing the Azimuth column
-	forecast_dataset["Azimuth"] = data["azimuth"].values
-	# Completing the Zenith column
-	forecast_dataset["Zenith"] = data["zenith"].values
 
-	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_prod_0924.pkl")
+	xgb_loaded = joblib.load("./Imperial/rs_xgb_Imperial_default_0924.pkl")
 
 	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
 	dataset = forecast_dataset.copy()
 	forecast_dataset = forecast_dataset.drop("Data", axis=1)
-	forecast_dataset = forecast_dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Dewpoint", "Umiditate", "Zenith", "Azimuth", "Month"]]
+	forecast_dataset = forecast_dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Dewpoint", "Umiditate", "Month"]]
 	preds = xgb_loaded.predict(forecast_dataset.values)
 	
 	# Rounding each value in the list to the third decimal
@@ -3490,7 +3482,7 @@ def render_production_forecast():
 	st.write("Production Forecast Section")
 
 	# Allow the user to choose between Consumption and Production
-	PVPP = st.radio("Choose PVPP:", options=["Solina", "RAAL", "Astro", "Imperial", "RES Energy", "CEF Calmatuiu", "CEF Ganatran", "CEF Danutz", "CEF Ignaenerg", "CEF Baile Herculane", "CEF Comuna Bors"], index=None)
+	PVPP = st.radio("Choose PVPP:", options=["Solina", "RAAL", "Astro", "Imperial", "RES Energy", "CEF Baile Herculane"], index=None)
 
 	if PVPP == "Solina":
 		# Updating the indisponibility, if any
@@ -3530,42 +3522,6 @@ def render_production_forecast():
 			# uploading_onedrive_file(file_path, access_token)
 			access_token = upload_file_with_retries(file_path)
 			check_file_sync(file_path, access_token)
-	elif PVPP == "CEF Calmatuiu":
-		if st.button("Submit"):
-			fetching_Calmatuiu_data()
-			st.dataframe(predicting_exporting_CEF_Calmatuiu())
-			st.success('Forecast Ready', icon="✅")
-			file_path = './CEF Calmatuiu/Production/Results_Production_xgb.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Calmatuiu.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
-		# Default 15 min Forecasting
-		st.subheader("Quarterly Production Forecast", divider = "red")
-		# Submit button
-		if st.button("Submit Quarterly Forecast"):	
-			# Fetching the Solcast data
-			fetching_Calmatuiu_data_15min()
-			st.dataframe(predicting_exporting_CEF_Calmatuiu_15min())
-			file_path = './CEF Calmatuiu/Results_Production_CEF_Calmatuiu_xgb_15min.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Calmatuiu_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
 
 	elif PVPP == "RES Energy":
 		# Updating the indisponibility, if any
@@ -3622,42 +3578,6 @@ def render_production_forecast():
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
 
-	elif PVPP == "CEF Ganatran":
-		if st.button("Submit"):
-			fetching_Bors_data()
-			st.dataframe(predicting_exporting_CEF_Ganatran())
-			st.success('Forecast Ready', icon="✅")
-			file_path = './CEF Ganatran/Production/Results_Production_xgb.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Ganatran.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
-		# Default 15 min Forecasting
-		st.subheader("Quarterly Production Forecast", divider = "red")
-		# Submit button
-		if st.button("Submit Quarterly Forecast"):	
-			# Fetching the Solcast data
-			fetching_Bors_data_15min()
-			st.dataframe(predicting_exporting_CEF_Ganatran_15min())
-			file_path = './CEF Ganatran/Results_Production_CEF_Ganatran_xgb_15min.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Ganatran_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
 
 	elif PVPP == "CEF Baile Herculane":
 		if st.button("Submit"):
@@ -3696,117 +3616,6 @@ def render_production_forecast():
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
 
-	elif PVPP == "CEF Comuna Bors":
-		if st.button("Submit"):
-			fetching_Bors_data()
-			st.dataframe(predicting_exporting_CEF_Comuna_Bors())
-			st.success('Forecast Ready', icon="✅")
-			file_path = './CEF Comuna Bors/Production/Results_Production_xgb.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Comuna_Bors.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
-		# Default 15 min Forecasting
-		st.subheader("Quarterly Production Forecast", divider = "red")
-		# Submit button
-		if st.button("Submit Quarterly Forecast"):	
-			# Fetching the Solcast data
-			fetching_Bors_data_15min()
-			st.dataframe(predicting_exporting_CEF_Comuna_Bors_15min())
-			file_path = './CEF Comuna Bors/Results_Production_CEF_Comuna_Bors_xgb_15min.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Comuna_Bors_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
-	
-	elif PVPP == "CEF Ignaenerg":
-		if st.button("Submit"):
-			fetching_Ignaenerg_data()
-			st.dataframe(predicting_exporting_CEF_Ignaenerg())
-			st.success('Forecast Ready', icon="✅")
-			file_path = './CEF Ignaenerg/Production/Results_Production_xgb.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Ignaenerg.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
-		# Default 15 min Forecasting
-		st.subheader("Quarterly Production Forecast", divider = "red")
-		# Submit button
-		if st.button("Submit Quarterly Forecast"):	
-			# Fetching the Solcast data
-			fetching_Ignaenerg_data_15min()
-			st.dataframe(predicting_exporting_CEF_Ignaenerg_15min())
-			file_path = './CEF Ignaenerg/Results_Production_CEF_Ignaenerg_xgb_15min.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Ignaenerg_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
-
-	elif PVPP == "CEF Danutz":
-		if st.button("Submit"):
-			fetching_Danutz_data()
-			st.dataframe(predicting_exporting_CEF_Danutz())
-			st.success('Forecast Ready', icon="✅")
-			file_path = './CEF Danutz/Production/Results_Production_xgb.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Danutz.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
-		# Default 15 min Forecasting
-		st.subheader("Quarterly Production Forecast", divider = "red")
-		# Submit button
-		if st.button("Submit Quarterly Forecast"):	
-			# Fetching the Solcast data
-			fetching_Danutz_data_15min()
-			st.dataframe(predicting_exporting_CEF_Danutz_15min())
-			file_path = './CEF Danutz/Results_Production_CEF_Danutz_xgb_15min.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Danutz_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
-
 	elif PVPP == "RAAL":
 		# Submit button
 		if st.button("Submit"):
@@ -3830,8 +3639,8 @@ def render_production_forecast():
 
 	elif PVPP == "Astro":
 		# Updating the indisponibility, if any
-		result = render_indisponibility_db_Astro()
-		if result[0] is not None:
+		result_Astro = render_indisponibility_db_Astro()
+		if result_Astro[0] is not None:
 			interval_from, interval_to, limitation_percentage = result
 		else:
 			# Handle the case where no data is found
@@ -4049,8 +3858,8 @@ def render_production_forecast():
 
 	elif PVPP == "Imperial":
 		# Updating the indisponibility, if any
-		result = render_indisponibility_db_Imperial()
-		if result[0] is not None:
+		result_Imperial = render_indisponibility_db_Imperial()
+		if result_Imperial[0] is not None:
 			interval_from, interval_to, limitation_percentage = result
 		else:
 			# Handle the case where no data is found

@@ -21,6 +21,10 @@ from pathlib import Path
 from entsoe import EntsoePandasClient
 import xml.etree.ElementTree as ET
 
+# Importing from other pages
+from ml import fetching_Imperial_data, fetching_Astro_data, predicting_exporting_Astro, predicting_exporting_Imperial, fetching_Imperial_data_15min, fetching_Astro_data_15min, predicting_exporting_Astro_15min, predicting_exporting_Imperial_15min
+from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial
+
 #=====================================================================Data Engineering============================================================================================================
 api_key_entsoe = os.getenv("api_key_entsoe")
 client = EntsoePandasClient(api_key=api_key_entsoe)
@@ -518,7 +522,52 @@ def render_balancing_market_intraday_page():
 	
 	# Web App Title
 	st.header("Balancing Market :blue[Intraday Dashboard]")
+	st.write("")
+	st.write("")
+	st.subheader("Intraday Forecast", divider="blue")
+	# Forecasting the entire Intraday Portfolio at once
+	if st.button("Forecast Portfolio"):
+		# Forecasting Astro
+		# Updating the indisponibility, if any
+		result_Astro = render_indisponibility_db_Astro()
+		if result_Astro[0] is not None:
+			interval_from, interval_to, limitation_percentage = result
+		else:
+			# Handle the case where no data is found
+			# st.text("No indisponibility found for tomorrow")
+			# Fallback logic: Add your fallback actions here
+			# st.write("Running fallback logic because no indisponibility data is found.")
+			interval_from = 1
+			interval_to = 24
+			limitation_percentage = 0
+		fetching_Astro_data()
+		fetching_Astro_data_15min()
+		df = predicting_exporting_Astro(interval_from, interval_to, limitation_percentage)
+		st.dataframe(predicting_exporting_Astro_15min(interval_from, interval_to, limitation_percentage))
 
+		# Forecasting Imperial
+		# Updating the indisponibility, if any
+		result_Imperial = render_indisponibility_db_Imperial()
+		if result_Imperial[0] is not None:
+			interval_from, interval_to, limitation_percentage = result
+		else:
+			# Handle the case where no data is found
+			# st.text("No indisponibility found for tomorrow")
+			# Fallback logic: Add your fallback actions here
+			# st.write("Running fallback logic because no indisponibility data is found.")
+			interval_from = 1
+			interval_to = 24
+			limitation_percentage = 0
+		fetching_Imperial_data()
+		fetching_Imperial_data_15min()
+		df = predicting_exporting_Imperial(interval_from, interval_to, limitation_percentage)
+		st.dataframe(predicting_exporting_Imperial_15min(interval_to, interval_from, limitation_percentage))
+
+	st.markdown("<br>", unsafe_allow_html=True)
+	st.markdown("<br>", unsafe_allow_html=True)
+
+	# Fetching the Balancing MArket data
+	st.header("Balancing Market Data")
 	# Fetching the data and crating the dataframe/dataframes
 	issue_date = get_issue_date()[1]
 	start_date = st.date_input("Select Start Date", value=pd.to_datetime(issue_date + timedelta(days=1)))
