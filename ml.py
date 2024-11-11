@@ -3405,7 +3405,7 @@ def render_consumption_forecast():
 	st.write("Consumption Forecast Section")
 
 	# Allow the user to choose between Consumption and Production
-	consumption_place = st.radio("Choose Consumption:", options=["Solina", "RAAL", "Calmatuiu", "Danutz"], index=None)
+	consumption_place = st.radio("Choose Consumption:", options=["Solina", "RAAL"], index=None)
 	if consumption_place == "Solina":
 		if st.button("Submit"):
 			fetching_Solina_data()
@@ -3442,47 +3442,11 @@ def render_consumption_forecast():
 				 """
 			st.markdown(button_html, unsafe_allow_html=True)
 
-	elif consumption_place == "Calmatuiu":
-		if st.button("Submit"):
-			fetching_Calmatuiu_data()
-			df=predicting_exporting_Consumption_Calmatuiu()
-			st.dataframe(df)
-			file_path = './CEF Calmatuiu/Consumption/Results/Results_Consumption_Calmatuiu.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-			# Create a download link
-			b64 = base64.b64encode(excel_data).decode()
-			button_html = f"""
-				 <a download="Consumption_Forecast_Calmatuiu.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-				 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-				 </a> 
-				 """
-			st.markdown(button_html, unsafe_allow_html=True)
-
-	elif consumption_place == "Danutz":
-		if st.button("Submit"):
-			fetching_Danutz_data()
-			df=predicting_exporting_Consumption_Danutz()
-			st.dataframe(df)
-			file_path = './CEF Danutz/Consumption/Results/Results_Consumption_Danutz.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-			# Create a download link
-			b64 = base64.b64encode(excel_data).decode()
-			button_html = f"""
-				 <a download="Consumption_Forecast_Danutz.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-				 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-				 </a> 
-				 """
-			st.markdown(button_html, unsafe_allow_html=True)
-
 def render_production_forecast():
 	st.write("Production Forecast Section")
 
 	# Allow the user to choose between Consumption and Production
-	PVPP = st.radio("Choose PVPP:", options=["Solina", "RAAL", "Astro", "Imperial", "RES Energy", "CEF Baile Herculane"], index=None)
+	PVPP = st.radio("Choose PVPP:", options=["Solina", "RAAL", "Astro", "Imperial", "RES Energy"], index=None)
 
 	if PVPP == "Solina":
 		# Updating the indisponibility, if any
@@ -3573,44 +3537,6 @@ def render_production_forecast():
 				b64 = base64.b64encode(excel_data).decode()
 				button_html = f"""
 					 <a download="Production_Forecast_RES_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
-
-
-	elif PVPP == "CEF Baile Herculane":
-		if st.button("Submit"):
-			fetching_Herculane_data()
-			st.dataframe(predicting_exporting_CEF_Baile_Herculane())
-			st.success('Forecast Ready', icon="✅")
-			file_path = './CEF Baile Herculane/Production/Results_Production_xgb.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Baile_Herculane.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results</button>
-					 </a> 
-					 """
-				st.markdown(button_html, unsafe_allow_html=True)
-		# Default 15 min Forecasting
-		st.subheader("Quarterly Production Forecast", divider = "red")
-		# Submit button
-		if st.button("Submit Quarterly Forecast"):	
-			# Fetching the Solcast data
-			fetching_Herculane_data_15min()
-			st.dataframe(predicting_exporting_CEF_Baile_Herculane_15min())
-			file_path = './CEF Baile Herculane/Results_Production_CEF_Baile_Herculane_xgb_15min.xlsx'
-			with open(file_path, "rb") as f:
-				excel_data = f.read()
-
-				# Create a download link
-				b64 = base64.b64encode(excel_data).decode()
-				button_html = f"""
-					 <a download="Production_Forecast_CEF_Baile_Herculane_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
 					 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Forecast Results 15min</button>
 					 </a> 
 					 """
