@@ -23,6 +23,7 @@ import xml.etree.ElementTree as ET
 
 # Importing from other pages
 from ml import fetching_Imperial_data, fetching_Astro_data, predicting_exporting_Astro, predicting_exporting_Imperial, fetching_Imperial_data_15min, fetching_Astro_data_15min, predicting_exporting_Astro_15min, predicting_exporting_Imperial_15min
+from ml import uploading_onedrive_file, upload_file_with_retries, check_file_sync
 from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial
 
 #=====================================================================Data Engineering============================================================================================================
@@ -543,8 +544,15 @@ def render_balancing_market_intraday_page():
 		fetching_Astro_data()
 		fetching_Astro_data_15min()
 		df = predicting_exporting_Astro(interval_from, interval_to, limitation_percentage)
+		file_path = './Astro/Results_Production_Astro_xgb.xlsx'
+		# uploading_onedrive_file(file_path, access_token)
+		access_token = upload_file_with_retries(file_path)
+		check_file_sync(file_path, access_token)
 		st.dataframe(predicting_exporting_Astro_15min(interval_from, interval_to, limitation_percentage))
-
+		file_path = './Astro/Results_Production_Astro_xgb_15min.xlsx'
+		# uploading_onedrive_file(file_path, access_token)
+		access_token = upload_file_with_retries(file_path)
+		check_file_sync(file_path, access_token)
 		# Forecasting Imperial
 		# Updating the indisponibility, if any
 		result_Imperial = render_indisponibility_db_Imperial()
@@ -561,8 +569,15 @@ def render_balancing_market_intraday_page():
 		fetching_Imperial_data()
 		fetching_Imperial_data_15min()
 		df = predicting_exporting_Imperial(interval_from, interval_to, limitation_percentage)
+		file_path = './Imperial/Results_Production_Imperial_xgb.xlsx'
+		# uploading_onedrive_file(file_path, access_token)
+		access_token = upload_file_with_retries(file_path)
+		check_file_sync(file_path, access_token)
 		st.dataframe(predicting_exporting_Imperial_15min(interval_to, interval_from, limitation_percentage))
-
+		file_path = './Imperial/Results_Production_Imperial_xgb_15min.xlsx'
+		# uploading_onedrive_file(file_path, access_token)
+		access_token = upload_file_with_retries(file_path)
+		check_file_sync(file_path, access_token)
 	st.markdown("<br>", unsafe_allow_html=True)
 	st.markdown("<br>", unsafe_allow_html=True)
 
