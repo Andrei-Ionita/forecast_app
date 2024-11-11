@@ -1779,7 +1779,7 @@ def fetching_Astro_data_past_15min():
 	lat = 46.937810
 	lon = 23.749303
 	# Fetch data from the API
-	api_url = "https://api.solcast.com.au/data/live/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,ghi,cloud_opacity&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	api_url = "https://api.solcast.com.au/data/live/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,ghi,azimuth,cloud_opacity,dewpoint_temp,relative_humidity,zenith&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
 	response = requests.get(api_url)
 	print("Fetching data...")
 	if response.status_code == 200:
@@ -1796,7 +1796,7 @@ def fetching_Imperial_data_past_15min():
 	lat = 46.860370
 	lon = 23.795201
 	# Fetch data from the API
-	api_url = "https://api.solcast.com.au/data/live/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,ghi,cloud_opacity&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	api_url = "https://api.solcast.com.au/data/live/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,ghi,azimuth,cloud_opacity,dewpoint_temp,relative_humidity,zenith&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
 	response = requests.get(api_url)
 	print("Fetching data...")
 	if response.status_code == 200:
@@ -2063,7 +2063,7 @@ def create_lag_features(data):
 def predicting_rest_of_day(interval, data, model):
 	# Creating the lag features
 	create_lag_features(data)
-	features = data[['Interval', 'Temperatura', 'Nori', 'Radiatie', 'Month', 'Productie_lag1']]
+	features = data[['Interval', 'Temperatura', 'Nori', 'Radiatie', "Dewpoint", "Umiditate", 'Month', 'Productie_lag1']]
 	features.dropna(inplace=True)
 	# Now we need to forecast the Production for the last real interval which will become the first Production_lag1 for the next one
 	interval_features = features[features['Interval'] == interval]
@@ -2088,11 +2088,11 @@ def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 	# Creating the Interval column
 	weather_data_future['Interval'] = weather_data_future.period_end.dt.hour * 4 + weather_data_future.period_end.dt.minute // 15 + 1
 
-	weather_data_future.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+	weather_data_future.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori", "azimuth": "Azimuth", "zenith": "Zenith", "dewpoint_temp": "Dewpoint", "relative_humidity": "Umiditate"}, inplace=True)
 
 	weather_data_future["Month"] = weather_data_future.Timestamp.dt.month
 
-	weather_data_future = weather_data_future[["Timestamp", "Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
+	weather_data_future = weather_data_future[["Timestamp", "Interval", "Temperatura", "Nori", "Radiatie", "Dewpoint", "Umiditate", "Month"]]
 
 	# Data Engineering for the past weather data
 	weather_data_past = pd.read_csv('./Imperial/Solcast/Jucu_15min_past.csv')
@@ -2106,7 +2106,7 @@ def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 	weather_data_past['period_end'] = weather_data_past['period_end'] + pd.Timedelta(hours=1)
 
 	# Rename 'Data' column to 'Timestamp' for consistency
-	weather_data_past.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+	weather_data_past.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori", "azimuth": "Azimuth", "zenith": "Zenith", "dewpoint_temp": "Dewpoint", "relative_humidity": "Umiditate"}, inplace=True)
 
 	# Creating the Interval column
 	weather_data_past['Interval'] = weather_data_past.Timestamp.dt.hour * 4 + weather_data_past.Timestamp.dt.minute // 15 + 1
@@ -2114,7 +2114,7 @@ def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 	weather_data_past['Month'] = weather_data_past.Timestamp.dt.month
 
 	# Reorder the columns
-	weather_data_past = weather_data_past[['Timestamp', "Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
+	weather_data_past = weather_data_past[["Timestamp", "Interval", "Temperatura", "Nori", "Radiatie", "Dewpoint", "Umiditate", "Month"]]
 
 	# Concatenating the two weather datasets
 	# Ensure 'Timestamp' column in weather_data_future is in datetime format
@@ -2147,7 +2147,7 @@ def predicting_exporting_Imperial_Intraday_15min(real_time_data):
 
 	# Find the last interval with real production data 
 	last_real_interval = forecast_dataset[forecast_dataset['Productie'] > 0]['Interval'].max()
-	model = joblib.load("./Imperial/rs_xgb_Imperial_prod_intraday_1lag_15min_0624.pkl")
+	model = joblib.load("./Imperial/rs_xgb_Imperial_intraday_0924.pkl")
 
 	for interval in range(last_real_interval, 97):
 		print(forecast_dataset)
@@ -2236,11 +2236,11 @@ def predicting_exporting_Astro_Intraday_15min(real_time_data):
 	# Creating the Interval column
 	weather_data_future['Interval'] = weather_data_future.period_end.dt.hour * 4 + weather_data_future.period_end.dt.minute // 15 + 1
 
-	weather_data_future.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+	weather_data_future.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori", "azimuth": "Azimuth", "zenith": "Zenith", "dewpoint_temp": "Dewpoint", "relative_humidity": "Umiditate"}, inplace=True)
 
 	weather_data_future["Month"] = weather_data_future.Timestamp.dt.month
 
-	weather_data_future = weather_data_future[["Timestamp", "Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
+	weather_data_future = weather_data_future[["Timestamp", "Interval", "Temperatura", "Nori", "Radiatie", "Dewpoint", "Umiditate", "Month"]]
 
 	# Data Engineering for the past weather data
 	weather_data_past = pd.read_csv('./Astro/Solcast/Luna_15min_past.csv')
@@ -2254,7 +2254,7 @@ def predicting_exporting_Astro_Intraday_15min(real_time_data):
 	weather_data_past['period_end'] = weather_data_past['period_end'] + pd.Timedelta(hours=1)
 
 	# Rename 'Data' column to 'Timestamp' for consistency
-	weather_data_past.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+	weather_data_past.rename(columns={'period_end': 'Timestamp', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori", "azimuth": "Azimuth", "zenith": "Zenith", "dewpoint_temp": "Dewpoint", "relative_humidity": "Umiditate"}, inplace=True)
 
 	# Creating the Interval column
 	weather_data_past['Interval'] = weather_data_past.Timestamp.dt.hour * 4 + weather_data_past.Timestamp.dt.minute // 15 + 1
@@ -2262,7 +2262,7 @@ def predicting_exporting_Astro_Intraday_15min(real_time_data):
 	weather_data_past['Month'] = weather_data_past.Timestamp.dt.month
 
 	# Reorder the columns
-	weather_data_past = weather_data_past[['Timestamp', "Interval", "Temperatura", "Nori", "Radiatie", "Month"]]
+	weather_data_past = weather_data_past[['Timestamp', "Interval", "Temperatura", "Nori", "Radiatie", "Dewpoint", "Umiditate", "Month"]]
 
 	# Concatenating the two weather datasets
 	# Ensure 'Timestamp' column in weather_data_future is in datetime format
@@ -2295,7 +2295,7 @@ def predicting_exporting_Astro_Intraday_15min(real_time_data):
 
 	# Find the last interval with real production data 
 	last_real_interval = forecast_dataset[forecast_dataset['Productie'] > 0]['Interval'].max()
-	model = joblib.load("./Astro/rs_xgb_Astro_prod_intraday_1lag_15min_0624.pkl")
+	model = joblib.load("./Astro/rs_xgb_Astro_intraday_0924.pkl")
 
 	for interval in range(last_real_interval, 97):
 		print(forecast_dataset)
@@ -3797,6 +3797,7 @@ def render_production_forecast():
 			# uploading_onedrive_file(file_path, access_token)
 			access_token = upload_file_with_retries(file_path)
 			check_file_sync(file_path, access_token)
+
 		st.subheader("Forecasting with Real-Time Production:", divider = "red")
 		uploaded_file = st.file_uploader("Upload Real-Time Production Data File", type=['csv', 'xlsx'])
 		if uploaded_file is not None:
@@ -3821,8 +3822,8 @@ def render_production_forecast():
 				# Ensure the 'Timestamp' column is in datetime format
 				real_time_data['Timestamp'] = pd.to_datetime(real_time_data['Timestamp'])
 
-				# Shift the 'Timestamp' column by 3 hours forward
-				real_time_data['Timestamp'] = real_time_data['Timestamp'] + pd.Timedelta(hours=3)
+				# Shift the 'Timestamp' column by 2 hours forward
+				real_time_data['Timestamp'] = real_time_data['Timestamp'] + pd.Timedelta(hours=2)
 
 				# Calculate the average of current and next power readings
 				real_time_data['Next_Power_MW'] = real_time_data['Power_MW'].shift(1)  # Shift upwards to get the next reading in the column
@@ -3841,6 +3842,7 @@ def render_production_forecast():
 
 		if st.button("Forecast Real-Time"):
 			fetching_Astro_data_past_15min()
+			fetching_Astro_data_15min()
 			predicting_exporting_Astro_Intraday_15min(real_time_data)
 			# Downloading the Predictions Results
 			file_path = "./Astro/Results_Production_Astro_xgb_intraday_15min.xlsx"
@@ -3942,8 +3944,8 @@ def render_production_forecast():
 				# Ensure the 'Timestamp' column is in datetime format
 				real_time_data['Timestamp'] = pd.to_datetime(real_time_data['Timestamp'])
 
-				# Shift the 'Timestamp' column by 3 hours forward
-				real_time_data['Timestamp'] = real_time_data['Timestamp'] + pd.Timedelta(hours=3)
+				# Shift the 'Timestamp' column by 2 hours forward
+				real_time_data['Timestamp'] = real_time_data['Timestamp'] + pd.Timedelta(hours=2)
 
 				# Calculate the average of current and next power readings
 				real_time_data['Next_Power_MW'] = real_time_data['Power_MW'].shift(1)  # Shift upwards to get the next reading in the column
