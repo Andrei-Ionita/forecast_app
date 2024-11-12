@@ -139,8 +139,8 @@ def check_tomorrow_indisponibilities(table_name):
 # Render and manage the indisponibility database for the given client
 def render_indisponibility_db(table_name, title):
     def generate_key(prefix):
-        # Generate a unique key with a prefix for each widget
-        return f"{prefix}_{uuid.uuid4().hex}"
+        # Generate a consistent key with a prefix for each widget using table name and title
+        return f"{prefix}_{table_name}_{title}"
 
     # Add new Grid Limitation
     st.subheader(f"{title} - Add Grid Limitation")
@@ -181,10 +181,9 @@ def render_indisponibility_db(table_name, title):
 
     # Deleting the selected entry from the database
     if st.button(f"Delete Selected Entry ({title})", key=generate_key("delete_entry")):
-        
         st.write("Data before deletion:")
         st.write(df)
-        
+
         # Connect to the database and delete the row with the selected ID
         try:
             conn = get_connection()  # You should have a function like this to connect to your PostgreSQL DB
@@ -195,7 +194,7 @@ def render_indisponibility_db(table_name, title):
             conn.commit()
 
             st.success(f"Entry ID {entry_id_to_delete} was successfully removed from the database.")
-            
+
             # Reload the updated data
             df_reloaded = load_data(table_name)
             st.write("Data after reloading from Postgres:")
@@ -219,7 +218,6 @@ def render_indisponibility_db(table_name, title):
     # Check for tomorrow's indisponibilities
     interval_from, interval_to, limitation_percentage = check_tomorrow_indisponibilities(table_name)
     return interval_from, interval_to, limitation_percentage
-
 
 # Specific functions for each client
 def render_indisponibility_db_Solina():
