@@ -17,3 +17,4 @@ entsoe-py
 xlrd
 psycopg2-binary
 msal
+pytest
