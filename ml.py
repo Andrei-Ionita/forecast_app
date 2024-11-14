@@ -2722,7 +2722,7 @@ def predicting_exporting_RES(interval_from, interval_to, limitation_percentage):
 	rounded_values = [round(value, 3) for value in preds]
 	
 	#Exporting Results to Excel
-	workbook = xlsxwriter.Workbook("./RES Energy/Production/Results_Production_xgb.xlsx")
+	workbook = xlsxwriter.Workbook("./RES Energy/Production/Results_Production_RES_xgb.xlsx")
 	worksheet = workbook.add_worksheet("Production_Predictions")
 	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
 	# Define a format for cells with three decimal places
@@ -2750,7 +2750,7 @@ def predicting_exporting_RES(interval_from, interval_to, limitation_percentage):
 	workbook.close()
 	# Formatting the Results file
 	# Step 1: Open the Excel file
-	file_path = "./RES Energy/Production/Results_Production_xgb.xlsx"
+	file_path = "./RES Energy/Production/Results_Production_RES_xgb.xlsx"
 	workbook = load_workbook(filename=file_path)
 	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
 
@@ -3510,7 +3510,7 @@ def render_production_forecast():
 			df = predicting_exporting_RES(interval_from, interval_to, limitation_percentage)
 			st.dataframe(df)
 			st.success('Forecast Ready', icon="✅")
-			file_path = './RES Energy/Production/Results_Production_xgb.xlsx'
+			file_path = './RES Energy/Production/Results_Production_RES_xgb.xlsx'
 			with open(file_path, "rb") as f:
 				excel_data = f.read()
 
@@ -3522,6 +3522,9 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
+			# uploading_onedrive_file(file_path, access_token)
+			access_token = upload_file_with_retries(file_path)
+			check_file_sync(file_path, access_token)
 		# Default 15 min Forecasting
 		st.subheader("Quarterly Production Forecast", divider = "red")
 		# Submit button
@@ -3541,7 +3544,9 @@ def render_production_forecast():
 					 </a> 
 					 """
 				st.markdown(button_html, unsafe_allow_html=True)
-
+			# uploading_onedrive_file(file_path, access_token)
+			access_token = upload_file_with_retries(file_path)
+			check_file_sync(file_path, access_token)
 	elif PVPP == "RAAL":
 		# Submit button
 		if st.button("Submit"):
