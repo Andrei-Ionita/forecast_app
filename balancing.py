@@ -532,7 +532,7 @@ def render_balancing_market_intraday_page():
 		# Updating the indisponibility, if any
 		result_Astro = render_indisponibility_db_Astro()
 		if result_Astro[0] is not None:
-			interval_from, interval_to, limitation_percentage = result
+			interval_from, interval_to, limitation_percentage = result_Astro
 		else:
 			# Handle the case where no data is found
 			# st.text("No indisponibility found for tomorrow")
@@ -557,7 +557,7 @@ def render_balancing_market_intraday_page():
 		# Updating the indisponibility, if any
 		result_Imperial = render_indisponibility_db_Imperial()
 		if result_Imperial[0] is not None:
-			interval_from, interval_to, limitation_percentage = result
+			interval_from, interval_to, limitation_percentage = result_Imperial
 		else:
 			# Handle the case where no data is found
 			# st.text("No indisponibility found for tomorrow")
