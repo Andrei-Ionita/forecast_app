@@ -1583,7 +1583,7 @@ def fetching_RES_data_15min():
 	lat = 47.256595
 	lon = 21.935745
 	# Fetch data from the API
-	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,ghi,azimuth,cloud_opacity,dewpoint_temp,relative_humidity,zenith&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
 	response = requests.get(api_url)
 	print("Fetching data...")
 	if response.status_code == 200:
@@ -2746,20 +2746,20 @@ def predicting_exporting_RES_15min(interval_from, interval_to, limitation_percen
 	df.dropna(subset=['period_end'], inplace=True)
 
 	# Shift the 'period_end' column by 2 hours
-	df['period_end'] = df['period_end'] + pd.Timedelta(hours=1)
+	df['period_end'] = df['period_end'] + pd.Timedelta(hours=2)
 
 	# Creating the Interval column
 	df['Interval'] = df.period_end.dt.hour * 4 + df.period_end.dt.minute // 15 + 1
 
-	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori"}, inplace=True)
+	df.rename(columns={'period_end': 'Data', 'ghi': 'Radiatie', "air_temp": "Temperatura", "cloud_opacity": "Nori", "azimuth": "Azimuth", "zenith": "Zenith", "dewpoint_temp": "Dewpoint", "relative_humidity": "Umiditate"}, inplace=True)
 
-	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie"]]
+	df = df[["Data", "Interval", "Temperatura", "Nori", "Radiatie", "Dewpoint", "Umiditate"]]
 
 	xgb_loaded = joblib.load("./RES Energy/Production/rs_xgb_RES_prod_15min_0824.pkl")
 
 	df["Month"] = df.Data.dt.month
 	dataset = df.copy()
-	forecast_dataset = dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Month"]]
+	forecast_dataset = dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Dewpoint", "Umiditate", "Month"]]
 
 	preds = xgb_loaded.predict(forecast_dataset.values)
 	
