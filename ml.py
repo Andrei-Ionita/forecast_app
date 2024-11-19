@@ -1547,43 +1547,11 @@ def fetching_Solina_data():
 	# Save the adjusted DataFrame
 	data_adjusted.to_csv("./Solina/Solcast/Alba_Iulia_raw.csv", index=False)
 
-def fetching_Herculane_data():
-	lat = 44.868180
-	lon = 22.408513
-	# Fetch data from the API
-	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
-	response = requests.get(api_url)
-	print("Fetching data...")
-	if response.status_code == 200:
-		# Write the content to a CSV file
-		with open("./CEF Baile Herculane/Solcast/Herculane_raw.csv", 'wb') as file:
-			file.write(response.content)
-	else:
-		print(response.text)  # Add this line to see the error message returned by the API
-		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
-	# Adjusting the values to EET time
-	data = pd.read_csv("./CEF Baile Herculane/Solcast/Herculane_raw.csv")
-
-	# Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
-	columns_to_shift = data.columns.difference(['period_end'])
-
-	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(1)
-
-	# Combine the fixed 'period_end' with the shifted data columns
-	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
-
-	# Optionally, handle the NaN values in the first two rows after shifting
-	data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
-
-	# Save the adjusted DataFrame
-	data_adjusted.to_csv("./CEF Baile Herculane/Solcast/Herculane_raw.csv", index=False)
-
 def fetching_RES_data():
 	lat = 47.256595
 	lon = 21.935745
 	# Fetch data from the API
-	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,ghi,azimuth,cloud_opacity,dewpoint_temp,relative_humidity,zenith&period=PT60M&format=csv&api_key={}".format(lat, lon, solcast_api_key)
 	response = requests.get(api_url)
 	print("Fetching data...")
 	if response.status_code == 200:
@@ -1627,23 +1595,6 @@ def fetching_RES_data_15min():
 		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
 	# Adjusting the values to EET time
 	data = pd.read_csv("./RES Energy/Solcast/Mihai_Bravu_15min.csv")
-
-def fetching_Herculane_data_15min():
-	lat = 44.868180
-	lon = 22.408513
-	# Fetch data from the API
-	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,cloud_opacity,ghi&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
-	response = requests.get(api_url)
-	print("Fetching data...")
-	if response.status_code == 200:
-		# Write the content to a CSV file
-		with open("./CEF Baile Herculane/Solcast/Herculane_15min.csv", 'wb') as file:
-			file.write(response.content)
-	else:
-		print(response.text)  # Add this line to see the error message returned by the API
-		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
-	# Adjusting the values to EET time
-	data = pd.read_csv("./CEF Baile Herculane/Solcast/Herculane_15min.csv")
 
 def fetching_RAAL_data():
 	lat = 47.2229
@@ -2708,14 +2659,17 @@ def predicting_exporting_RES(interval_from, interval_to, limitation_percentage):
 	forecast_dataset["Radiatie"] = data["ghi"].values
 	# Completing the Nori column
 	forecast_dataset["Nori"] = data["cloud_opacity"].values
-
+	# Completing the Dewpoint column
+	forecast_dataset["Dewpoint"] = data["dewpoint_temp"].values
+	# Completing the Humidity column
+	forecast_dataset["Umiditate"] = data["relative_humidity"].values
 
 	xgb_loaded = joblib.load("./RES Energy/Production/rs_xgb_RES_default_0824.pkl")
 
 	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
 	dataset = forecast_dataset.copy()
 	forecast_dataset = forecast_dataset.drop("Data", axis=1)
-
+	forecast_dataset = forecast_dataset[["Interval", "Radiatie", "Temperatura", "Nori", "Dewpoint", "Umiditate", "Month"]]
 	preds = xgb_loaded.predict(forecast_dataset.values)
 	
 	# Rounding each value in the list to the third decimal
