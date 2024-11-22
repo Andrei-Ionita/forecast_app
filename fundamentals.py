@@ -1467,20 +1467,20 @@ def render_fundamentals_page():
 		st.markdown(button_html, unsafe_allow_html=True)
 
 	st.header("Wind Production Forecast", divider = "green")
-	if st.button("Forecast Wind Production"):
-		fetching_Cogealac_data()
-		st.dataframe(predicting_wind_production())
-		with open("./Market Fundamentals/Wind_Production_Forecast/Wind_Forecast_Production.xlsx", "rb") as f:
-			excel_data = f.read()
+	# if st.button("Forecast Wind Production"):
+	# 	fetching_Cogealac_data()
+	# 	st.dataframe(predicting_wind_production())
+	# 	with open("./Market Fundamentals/Wind_Production_Forecast/Wind_Forecast_Production.xlsx", "rb") as f:
+	# 		excel_data = f.read()
 
-			# Create a download link
-			b64 = base64.b64encode(excel_data).decode()
-			button_html = f"""
-				 <a download="Wind_Production.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
-				 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Wind Production Forecast</button>
-				 </a> 
-				 """
-			st.markdown(button_html, unsafe_allow_html=True)
+	# 		# Create a download link
+	# 		b64 = base64.b64encode(excel_data).decode()
+	# 		button_html = f"""
+	# 			 <a download="Wind_Production.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+	# 			 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Wind Production Forecast</button>
+	# 			 </a> 
+	# 			 """
+	# 		st.markdown(button_html, unsafe_allow_html=True)
 	if st.button("Forecast Wind Production Quarterly"):
 		fetching_Cogealac_data_15min()
 		predicting_wind_production_15min()
