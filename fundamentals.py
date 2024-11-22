@@ -914,7 +914,24 @@ def fetching_Cogealac_data():
 	# Save the adjusted DataFrame
 	data_adjusted.to_csv("./Market Fundamentals/Wind_Production_Forecast/Wind_dataset_raw.csv", index=False)
 
+def fetching_Cogealac_data_15min():
+	lat = 44.561156
+	lon = 28.562586
+	# Fetch data from the API
+	api_url = "https://api.solcast.com.au/data/forecast/radiation_and_weather?latitude={}&longitude={}&hours=168&output_parameters=air_temp,wind_direction_100m,wind_direction_10m,wind_speed_100m,wind_speed_10m&period=PT15M&format=csv&time_zone=3&api_key={}".format(lat, lon, solcast_api_key)
+	response = requests.get(api_url)
+	print("Fetching data...")
+	if response.status_code == 200:
+		# Write the content to a CSV file
+		with open("./Market Fundamentals/Wind_Production_Forecast/Wind_dataset_raw_15min.csv", 'wb') as file:
+			file.write(response.content)
+	else:
+		print(response.text)  # Add this line to see the error message returned by the API
+		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
+	# Adjusting the values to EET time
+	data = pd.read_csv("./Market Fundamentals/Wind_Production_Forecast/Wind_dataset_raw_15min.csv")
 # Defining the function for forecasting
+
 def predicting_wind_production():
 	# Creating the forecast_dataset df
 	data = pd.read_csv("./Market Fundamentals/Wind_Production_Forecast/Wind_dataset_raw.csv")
@@ -987,6 +1004,78 @@ def predicting_wind_production():
 	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
 	df.to_excel(file_path, index=False)
 	return dataset
+
+def predicting_wind_production_15min():
+	# Creating the forecast_dataset df
+	data = pd.read_csv("./Market Fundamentals/Wind_Production_Forecast/Wind_dataset_raw_15min.csv")
+	forecast_dataset = pd.read_excel("./Market Fundamentals/Wind_Production_Forecast/Input_Wind_dataset_15min.xlsx")
+	# Convert the 'period_end' column to datetime, handling errors
+	data['period_end'] = pd.to_datetime(data['period_end'], errors='coerce', format='%Y-%m-%dT%H:%M:%SZ')
+	# Shift the 'period_end' column by 2 hours
+	data['period_end'] = data['period_end'] + pd.Timedelta(hours=2)
+	forecast_dataset['Data'] = data.period_end.dt.strftime('%Y-%m-%d').values
+	# Creating the Interval column
+	forecast_dataset['Interval'] = data.period_end.dt.hour * 4 + data.period_end.dt.minute // 15 + 1
+	# Replace NaNs in the 'Interval' column with 0
+	forecast_dataset['Interval'].fillna(9, inplace=True)
+	# Replace NaNs in the 'Date' column with the previous valid observation
+	forecast_dataset['Data'].fillna(method='ffill', inplace=True)
+	# Completing the wind_direction_100m column
+	forecast_dataset["wind_direction_100m"] = data["wind_direction_100m"].values
+	# Completing the wind_direction_10m column
+	forecast_dataset["wind_direction_10m"] = data["wind_direction_10m"].values
+	# Completing the wind_speed_100m column
+	forecast_dataset["wind_speed_100m"] = data["wind_speed_100m"].values
+	# Completing the wind_speed_10m column
+	forecast_dataset["wind_speed_10m"] = data["wind_speed_10m"].values
+	# Completing the temperature column
+	forecast_dataset["temperature"] = data["air_temp"].values
+
+	xgb_loaded = joblib.load("./Market Fundamentals/Wind_Production_Forecast/rs_xgb_wind_production_quarterly_1024.pkl")
+
+	forecast_dataset["Month"] = pd.to_datetime(forecast_dataset.Data).dt.month
+	dataset = forecast_dataset.copy()
+	forecast_dataset = forecast_dataset.drop("Data", axis=1)
+	forecast_dataset = forecast_dataset[["Interval", "wind_direction_100m", "wind_direction_10m", "wind_speed_100m", "wind_speed_10m", "temperature", "Month"]]
+	preds = xgb_loaded.predict(forecast_dataset.values)
+
+	# Rounding each value in the list to the third decimal
+	rounded_values = [round(value, 3) for value in preds]
+
+	#Exporting Results to Excel
+	workbook = xlsxwriter.Workbook("./Market Fundamentals/Wind_Production_Forecast/Wind_Forecast_Production_15min.xlsx")
+	worksheet = workbook.add_worksheet("Production_Predictions")
+	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
+	# Define a format for cells with three decimal places
+	decimal_format = workbook.add_format({'num_format': '0.000'})
+	row = 1
+	col = 0
+	worksheet.write(0,0,"Data")
+	worksheet.write(0,1,"Interval")
+	worksheet.write(0,2,"Prediction")
+
+	for value in rounded_values:
+	    worksheet.write(row, col + 2, value, decimal_format)
+	    row += 1
+	row = 1
+	for Data, Interval in zip(dataset.Data, dataset.Interval):
+	    worksheet.write(row, col + 0, Data, date_format)
+	    worksheet.write(row, col + 1, Interval)
+	    row += 1
+
+	workbook.close()
+	file_path = "./Market Fundamentals/Wind_Production_Forecast/Wind_Forecast_Production_15min.xlsx"
+	# Load the Excel file into a DataFrame
+	df = pd.read_excel(file_path)
+
+	# Ensure the 'Data' column is in datetime format
+	df["Data"] = pd.to_datetime(df["Data"])
+
+	# Create the 'Lookup' column by concatenating the 'Data' and 'Interval' columns
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df['Lookup'] = df["Data"].dt.strftime('%d.%m.%Y') + df["Interval"].astype(str)
+	df.to_excel(file_path, index=False)
+	return data
 #=================================================================================PZU Price Forecast=========================================================================================
 # Defining the function for forecasting
 def predicting_price_forecast():
@@ -1388,6 +1477,20 @@ def render_fundamentals_page():
 			b64 = base64.b64encode(excel_data).decode()
 			button_html = f"""
 				 <a download="Wind_Production.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
+				 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Wind Production Forecast</button>
+				 </a> 
+				 """
+			st.markdown(button_html, unsafe_allow_html=True)
+	if st.button("Forecast Wind Production Quarterly"):
+		fetching_Cogealac_data_15min()
+		predicting_wind_production_15min()
+		with open("./Market Fundamentals/Wind_Production_Forecast/Wind_Forecast_Production_15min.xlsx", "rb") as f:
+			excel_data = f.read()
+
+			# Create a download link
+			b64 = base64.b64encode(excel_data).decode()
+			button_html = f"""
+				 <a download="Wind_Production_15min.xlsx" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download>
 				 <button kind="secondary" data-testid="baseButton-secondary" class="st-emotion-cache-12tniow ef3psqc12">Download Wind Production Forecast</button>
 				 </a> 
 				 """
