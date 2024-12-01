@@ -2767,7 +2767,7 @@ def predicting_exporting_RES_15min(interval_from, interval_to, limitation_percen
 	rounded_values = [round(value, 3) for value in preds]
 	
 	#Exporting Results to Excel
-	workbook = xlsxwriter.Workbook("./RES Energy/Results_Production_RES_xgb_15min.xlsx")
+	workbook = xlsxwriter.Workbook("./RES Energy/Production/Results_Production_RES_xgb_15min.xlsx")
 	worksheet = workbook.add_worksheet("Production_Predictions")
 	date_format = workbook.add_format({'num_format':'dd.mm.yyyy'})
 	# Define a format for cells with three decimal places
@@ -2794,7 +2794,7 @@ def predicting_exporting_RES_15min(interval_from, interval_to, limitation_percen
 	workbook.close()
 	# Formatting the Results file
 	# Step 1: Open the Excel file
-	file_path = "./RES Energy/Results_Production_RES_xgb_15min.xlsx"
+	file_path = "./RES Energy/Production/Results_Production_RES_xgb_15min.xlsx"
 	workbook = load_workbook(filename=file_path)
 	worksheet = workbook['Production_Predictions']  # Adjust the sheet name as necessary
 
@@ -3309,7 +3309,7 @@ def render_production_forecast():
 			# Fetching the Solcast data
 			fetching_RES_data_15min()
 			st.dataframe(predicting_exporting_RES_15min(interval_to, interval_from, limitation_percentage))
-			file_path = './RES Energy/Results_Production_RES_xgb_15min.xlsx'
+			file_path = './RES Energy/Production/Results_Production_RES_xgb_15min.xlsx'
 			with open(file_path, "rb") as f:
 				excel_data = f.read()
 
@@ -3724,3 +3724,4 @@ def render_balancing_market_page():
 
 	''')
 	st.divider()
+	st.text('')

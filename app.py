@@ -13,8 +13,8 @@ from ml import render_forecast_page, render_balancing_market_page
 from assistant import render_assistant_page
 from fundamentals import render_fundamentals_page
 from balancing import render_balancing_market_intraday_page
+# from Balancing_Market_intraday_layout import render_balancing_market_intraday_page
 
-import streamlit as st
 
 #================================================CSS=================================
 st.markdown(

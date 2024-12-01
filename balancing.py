@@ -20,11 +20,12 @@ import base64
 from pathlib import Path
 from entsoe import EntsoePandasClient
 import xml.etree.ElementTree as ET
+from pytz import timezone
 
 # Importing from other pages
-from ml import fetching_Imperial_data, fetching_Astro_data, predicting_exporting_Astro, predicting_exporting_Imperial, fetching_Imperial_data_15min, fetching_Astro_data_15min, predicting_exporting_Astro_15min, predicting_exporting_Imperial_15min
+from ml import fetching_Imperial_data, fetching_Astro_data, predicting_exporting_Astro, predicting_exporting_Imperial, fetching_Imperial_data_15min, fetching_Astro_data_15min, predicting_exporting_Astro_15min, predicting_exporting_Imperial_15min, fetching_RES_data, fetching_RES_data_15min, predicting_exporting_RES, predicting_exporting_RES_15min
 from ml import uploading_onedrive_file, upload_file_with_retries, check_file_sync
-from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial
+from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial, render_indisponibility_db_RES_Energy
 
 #=====================================================================Data Engineering============================================================================================================
 api_key_entsoe = os.getenv("api_key_entsoe")
@@ -102,6 +103,82 @@ def activated_mFRR_energy(start, end):
 		st.error(f"Failed to retrieve data: HTTP Status {response.status_code}")
 
 	return response.text
+
+def get_afrr_activation(api_key, start_cet, end_cet, control_area='10YRO-TEL------P', business_type='A96'):
+    """
+    Fetches balancing energy data (aFRR or mFRR) from ENTSO-E API for a given time range and control area.
+    :param api_key: Your ENTSO-E API key.
+    :param start_cet: Start time in CET timezone as datetime object.
+    :param end_cet: End time in CET timezone as datetime object.
+    :param control_area: Control area EIC code (default is for Romania).
+    :param business_type: Business type for aFRR (A96) or mFRR (A95).
+    :return: DataFrame containing balancing energy data.
+    """
+    # Convert CET datetime to UTC in the required format
+    cet = timezone('CET')
+    utc = timezone('UTC')
+    start_utc = start_cet.astimezone(utc).strftime('%Y%m%d%H%M')
+    end_utc = end_cet.astimezone(utc).strftime('%Y%m%d%H%M')
+    
+    if len(start_utc) != 12 or len(end_utc) != 12:
+        raise ValueError("Start and End times must be in 'YYYYMMDDHHMM' format and 12 characters long.")
+    
+    url = (
+        f'https://web-api.tp.entsoe.eu/api?documentType=A83'
+        f'&businessType={business_type}'
+        f'&controlArea_Domain={control_area}'
+        f'&periodStart={start_utc}'
+        f'&periodEnd={end_utc}'
+    )
+    params = {
+        'securityToken': api_key
+    }
+    headers = {
+        'Content-Type': 'application/xml'
+    }
+    
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch data: {response.status_code}, {response.text}")
+    
+    # Parse XML response
+    root = ET.fromstring(response.content)
+    data = []
+    for time_series in root.findall(".//TimeSeries"):
+        product = time_series.find(".//product")
+        product_text = product.text if product is not None else "Unknown"
+        time_interval = time_series.find(".//timeInterval")
+        if time_interval is not None:
+            start_time = time_interval.find("start").text
+            end_time = time_interval.find("end").text
+        else:
+            start_time = None
+            end_time = None
+        
+        for point in time_series.findall(".//Point"):
+            position = point.find("position").text
+            quantity = point.find("quantity").text
+            if start_time:
+                start_dt = datetime.strptime(start_time, "%Y-%m-%dT%H:%MZ")
+                data.append({
+                    "Time Series": product_text,
+                    "Position": int(position),
+                    "Quantity": float(quantity),
+                    "Start Time": start_dt,
+                    "End Time": end_time
+                })
+    
+    if not data:
+        print("No data returned from the API.")
+        print("Response Content:")
+        print(response.content.decode('utf-8'))
+        # Extract any potential reasons or messages from the response
+        reason = root.find(".//Reason")
+        if reason is not None:
+            reason_text = reason.find("text").text if reason.find("text") is not None else "No detailed reason provided."
+            print(f"Reason: {reason_text}")
+    
+    return pd.DataFrame(data)
 
 # Defining the function to process the server response
 def creating_mFRR_dfs(data):
@@ -553,6 +630,7 @@ def render_balancing_market_intraday_page():
 		# uploading_onedrive_file(file_path, access_token)
 		access_token = upload_file_with_retries(file_path)
 		check_file_sync(file_path, access_token)
+
 		# Forecasting Imperial
 		# Updating the indisponibility, if any
 		result_Imperial = render_indisponibility_db_Imperial()
@@ -578,6 +656,33 @@ def render_balancing_market_intraday_page():
 		# uploading_onedrive_file(file_path, access_token)
 		access_token = upload_file_with_retries(file_path)
 		check_file_sync(file_path, access_token)
+
+		# Forecasting RES
+		# Updating the indisponibility, if any
+		result_RES = render_indisponibility_db_RES_Energy()
+		if result_RES[0] is not None:
+			interval_from, interval_to, limitation_percentage = result_RES
+		else:
+			# Handle the case where no data is found
+			# st.text("No indisponibility found for tomorrow")
+			# Fallback logic: Add your fallback actions here
+			# st.write("Running fallback logic because no indisponibility data is found.")
+			interval_from = 1
+			interval_to = 24
+			limitation_percentage = 0
+		fetching_RES_data()
+		fetching_RES_data_15min()
+		df = predicting_exporting_RES(interval_from, interval_to, limitation_percentage)
+		file_path = './RES Energy/Production/Results_Production_RES_xgb.xlsx'
+		# uploading_onedrive_file(file_path, access_token)
+		access_token = upload_file_with_retries(file_path)
+		check_file_sync(file_path, access_token)
+		st.dataframe(predicting_exporting_RES_15min(interval_to, interval_from, limitation_percentage))
+		file_path = './RES Energy/Production/Results_Production_RES_xgb_15min.xlsx'
+		# uploading_onedrive_file(file_path, access_token)
+		access_token = upload_file_with_retries(file_path)
+		check_file_sync(file_path, access_token)
+
 	st.markdown("<br>", unsafe_allow_html=True)
 	st.markdown("<br>", unsafe_allow_html=True)
 
@@ -731,21 +836,37 @@ def render_balancing_market_intraday_page():
 			# Apply the date format to the column with dates (assuming it's the first column)
 			worksheet.set_column(0, 0, None, date_format)  # Column 'A:A' if your dates are in the first column
 	
-	if st.button("Intraday Market Fundamentals"):
-		# Fetch load and forecast
-		load_and_forecast_df = load_and_forecast_load(start_cet, end_cet)
-		st.dataframe(load_and_forecast_df)
-		# Fetch the Wind and Solar Generation
-		wind_solar_generation_df = wind_solar_generation(start_cet, end_cet)
-		st.dataframe(wind_solar_generation_df)
-		# Creating the Intraday Dataframe
-		df_fundamentals = pd.merge(load_and_forecast_df, wind_solar_generation_df, on=['Timestamp'], how='left')
-		# Subtract one hour from the timestamps
-		df_fundamentals['Timestamp'] = df_fundamentals['Timestamp'] - pd.Timedelta(hours=1)
-		df_fundamentals['Timestamp'] = df_fundamentals['Timestamp'].dt.strftime('%Y-%m-%dT%H:%M:%S%z')
-		st.dataframe(df_fundamentals)
-		df_fundamentals['Timestamp'] = pd.to_datetime(df_fundamentals['Timestamp'])
-		st.dataframe(df_fundamentals)
+	if st.button("Balancing Market Monitoring"):
+		# Fetching the Imbalance volume and Prices
+		df_imbalance_prices = imbalance_prices(start_cet, end_cet)
+		df_imbalance_volumes = imbalance_volumes(start_cet, end_cet)
+		# Merge the DataFrames on their indices
+		df_imbalance = pd.merge(df_imbalance_prices, df_imbalance_volumes, left_index=True, right_index=True, how='inner')
+		# Assuming df_imbalance is your merged DataFrame
+		df_imbalance = df_imbalance.rename(columns={'Long': 'Excedent Price',
+													'Short': 'Deficit Price'})
+		st.dataframe(df_imbalance)
+		# Fetching the Activated mFRR capacities
+		# if (end_cet-start_cet).days > 1:
+		# 	st.text("Fetching data for more than one day")
+		# 	df_activated_energy = query_daily_mFRR(start_cet, end_cet)
+		# else:
+		# 	data = activated_mFRR_energy(start_cet, end_cet)
+		# 	df_activated_energy = creating_mFRR_dfs(data)
+
+		# # Fetch load and forecast
+		# load_and_forecast_df = load_and_forecast_load(start_cet, end_cet)
+		# st.dataframe(load_and_forecast_df)
+		# # Fetch the Wind and Solar Generation
+		# wind_solar_generation_df = wind_solar_generation(start_cet, end_cet)
+		# st.dataframe(wind_solar_generation_df)
+		# # Creating the Intraday Dataframe
+		# df_fundamentals = pd.merge(load_and_forecast_df, wind_solar_generation_df, on=['Timestamp'], how='left')
+		# # Subtract one hour from the timestamps
+		# df_fundamentals['Timestamp'] = df_fundamentals['Timestamp'] - pd.Timedelta(hours=1)
+		# df_fundamentals['Timestamp'] = df_fundamentals['Timestamp'].dt.strftime('%Y-%m-%dT%H:%M:%S%z')
+		# st.dataframe(df_fundamentals)
+		# df_fundamentals['Timestamp'] = pd.to_datetime(df_fundamentals['Timestamp'])
 		# scheduled_exchanges_RO_BG_df = scheduled_exchanges_RO_BG(start_cet, end_cet)
 		# scheduled_exchanges_BG_RO_df = scheduled_exchanges_BG_RO(start_cet, end_cet)
 		# # Creating the Intraday Dataframe
@@ -856,4 +977,4 @@ def render_balancing_market_intraday_page():
 
 		# st.dataframe(df_final)
 
-		st.dataframe(flows_crossborders(start_cet, end_cet))
+		# st.dataframe(flows_crossborders(start_cet, end_cet))
