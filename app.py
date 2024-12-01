@@ -10,7 +10,6 @@ import base64
 # Importing apps and pages
 from eda import render_eda_page
 from ml import render_forecast_page, render_balancing_market_page
-from assistant import render_assistant_page
 from fundamentals import render_fundamentals_page
 from balancing import render_balancing_market_intraday_page
 # from Balancing_Market_intraday_layout import render_balancing_market_intraday_page
@@ -337,7 +336,7 @@ def main():
 	# Use session state to set default value for sidebar radio
 	page = st.sidebar.radio(
 			"Select a page:",
-			options=["Home", "EDA", "Forecast", "Market Fundamentals", "Balancing Market", "Your AI BFF"],
+			options=["Home", "EDA", "Forecast", "Market Fundamentals", "Balancing Market"],
 			index=None,
 			key="page_select"
 	)
@@ -361,8 +360,6 @@ def main():
 		render_fundamentals_page()
 	elif st.session_state['page'] == "EDA":
 		render_eda_page()
-	elif st.session_state['page'] == "Your AI BFF":
-		render_assistant_page()
 
 if __name__ == "__main__":
 		main()
