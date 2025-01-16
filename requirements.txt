@@ -18,3 +18,4 @@ xlrd
 psycopg2-binary
 msal
 pytest
+dill
