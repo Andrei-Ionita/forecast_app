@@ -231,3 +231,6 @@ def render_indisponibility_db_Imperial():
 
 def render_indisponibility_db_RES_Energy():
     return render_indisponibility_db("indisponibility_res", "RES Energy")
+
+def render_indisponibility_db_Luxus():
+    return render_indisponibility_db("indisponibility_luxus", "Luxus")
