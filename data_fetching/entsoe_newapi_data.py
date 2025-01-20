@@ -11,7 +11,7 @@ import wapi
 import joblib
 import xlsxwriter
 import matplotlib.pyplot as plt
-import plotly.express as px
+# import plotly.express as px
 
 # Load environment variables for ENTSO-E API key
 load_dotenv()
