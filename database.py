@@ -234,3 +234,6 @@ def render_indisponibility_db_RES_Energy():
 
 def render_indisponibility_db_Luxus():
     return render_indisponibility_db("indisponibility_luxus", "Luxus")
+
+def render_indisponibility_db_Kek_Hal():
+    return render_indisponibility_db("indisponibility_luxus", "Kek_Hal")
