@@ -1626,7 +1626,7 @@ def fetching_Kek_Hal_data():
 		print(response.text)  # Add this line to see the error message returned by the API
 		raise Exception(f"Failed to fetch data: Status code {response.status_code}")
 	# Adjusting the values to EET time
-	data = pd.read_csv("./Kek_Hal/Solcast/harghita_raw.csv")
+	data = pd.read_csv("./Kek_Hal/Solcast/Harghita_raw.csv")
 
 	# Assuming 'period_end' is the column to keep fixed and all other columns are to be shifted
 	columns_to_shift = data.columns.difference(['period_end'])
