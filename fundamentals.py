@@ -15,6 +15,7 @@ import base64
 import zipfile
 import joblib
 import xlsxwriter
+from datetime import date
 
 # ================================================================================VOLUE data==================================================================================
 
@@ -28,13 +29,13 @@ issue_date_str = issue_date.strftime('%Y-%m-%dT%H:%M')
 print(issue_date_str)
 
 def get_issue_date():
-    issue_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    print(issue_date)
-    # Format the date as a string in the desired format
-    issue_date_str = issue_date.isoformat()
-    issue_date_str = issue_date.strftime('%Y-%m-%dT%H:%M')
-    print(issue_date_str)
-    return issue_date_str, issue_date
+	issue_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+	print(issue_date)
+	# Format the date as a string in the desired format
+	issue_date_str = issue_date.isoformat()
+	issue_date_str = issue_date.strftime('%Y-%m-%dT%H:%M')
+	print(issue_date_str)
+	return issue_date_str, issue_date
 
 # Fetching the token and store it's expiring timestamp
 load_dotenv()
@@ -619,6 +620,1527 @@ def zip_files(folder_path, zip_name):
 api_key_entsoe = os.getenv("api_key_entsoe")
 client = EntsoePandasClient(api_key=api_key_entsoe)
 
+
+# ===========================Imbalance Volumes and Prices================================================================
+
+# Function to fetch imbalance volumes for the intraday scenario
+def fetching_imbalance_volumes(start_date, end_date):
+	# Setting up the start and end dates (today and tomorrow)
+	today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+	start_cet = pd.Timestamp(start_date.strftime('%Y%m%d') + '0000', tz='Europe/Budapest') + timedelta(hours=-1)
+	end_cet = pd.Timestamp((end_date + timedelta(days=1)).strftime('%Y%m%d') + '0000', tz='Europe/Budapest')
+
+	# Format the start and end dates to match the API requirements (yyyymmddhhmm)
+	period_start = start_cet.strftime('%Y%m%d%H%M')
+	period_end = end_cet.strftime('%Y%m%d%H%M')
+
+	# Define the endpoint and parameters for fetching imbalance volumes via ENTSO-E API
+	url = "https://web-api.tp.entsoe.eu/api"
+
+	# Parameters for the API request
+	params = {
+		"securityToken": api_key_entsoe,
+		"documentType": "A86",  # Document type for total imbalance volumes
+		"controlArea_Domain": "10YRO-TEL------P",  # Romania's area EIC code
+		"periodStart": period_start,  # Start date in yyyymmddhhmm format
+		"periodEnd": period_end,  # End date in yyyymmddhhmm format
+	}
+
+	# Headers for the API request
+	headers = {
+		"Content-Type": "application/xml",
+		"Accept": "application/xml",
+	}
+
+	# Make the request to the ENTSO-E API
+	try:
+		response = requests.get(url, params=params, headers=headers)
+		response.raise_for_status()  # Raise an error for bad status codes
+
+		# Save the response content to a file
+		with open("./data_fetching/Entsoe/entsoe_response.zip", "wb") as f:
+			f.write(response.content)
+
+		print("File saved as entsoe_response.zip")
+
+	except requests.exceptions.RequestException as e:
+		print(f"An error occurred: {e}")
+
+# Define namespaces (try without namespaces if it doesn't match)
+namespaces = {'ns': 'urn:iec62325.351:tc57wg16:451-6:balancingdocument:3:0'}
+
+# Fetch and process imbalance volumes data from the existing zip file
+def process_imbalance_volumes(start_date, end_date, zip_filepath='./data_fetching/Entsoe/entsoe_response.zip'):
+	"""
+	Process imbalance volume data from the given zip file and return a DataFrame
+	for the specified date range (start_date to end_date).
+	"""
+	# Extract the .zip file to access the XML content
+	with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
+		extracted_files = zip_ref.namelist()
+		xml_filename = extracted_files[0]  # Assuming there's only one file in the .zip
+		zip_ref.extract(xml_filename)
+
+	# Parse the XML content
+	tree = ET.parse(xml_filename)
+	root = tree.getroot()
+
+	# Extract the namespace dynamically
+	ns_match = root.tag[root.tag.find("{"):root.tag.find("}")+1]
+	namespaces = {'ns': ns_match.strip("{}")} if ns_match else {}
+
+	# Initialize lists to store parsed data
+	timestamps_utc = []
+	volumes = []
+
+	# Iterate over all TimeSeries elements
+	for timeseries in root.findall('ns:TimeSeries', namespaces):
+		flow_direction_tag = timeseries.find('ns:flowDirection.direction', namespaces)
+		if flow_direction_tag is not None:
+			flow_direction = flow_direction_tag.text
+		else:
+			continue  # Skip this timeseries if no flow direction is found
+
+		# Determine if the series is a deficit or an excedent based on flow direction
+		direction_sign = -1 if flow_direction == 'A02' else (1 if flow_direction == 'A01' else None)
+		if direction_sign is None:
+			continue
+
+		for period in timeseries.findall('ns:Period', namespaces):
+			start = period.find('ns:timeInterval/ns:start', namespaces)
+			if start is None:
+				continue
+
+			start_time_utc = datetime.strptime(start.text, '%Y-%m-%dT%H:%MZ')  # Start time is in UTC
+
+			for point in period.findall('ns:Point', namespaces):
+				position_tag = point.find('ns:position', namespaces)
+				quantity_tag = point.find('ns:quantity', namespaces)
+
+				if position_tag is None or quantity_tag is None:
+					continue
+
+				try:
+					position = int(position_tag.text)
+					quantity = float(quantity_tag.text) * direction_sign
+				except ValueError as e:
+					print(f"Error converting position or quantity: {e}, skipping.")
+					continue
+
+				point_time_utc = start_time_utc + timedelta(minutes=15 * (position - 1))
+				timestamps_utc.append(point_time_utc)
+				volumes.append(quantity)
+
+	# Create DataFrame from parsed data
+	df_imbalance = pd.DataFrame({
+		'Timestamp': timestamps_utc,
+		'Imbalance Volume': volumes
+	})
+
+	if df_imbalance.empty:
+		print("DataFrame is empty after parsing XML. No data to process.")
+		return df_imbalance
+
+	# Convert UTC timestamps to CET
+	df_imbalance['Timestamp'] = pd.to_datetime(df_imbalance['Timestamp']).dt.tz_localize('UTC').dt.tz_convert('Europe/Berlin')
+
+	# Filter by user-provided date range
+	if start_date and end_date:
+		start_cet = pd.Timestamp(start_date.strftime('%Y-%m-%dT00:00:00'), tz='Europe/Berlin')
+		end_cet = pd.Timestamp(end_date.strftime('%Y-%m-%dT23:45:00'), tz='Europe/Berlin')
+		df_imbalance = df_imbalance[(df_imbalance['Timestamp'] >= start_cet) & (df_imbalance['Timestamp'] <= end_cet)]
+
+	# Ensure all timestamps are covered for the range
+	full_index_cet = pd.date_range(start=start_cet, end=end_cet, freq='15T', tz='Europe/Berlin')
+	df_full = pd.DataFrame({'Timestamp': full_index_cet}).set_index('Timestamp')
+
+	# Merge actual data with the full index, keeping original values intact
+	df_imbalance = df_full.merge(df_imbalance.set_index('Timestamp'), how='left', left_index=True, right_index=True)
+	df_imbalance.fillna(0, inplace=True)  # Fill missing values with 0
+
+	# Reset index to return a clean DataFrame
+	df_imbalance.reset_index(inplace=True)
+
+	# Clean up: remove the extracted file after processing
+	os.remove(xml_filename)
+
+	return df_imbalance
+
+
+def fetch_imbalance_prices(start_date, end_date):
+	# Setting up the start and end dates (today and tomorrow)
+	today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+	start_cet = pd.Timestamp(start_date.strftime('%Y%m%d') + '0000', tz='Europe/Budapest') + timedelta(hours=-1)
+	end_cet = pd.Timestamp((end_date + timedelta(days=1)).strftime('%Y%m%d') + '0000', tz='Europe/Budapest')
+
+	# Define the endpoint and parameters for fetching imbalance prices via ENTSO-E API
+	url = "https://web-api.tp.entsoe.eu/api"
+
+	# Parameters for the API request
+	params = {
+		"securityToken": api_key_entsoe,
+		"documentType": "A85",  # Document type for imbalance prices
+		"controlArea_Domain": "10YRO-TEL------P",  # Romania's area EIC code
+		"periodStart": start_cet.strftime('%Y%m%d%H%M'),  # Start date in yyyymmddhhmm format
+		"periodEnd": end_cet.strftime('%Y%m%d%H%M'),  # End date in yyyymmddhhmm format
+	}
+
+	# Headers for the API request
+	headers = {
+		"Content-Type": "application/xml",
+		"Accept": "application/xml",
+	}
+
+	# Make the request to the ENTSO-E API
+	try:
+		response = requests.get(url, params=params, headers=headers)
+		response.raise_for_status()  # Raise an error for bad status codes
+
+		# Save the response content to a file
+		with open("./data_fetching/Entsoe/imbalance_prices_response.zip", "wb") as f:
+			f.write(response.content)
+
+		print("File saved as imbalance_prices_response.zip")
+
+	except requests.exceptions.RequestException as e:
+		print(f"An error occurred: {e}")
+
+def process_imbalance_prices(start_date, end_date, zip_filepath='./data_fetching/Entsoe/imbalance_prices_response.zip'):
+	"""
+	Process imbalance price data from the given zip file for the specified date range.
+	"""
+	# Extract the .zip file to access the XML content
+	with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
+		extracted_files = zip_ref.namelist()
+		xml_filename = extracted_files[0]  # Assuming there's only one file in the .zip
+		zip_ref.extract(xml_filename)
+
+	# Parse the XML content
+	tree = ET.parse(xml_filename)
+	root = tree.getroot()
+
+	# Extract the namespace dynamically if needed
+	ns_match = root.tag[root.tag.find("{"):root.tag.find("}")+1]
+	namespaces = {'ns': ns_match.strip("{}")} if ns_match else {}
+	print(f"Using namespace: {namespaces}")
+
+	# Dictionary to store data by timestamp
+	data_dict = {}
+
+	# Iterate over all TimeSeries elements
+	for timeseries in root.findall('ns:TimeSeries', namespaces):
+		# Extract Business Type
+		business_type_tag = timeseries.find('ns:businessType', namespaces)
+
+		if business_type_tag is None or business_type_tag.text != "A19":
+			continue  # Skip if business type is not "A19" (imbalance prices)
+
+		# Iterate over all Period elements within each TimeSeries
+		for period in timeseries.findall('ns:Period', namespaces):
+			start = period.find('ns:timeInterval/ns:start', namespaces)
+
+			if start is None:
+				continue
+
+			start_time_utc = datetime.strptime(start.text, '%Y-%m-%dT%H:%MZ')  # Start time is in UTC
+
+			# Iterate over all Point elements within each Period
+			for point in period.findall('ns:Point', namespaces):
+				position_tag = point.find('ns:position', namespaces)
+				price_tag = point.find('ns:imbalance_Price.amount', namespaces)
+				category_tag = point.find('ns:imbalance_Price.category', namespaces)
+
+				# Skip if required fields are missing
+				if position_tag is None or price_tag is None or category_tag is None:
+					continue
+
+				try:
+					position = int(position_tag.text)
+					price = float(price_tag.text)
+					category = category_tag.text
+				except ValueError:
+					continue  # Skip if conversion fails
+
+				# Calculate timestamp for the point based on position in UTC
+				point_time_utc = start_time_utc + timedelta(minutes=15 * (position - 1))
+
+				# Initialize a dictionary entry for the timestamp if not already present
+				if point_time_utc not in data_dict:
+					data_dict[point_time_utc] = {'Excedent Price': None, 'Deficit Price': None}
+
+				# Assign the price to the appropriate category
+				if category == 'A04':  # Excedent Price
+					data_dict[point_time_utc]['Excedent Price'] = price
+				elif category == 'A05':  # Deficit Price
+					data_dict[point_time_utc]['Deficit Price'] = price
+
+	# Convert dictionary to DataFrame
+	df_prices = pd.DataFrame.from_dict(data_dict, orient='index').reset_index()
+	df_prices.rename(columns={'index': 'Timestamp_UTC'}, inplace=True)
+
+	# Drop duplicate timestamps to avoid issues with reindexing
+	df_prices['Timestamp_UTC'] = pd.to_datetime(df_prices['Timestamp_UTC'])
+	df_prices = df_prices.drop_duplicates(subset='Timestamp_UTC', keep='first')
+
+	# Check if DataFrame is empty before further processing
+	if df_prices.empty:
+		print("DataFrame is empty after parsing XML. No data to process.")
+		return df_prices
+
+	# Convert the UTC timestamps to CET (Europe/Berlin, which handles DST)
+	df_prices['Timestamp_CET'] = df_prices['Timestamp_UTC'].dt.tz_localize('UTC').dt.tz_convert('Europe/Berlin')
+
+	# Remove the UTC column and rename CET to Timestamp for simplicity
+	df_prices.drop(columns=['Timestamp_UTC'], inplace=True)
+	df_prices.rename(columns={'Timestamp_CET': 'Timestamp'}, inplace=True)
+
+	# Filter by user-provided date range
+	start_cet = pd.Timestamp(start_date.strftime('%Y-%m-%dT00:00:00'), tz='Europe/Berlin')
+	end_cet = pd.Timestamp(end_date.strftime('%Y-%m-%dT23:45:00'), tz='Europe/Berlin')
+	df_prices = df_prices[(df_prices['Timestamp'] >= start_cet) & (df_prices['Timestamp'] <= end_cet)]
+
+	# Ensure all timestamps are covered for the range (15-min intervals)
+	full_index_cet = pd.date_range(start=start_cet, end=end_cet, freq='15T', tz='Europe/Berlin')
+	df_full = pd.DataFrame({'Timestamp': full_index_cet}).set_index('Timestamp')
+
+	# Merge actual data with the full index, keeping original values intact
+	df_prices = df_full.merge(df_prices.set_index('Timestamp'), how='left', left_index=True, right_index=True)
+	df_prices.fillna(0, inplace=True)  # Fill missing values with 0
+
+	# Reset index to return a clean DataFrame
+	df_prices.reset_index(inplace=True)
+
+	# Clean up: remove the extracted file after processing
+	os.remove(xml_filename)
+
+	return df_prices
+
+def create_combined_imbalance_dataframe(df_prices, df_volumes):
+	"""
+	This function combines the imbalance prices and volumes into a single DataFrame.
+	
+	Parameters:
+	df_prices (DataFrame): DataFrame containing timestamps, Excedent Price, and Deficit Price.
+	df_volumes (DataFrame): DataFrame containing timestamps and Imbalance Volume.
+
+	Returns:
+	DataFrame: Combined DataFrame with Timestamp, Excedent Price, Deficit Price, and Imbalance Volume.
+	"""
+	# Merge prices and volumes on the Timestamp column using an outer join to ensure all data is included.
+	df_combined = pd.merge(df_prices, df_volumes, on='Timestamp', how='outer')
+
+	# Sort the combined DataFrame by Timestamp to keep it in chronological order.
+	df_combined = df_combined.sort_values(by='Timestamp')
+
+	# Fill any missing values with 0.0 to ensure consistency in analysis.
+	df_combined.fillna(0.0, inplace=True)
+
+	# Saving the data to the folder
+	df_combined_excel = df_combined.copy()
+	df_combined_excel["Timestamp"] = df_combined_excel["Timestamp"].dt.tz_localize(None)
+	# Add a "Quarter" column based on the Timestamp column
+	df_combined_excel['Quarter'] = (df_combined_excel.index % 96) + 1
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df_combined_excel['Lookup'] = df_combined_excel["Timestamp"].dt.strftime('%d.%m.%Y') + df_combined_excel["Quarter"].astype(str)
+	df_combined_excel.to_excel("./data_fetching/Entsoe/Imbalance_Historical.xlsx", index=False)
+
+	return df_combined
+
+# ===========================Actual and Notified Wind Production================================================================
+
+def fetch_process_wind_notified(start_date, end_date):
+	"""
+	Fetch and process wind notified production data from ENTSO-E API for a given date range.
+	"""
+	# Convert start_date and end_date to CET timestamps
+	start_cet = pd.Timestamp(start_date.strftime('%Y%m%d') + '0000', tz='Europe/Budapest') + timedelta(hours=-1)
+	end_cet = pd.Timestamp((end_date + timedelta(days=1)).strftime('%Y%m%d') + '0000', tz='Europe/Budapest')
+
+	# Format the start and end dates to match the API requirements (yyyymmddhhmm)
+	period_start = start_cet.strftime('%Y%m%d%H%M')
+	period_end = end_cet.strftime('%Y%m%d%H%M')
+
+	url = "https://web-api.tp.entsoe.eu/api"
+
+	params = {
+		"securityToken": api_key_entsoe,
+		"documentType": "A69",  # Document type for wind and solar generation forecast
+		"processType": "A18",   # A18 represents Intraday forecast
+		"in_Domain": "10YRO-TEL------P",  # EIC code for the desired country/region
+		"periodStart": period_start,
+		"periodEnd": period_end,
+		"PsrType": "B19"  # B19 corresponds to Wind Onshore
+	}
+
+	headers = {
+		"Content-Type": "application/xml",
+		"Accept": "application/xml",
+	}
+
+	try:
+		# Make the API request
+		response = requests.get(url, params=params, headers=headers)
+		response.raise_for_status()
+
+		# Parse the XML response
+		root = ET.fromstring(response.content)
+
+		# Extract namespace dynamically
+		ns_match = root.tag[root.tag.find("{"):root.tag.find("}")+1]
+		namespaces = {'ns': ns_match.strip("{}")} if ns_match else {}
+
+		# Initialize lists to store parsed data
+		timestamps_utc = []
+		quantities = []
+
+		# Iterate over TimeSeries to extract the points
+		for timeseries in root.findall('ns:TimeSeries', namespaces):
+			for period in timeseries.findall('ns:Period', namespaces):
+				start = period.find('ns:timeInterval/ns:start', namespaces)
+
+				if start is None:
+					continue
+
+				# Extract the start time and assume a 15-min resolution
+				start_time_utc = datetime.strptime(start.text, '%Y-%m-%dT%H:%MZ')  # Start time is in UTC
+
+				# Iterate over all Point elements within each Period
+				for point in period.findall('ns:Point', namespaces):
+					position_tag = point.find('ns:position', namespaces)
+					quantity_tag = point.find('ns:quantity', namespaces)
+
+					if position_tag is None or quantity_tag is None:
+						continue
+
+					try:
+						position = int(position_tag.text)
+						quantity = float(quantity_tag.text)
+					except ValueError:
+						continue
+
+					# Calculate timestamp for the point based on position in UTC
+					point_time_utc = start_time_utc + timedelta(minutes=15 * (position - 1))
+					timestamps_utc.append(point_time_utc)
+					quantities.append(quantity)
+
+		# Create DataFrame from the parsed data
+		df_notified_production = pd.DataFrame({
+			'Timestamp_UTC': timestamps_utc,
+			'Notified Production (MW)': quantities
+		})
+
+		# Convert UTC to CET
+		df_notified_production['Timestamp_UTC'] = pd.to_datetime(df_notified_production['Timestamp_UTC'])
+		df_notified_production['Timestamp_CET'] = df_notified_production['Timestamp_UTC'].dt.tz_localize('UTC').dt.tz_convert('Europe/Berlin')
+		df_notified_production.drop(columns=['Timestamp_UTC'], inplace=True)
+		df_notified_production.rename(columns={'Timestamp_CET': 'Timestamp'}, inplace=True)
+
+		# Filter by user-provided date range
+		start_cet = pd.Timestamp(start_date.strftime('%Y-%m-%dT00:00:00'), tz='Europe/Berlin')
+		end_cet = pd.Timestamp(end_date.strftime('%Y-%m-%dT23:45:00'), tz='Europe/Berlin')
+
+		# Create a complete index for 15-minute intervals
+		full_index_cet = pd.date_range(start=start_cet, end=end_cet, freq='15T', tz='Europe/Berlin')
+
+		# Merge actual data with the full index to ensure all intervals are covered
+		df_full = pd.DataFrame({'Timestamp': full_index_cet}).set_index('Timestamp')
+		df_notified_production = df_full.merge(
+			df_notified_production.set_index('Timestamp'),
+			how='left',
+			left_index=True,
+			right_index=True
+		)
+		df_notified_production.fillna(0, inplace=True)  # Replace missing values with 0
+		df_notified_production.reset_index(inplace=True)
+
+		# Write the DataFrame to Excel
+		df_notified_production_excel = df_notified_production.copy()
+		df_notified_production_excel['Timestamp'] = df_notified_production_excel['Timestamp'].dt.tz_localize(None)
+		df_notified_production_excel.to_excel("./data_fetching/Entsoe/Notified_Production_Wind.xlsx", index=False)
+
+		return df_notified_production
+
+	except requests.exceptions.RequestException as e:
+		print(f"An error occurred: {e}")
+		return pd.DataFrame()
+
+
+def fetch_process_wind_actual_production(start_date, end_date):
+	"""
+	Fetch and process actual wind production data from ENTSO-E API for a given date range.
+	"""
+	# Convert start_date and end_date to CET timestamps
+	start_cet = pd.Timestamp(start_date.strftime('%Y%m%d') + '0000', tz='Europe/Budapest') + timedelta(hours=-1)
+	end_cet = pd.Timestamp((end_date + timedelta(days=1)).strftime('%Y%m%d') + '0000', tz='Europe/Budapest')
+
+	# Format the start and end dates to match the API requirements (yyyymmddhhmm)
+	period_start = start_cet.strftime('%Y%m%d%H%M')
+	period_end = end_cet.strftime('%Y%m%d%H%M')
+
+	url = "https://web-api.tp.entsoe.eu/api"
+
+	params = {
+		"securityToken": api_key_entsoe,  # Replace with your actual API key
+		"documentType": "A75",  # Document type for actual generation per type (all production types)
+		"processType": "A16",   # A16 represents Realized generation
+		"in_Domain": "10YRO-TEL------P",  # EIC code for the desired country/region (Romania in this case)
+		"periodStart": period_start,
+		"periodEnd": period_end,
+		"PsrType": "B19"  # B19 corresponds to Wind Onshore
+	}
+
+	headers = {
+		"Content-Type": "application/xml",
+		"Accept": "application/xml",
+	}
+
+	try:
+		# Make the API request
+		response = requests.get(url, params=params, headers=headers)
+		response.raise_for_status()
+
+		# Parse the XML response
+		root = ET.fromstring(response.content)
+
+		# Extract namespace dynamically
+		ns_match = root.tag[root.tag.find("{"):root.tag.find("}")+1]
+		namespaces = {'ns': ns_match.strip("{}")} if ns_match else {}
+
+		# Initialize lists to store parsed data
+		timestamps_utc = []
+		quantities = []
+
+		# Iterate over TimeSeries to extract the points
+		for timeseries in root.findall('ns:TimeSeries', namespaces):
+			for period in timeseries.findall('ns:Period', namespaces):
+				start = period.find('ns:timeInterval/ns:start', namespaces)
+				resolution = period.find('ns:resolution', namespaces)
+
+				if start is None or resolution is None:
+					continue
+
+				# Extract the start time and resolution
+				start_time_utc = datetime.strptime(start.text, '%Y-%m-%dT%H:%MZ')  # Start time is in UTC
+
+				# Iterate over all Point elements within each Period
+				for point in period.findall('ns:Point', namespaces):
+					position_tag = point.find('ns:position', namespaces)
+					quantity_tag = point.find('ns:quantity', namespaces)
+
+					if position_tag is None or quantity_tag is None:
+						continue
+
+					try:
+						position = int(position_tag.text)
+						quantity = float(quantity_tag.text)
+					except ValueError:
+						continue
+
+					# Calculate timestamp for the point based on position in UTC
+					point_time_utc = start_time_utc + timedelta(minutes=15 * (position - 1))
+					timestamps_utc.append(point_time_utc)
+					quantities.append(quantity)
+
+		# Create DataFrame from the parsed data
+		df_actual_production = pd.DataFrame({
+			'Timestamp_UTC': timestamps_utc,
+			'Actual Production (MW)': quantities
+		})
+
+		# Convert UTC to CET
+		df_actual_production['Timestamp_UTC'] = pd.to_datetime(df_actual_production['Timestamp_UTC'])
+		df_actual_production['Timestamp_CET'] = df_actual_production['Timestamp_UTC'].dt.tz_localize('UTC').dt.tz_convert('Europe/Berlin')
+		df_actual_production.drop(columns=['Timestamp_UTC'], inplace=True)
+		df_actual_production.rename(columns={'Timestamp_CET': 'Timestamp'}, inplace=True)
+
+		# Filter by user-provided date range
+		start_cet = pd.Timestamp(start_date.strftime('%Y-%m-%dT00:00:00'), tz='Europe/Berlin')
+		end_cet = pd.Timestamp(end_date.strftime('%Y-%m-%dT23:45:00'), tz='Europe/Berlin')
+
+		# Create a complete index for 15-minute intervals
+		full_index_cet = pd.date_range(start=start_cet, end=end_cet, freq='15T', tz='Europe/Berlin')
+
+		# Merge actual data with the full index to ensure all intervals are covered
+		df_full = pd.DataFrame({'Timestamp': full_index_cet}).set_index('Timestamp')
+		df_actual_production = df_full.merge(
+			df_actual_production.set_index('Timestamp'),
+			how='left',
+			left_index=True,
+			right_index=True
+		)
+		df_actual_production.fillna(0, inplace=True)  # Replace missing values with 0
+		df_actual_production.reset_index(inplace=True)
+
+		# Write the DataFrame to Excel
+		df_actual_production_excel = df_actual_production.copy()
+		df_actual_production_excel['Timestamp'] = df_actual_production_excel['Timestamp'].dt.tz_localize(None)
+		df_actual_production_excel.to_excel("./data_fetching/Entsoe/Actual_Production_Wind.xlsx", index=False)
+
+		return df_actual_production
+
+	except requests.exceptions.RequestException as e:
+		print(f"An error occurred: {e}")
+		return pd.DataFrame()
+
+def combine_wind_production_data(df_notified, df_actual):
+	# Step 1: Sort and align the wind notified and actual production DataFrames
+	df_notified = df_notified.sort_values(by='Timestamp').set_index('Timestamp')
+	df_actual = df_actual.sort_values(by='Timestamp').set_index('Timestamp')
+	
+	# Step 2: Concatenate the notified and actual data based on Timestamp
+	df_combined = pd.concat([df_notified, df_actual], axis=1)
+
+	# Step 3: Reset index to make Timestamp a column again
+	df_combined.reset_index(inplace=True)
+	
+	# Step 4: Rename the columns for better readability
+	df_combined.columns = ['Timestamp', 'Notified Production (MW)', 'Actual Production (MW)']
+
+	# Step 5: Add the volue forecast to the combined dataframe by aligning timestamps
+	# df_forecast = df_forecast.sort_values(by='Timestamp').set_index('Timestamp')
+
+	# Aligning the forecast data based on the timestamps in the combined dataframe
+	# df_combined = df_combined.set_index('Timestamp')
+	# df_combined['Volue Forecast (MW)'] = df_forecast['Volue Forecast (MW)']
+	# df_combined.reset_index(inplace=True)
+
+	# # Step 6: Fill any missing values if required (e.g., with 0 or 'NaN')
+	# df_combined.fillna(method='ffill', inplace=True)  # Forward fill any missing values if necessary
+
+	# Saving the data to the folder
+	df_combined_excel = df_combined.copy()
+	df_combined_excel["Timestamp"] = df_combined_excel["Timestamp"].dt.tz_localize(None)
+	# Add a "Quarter" column based on the Timestamp column
+	df_combined_excel['Quarter'] = (df_combined_excel.index % 96) + 1
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df_combined_excel['Lookup'] = df_combined_excel["Timestamp"].dt.strftime('%d.%m.%Y') + df_combined_excel["Quarter"].astype(str)
+	df_combined_excel.to_excel("./data_fetching/Entsoe/Wind_Production_Historical.xlsx", index=False)
+
+	return df_combined
+
+# ===========================Actual and Notified Solar Production================================================================
+
+def fetch_process_solar_notified(start_date, end_date):
+	"""
+	Fetch and process solar notified production data from ENTSO-E API for a given date range.
+	"""
+	# Convert start_date and end_date to CET timestamps
+	start_cet = pd.Timestamp(start_date.strftime('%Y%m%d') + '0000', tz='Europe/Budapest') + timedelta(hours=-1)
+	end_cet = pd.Timestamp((end_date + timedelta(days=1)).strftime('%Y%m%d') + '0000', tz='Europe/Budapest')
+
+	# Format the start and end dates to match the API requirements (yyyymmddhhmm)
+	period_start = start_cet.strftime('%Y%m%d%H%M')
+	period_end = end_cet.strftime('%Y%m%d%H%M')
+
+	url = "https://web-api.tp.entsoe.eu/api"
+
+	params = {
+		"securityToken": api_key_entsoe,
+		"documentType": "A69",  # Document type for wind and solar generation forecast
+		"processType": "A18",   # A18 represents Intraday forecast
+		"in_Domain": "10YRO-TEL------P",  # EIC code for the desired country/region
+		"periodStart": period_start,
+		"periodEnd": period_end,
+		"PsrType": "B16"  # B16 corresponds to Solar
+	}
+
+	headers = {
+		"Content-Type": "application/xml",
+		"Accept": "application/xml",
+	}
+
+	try:
+		# Make the API request
+		response = requests.get(url, params=params, headers=headers)
+		response.raise_for_status()
+
+		# Parse the XML response
+		root = ET.fromstring(response.content)
+
+		# Extract namespace dynamically
+		ns_match = root.tag[root.tag.find("{"):root.tag.find("}")+1]
+		namespaces = {'ns': ns_match.strip("{}")} if ns_match else {}
+
+		# Initialize lists to store parsed data
+		timestamps_utc = []
+		quantities = []
+
+		# Iterate over TimeSeries to extract the points
+		for timeseries in root.findall('ns:TimeSeries', namespaces):
+			for period in timeseries.findall('ns:Period', namespaces):
+				start = period.find('ns:timeInterval/ns:start', namespaces)
+
+				if start is None:
+					continue
+
+				# Extract the start time and assume a 15-min resolution
+				start_time_utc = datetime.strptime(start.text, '%Y-%m-%dT%H:%MZ')  # Start time is in UTC
+
+				# Iterate over all Point elements within each Period
+				for point in period.findall('ns:Point', namespaces):
+					position_tag = point.find('ns:position', namespaces)
+					quantity_tag = point.find('ns:quantity', namespaces)
+
+					if position_tag is None or quantity_tag is None:
+						continue
+
+					try:
+						position = int(position_tag.text)
+						quantity = float(quantity_tag.text)
+					except ValueError:
+						continue
+
+					# Calculate timestamp for the point based on position in UTC
+					point_time_utc = start_time_utc + timedelta(minutes=15 * (position - 1))
+					timestamps_utc.append(point_time_utc)
+					quantities.append(quantity)
+
+		# Create DataFrame from the parsed data
+		df_notified_production = pd.DataFrame({
+			'Timestamp_UTC': timestamps_utc,
+			'Notified Production (MW)': quantities
+		})
+
+		# Convert UTC to CET
+		df_notified_production['Timestamp_UTC'] = pd.to_datetime(df_notified_production['Timestamp_UTC'])
+		df_notified_production['Timestamp_CET'] = df_notified_production['Timestamp_UTC'].dt.tz_localize('UTC').dt.tz_convert('Europe/Berlin')
+		df_notified_production.drop(columns=['Timestamp_UTC'], inplace=True)
+		df_notified_production.rename(columns={'Timestamp_CET': 'Timestamp'}, inplace=True)
+
+		# Filter by user-provided date range
+		start_cet = pd.Timestamp(start_date.strftime('%Y-%m-%dT00:00:00'), tz='Europe/Berlin')
+		end_cet = pd.Timestamp(end_date.strftime('%Y-%m-%dT23:45:00'), tz='Europe/Berlin')
+
+		# Create a complete index for 15-minute intervals
+		full_index_cet = pd.date_range(start=start_cet, end=end_cet, freq='15T', tz='Europe/Berlin')
+
+		# Merge actual data with the full index to ensure all intervals are covered
+		df_full = pd.DataFrame({'Timestamp': full_index_cet}).set_index('Timestamp')
+		df_notified_production = df_full.merge(
+			df_notified_production.set_index('Timestamp'),
+			how='left',
+			left_index=True,
+			right_index=True
+		)
+		df_notified_production.fillna(0, inplace=True)  # Replace missing values with 0
+		df_notified_production.reset_index(inplace=True)
+
+		# Write the DataFrame to Excel
+		df_notified_production_excel = df_notified_production.copy()
+		df_notified_production_excel['Timestamp'] = df_notified_production_excel['Timestamp'].dt.tz_localize(None)
+		df_notified_production_excel.to_excel("./data_fetching/Entsoe/Notified_Production_Solar.xlsx", index=False)
+
+		return df_notified_production
+
+	except requests.exceptions.RequestException as e:
+		print(f"An error occurred: {e}")
+		return pd.DataFrame()
+
+def fetch_process_solar_actual_production(start_date, end_date):
+	"""
+	Fetch and process solar actual production data from ENTSO-E API for a given date range.
+	"""
+	# Convert start_date and end_date to CET timestamps
+	start_cet = pd.Timestamp(start_date.strftime('%Y%m%d') + '0000', tz='Europe/Budapest') + timedelta(hours=-1)
+	end_cet = pd.Timestamp((end_date + timedelta(days=1)).strftime('%Y%m%d') + '0000', tz='Europe/Budapest')
+
+	# Format the start and end dates to match the API requirements (yyyymmddhhmm)
+	period_start = start_cet.strftime('%Y%m%d%H%M')
+	period_end = end_cet.strftime('%Y%m%d%H%M')
+
+	url = "https://web-api.tp.entsoe.eu/api"
+
+	params = {
+		"securityToken": api_key_entsoe,  # Replace with your actual API key
+		"documentType": "A75",  # Document type for actual generation per type (all production types)
+		"processType": "A16",   # A16 represents Realized generation
+		"in_Domain": "10YRO-TEL------P",  # EIC code for the desired country/region (Romania in this case)
+		"periodStart": period_start,
+		"periodEnd": period_end,
+		"PsrType": "B16"  # B16 corresponds to Solar
+	}
+
+	headers = {
+		"Content-Type": "application/xml",
+		"Accept": "application/xml",
+	}
+
+	try:
+		# Make the API request
+		response = requests.get(url, params=params, headers=headers)
+		response.raise_for_status()
+
+		# Parse the XML response
+		root = ET.fromstring(response.content)
+
+		# Extract namespace dynamically
+		ns_match = root.tag[root.tag.find("{"):root.tag.find("}")+1]
+		namespaces = {'ns': ns_match.strip("{}")} if ns_match else {}
+
+		# Initialize lists to store parsed data
+		timestamps_utc = []
+		quantities = []
+
+		# Iterate over TimeSeries to extract the points
+		for timeseries in root.findall('ns:TimeSeries', namespaces):
+			for period in timeseries.findall('ns:Period', namespaces):
+				start = period.find('ns:timeInterval/ns:start', namespaces)
+				resolution = period.find('ns:resolution', namespaces)
+
+				if start is None or resolution is None:
+					continue
+
+				# Extract the start time and resolution
+				start_time_utc = datetime.strptime(start.text, '%Y-%m-%dT%H:%MZ')  # Start time is in UTC
+
+				# Iterate over all Point elements within each Period
+				for point in period.findall('ns:Point', namespaces):
+					position_tag = point.find('ns:position', namespaces)
+					quantity_tag = point.find('ns:quantity', namespaces)
+
+					if position_tag is None or quantity_tag is None:
+						continue
+
+					try:
+						position = int(position_tag.text)
+						quantity = float(quantity_tag.text)
+					except ValueError:
+						continue
+
+					# Calculate timestamp for the point based on position in UTC
+					point_time_utc = start_time_utc + timedelta(minutes=15 * (position - 1))
+					timestamps_utc.append(point_time_utc)
+					quantities.append(quantity)
+
+		# Create DataFrame from the parsed data
+		df_actual_production = pd.DataFrame({
+			'Timestamp_UTC': timestamps_utc,
+			'Actual Production (MW)': quantities
+		})
+
+		# Convert UTC to CET
+		df_actual_production['Timestamp_UTC'] = pd.to_datetime(df_actual_production['Timestamp_UTC'])
+		df_actual_production['Timestamp_CET'] = df_actual_production['Timestamp_UTC'].dt.tz_localize('UTC').dt.tz_convert('Europe/Berlin')
+		df_actual_production.drop(columns=['Timestamp_UTC'], inplace=True)
+		df_actual_production.rename(columns={'Timestamp_CET': 'Timestamp'}, inplace=True)
+
+		# Filter by user-provided date range
+		start_cet = pd.Timestamp(start_date.strftime('%Y-%m-%dT00:00:00'), tz='Europe/Berlin')
+		end_cet = pd.Timestamp(end_date.strftime('%Y-%m-%dT23:45:00'), tz='Europe/Berlin')
+
+		# Create a complete index for 15-minute intervals
+		full_index_cet = pd.date_range(start=start_cet, end=end_cet, freq='15T', tz='Europe/Berlin')
+
+		# Merge actual data with the full index to ensure all intervals are covered
+		df_full = pd.DataFrame({'Timestamp': full_index_cet}).set_index('Timestamp')
+		df_actual_production = df_full.merge(
+			df_actual_production.set_index('Timestamp'),
+			how='left',
+			left_index=True,
+			right_index=True
+		)
+		df_actual_production.fillna(0, inplace=True)  # Replace missing values with 0
+		df_actual_production.reset_index(inplace=True)
+
+		# Write the DataFrame to Excel
+		df_actual_production_excel = df_actual_production.copy()
+		df_actual_production_excel['Timestamp'] = df_actual_production_excel['Timestamp'].dt.tz_localize(None)
+		df_actual_production_excel.to_excel("./data_fetching/Entsoe/Actual_Production_Solar.xlsx", index=False)
+
+		return df_actual_production
+
+	except requests.exceptions.RequestException as e:
+		print(f"An error occurred: {e}")
+		return pd.DataFrame()
+
+def combine_solar_production_data(df_notified, df_actual):
+	# Step 1: Sort and align the wind notified and actual production DataFrames
+	df_notified = df_notified.sort_values(by='Timestamp').set_index('Timestamp')
+	df_actual = df_actual.sort_values(by='Timestamp').set_index('Timestamp')
+	
+	# Step 2: Concatenate the notified and actual data based on Timestamp
+	df_combined = pd.concat([df_notified, df_actual], axis=1)
+
+	# Step 3: Reset index to make Timestamp a column again
+	df_combined.reset_index(inplace=True)
+	
+	# Step 4: Rename the columns for better readability
+	df_combined.columns = ['Timestamp', 'Notified Production (MW)', 'Actual Production (MW)']
+
+	# Step 5: Add the volue forecast to the combined dataframe by aligning timestamps
+	# df_forecast = df_forecast.sort_values(by='Timestamp').set_index('Timestamp')
+
+	# Aligning the forecast data based on the timestamps in the combined dataframe
+	# df_combined = df_combined.set_index('Timestamp')
+	# df_combined['Volue Forecast (MW)'] = df_forecast['Volue Forecast (MW)']
+	# df_combined.reset_index(inplace=True)
+
+	# Step 6: Fill any missing values if required (e.g., with 0 or 'NaN')
+	# df_combined.fillna(method='ffill', inplace=True)  # Forward fill any missing values if necessary
+
+	# Saving the data to the folder
+	df_combined_excel = df_combined.copy()
+	# Remove timezone information from the 'Timestamp' column
+	df_combined_excel["Timestamp"] = df_combined_excel["Timestamp"].dt.tz_localize(None)
+	# Add a "Quarter" column based on the Timestamp column
+	df_combined_excel['Quarter'] = (df_combined_excel.index % 96) + 1
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df_combined_excel['Lookup'] = df_combined_excel["Timestamp"].dt.strftime('%d.%m.%Y') + df_combined_excel["Quarter"].astype(str)
+	df_combined_excel.to_excel("./data_fetching/Entsoe/Solar_Production_Historical.xlsx", index=False)
+
+	return df_combined
+
+# ===========================Actual and Notified Hydro Production================================================================
+
+def fetch_process_hydro_water_reservoir_actual_production(start_date, end_date):
+	"""
+	Fetch and process hydro water reservoir actual production data from ENTSO-E API for a given date range.
+	"""
+	# Convert start_date and end_date to CET timestamps
+	start_cet = pd.Timestamp(start_date.strftime('%Y%m%d') + '0000', tz='Europe/Budapest') + timedelta(hours=-1)
+	end_cet = pd.Timestamp((end_date + timedelta(days=1)).strftime('%Y%m%d') + '0000', tz='Europe/Budapest')
+
+	# Format the start and end dates to match the API requirements (yyyymmddhhmm)
+	period_start = start_cet.strftime('%Y%m%d%H%M')
+	period_end = end_cet.strftime('%Y%m%d%H%M')
+
+	url = "https://web-api.tp.entsoe.eu/api"
+
+	params = {
+		"securityToken": api_key_entsoe,  # Replace with your actual API key
+		"documentType": "A75",  # Document type for actual generation per type
+		"processType": "A16",   # A16 represents Realized generation
+		"in_Domain": "10YRO-TEL------P",  # EIC code for Romania
+		"periodStart": period_start,
+		"periodEnd": period_end,
+		"PsrType": "B12"  # B12 corresponds to Hydro Water Reservoir
+	}
+
+	headers = {
+		"Content-Type": "application/xml",
+		"Accept": "application/xml",
+	}
+
+	try:
+		# Make the API request
+		response = requests.get(url, params=params, headers=headers)
+		response.raise_for_status()
+
+		# Parse the XML response
+		root = ET.fromstring(response.content)
+
+		# Extract namespace dynamically
+		ns_match = root.tag[root.tag.find("{"):root.tag.find("}")+1]
+		namespaces = {'ns': ns_match.strip("{}")} if ns_match else {}
+
+		# Initialize lists to store parsed data
+		timestamps_utc = []
+		quantities = []
+
+		# Iterate over TimeSeries to extract the points
+		for timeseries in root.findall('ns:TimeSeries', namespaces):
+			for period in timeseries.findall('ns:Period', namespaces):
+				start = period.find('ns:timeInterval/ns:start', namespaces)
+				resolution = period.find('ns:resolution', namespaces)
+
+				if start is None or resolution is None:
+					continue
+
+				# Extract the start time and resolution
+				start_time_utc = datetime.strptime(start.text, '%Y-%m-%dT%H:%MZ')  # Start time is in UTC
+
+				# Iterate over all Point elements within each Period
+				for point in period.findall('ns:Point', namespaces):
+					position_tag = point.find('ns:position', namespaces)
+					quantity_tag = point.find('ns:quantity', namespaces)
+
+					if position_tag is None or quantity_tag is None:
+						continue
+
+					try:
+						position = int(position_tag.text)
+						quantity = float(quantity_tag.text)
+					except ValueError:
+						continue
+
+					# Calculate timestamp for the point based on position in UTC
+					point_time_utc = start_time_utc + timedelta(minutes=15 * (position - 1))
+					timestamps_utc.append(point_time_utc)
+					quantities.append(quantity)
+
+		# Create DataFrame from the parsed data
+		df_actual_production = pd.DataFrame({
+			'Timestamp_UTC': timestamps_utc,
+			'Actual Production (MW)': quantities
+		})
+
+		# Convert UTC to CET
+		df_actual_production['Timestamp_UTC'] = pd.to_datetime(df_actual_production['Timestamp_UTC'])
+		df_actual_production['Timestamp_CET'] = df_actual_production['Timestamp_UTC'].dt.tz_localize('UTC').dt.tz_convert('Europe/Berlin')
+		df_actual_production.drop(columns=['Timestamp_UTC'], inplace=True)
+		df_actual_production.rename(columns={'Timestamp_CET': 'Timestamp'}, inplace=True)
+
+		# Filter by user-provided date range
+		start_cet = pd.Timestamp(start_date.strftime('%Y-%m-%dT00:00:00'), tz='Europe/Berlin')
+		end_cet = pd.Timestamp(end_date.strftime('%Y-%m-%dT23:45:00'), tz='Europe/Berlin')
+
+		# Create a complete index for 15-minute intervals
+		full_index_cet = pd.date_range(start=start_cet, end=end_cet, freq='15T', tz='Europe/Berlin')
+
+		# Merge actual data with the full index to ensure all intervals are covered
+		df_full = pd.DataFrame({'Timestamp': full_index_cet}).set_index('Timestamp')
+		df_actual_production = df_full.merge(
+			df_actual_production.set_index('Timestamp'),
+			how='left',
+			left_index=True,
+			right_index=True
+		)
+		df_actual_production.fillna(0, inplace=True)  # Replace missing values with 0
+		df_actual_production.reset_index(inplace=True)
+
+		# Write the DataFrame to Excel
+		df_actual_production_excel = df_actual_production.copy()
+		df_actual_production_excel['Timestamp'] = df_actual_production_excel['Timestamp'].dt.tz_localize(None)
+		df_actual_production_excel.to_excel("./data_fetching/Entsoe/Actual_Production_Hydro_Water_Reservoir.xlsx", index=False)
+
+		return df_actual_production
+
+	except requests.exceptions.RequestException as e:
+		print(f"An error occurred: {e}")
+		return pd.DataFrame()
+
+
+def fetch_process_hydro_river_actual_production(start_date, end_date):
+	"""
+	Fetch and process hydro river actual production data from ENTSO-E API for a given date range.
+	"""
+	# Convert start_date and end_date to CET timestamps
+	start_cet = pd.Timestamp(start_date.strftime('%Y%m%d') + '0000', tz='Europe/Budapest') + timedelta(hours=-1)
+	end_cet = pd.Timestamp((end_date + timedelta(days=1)).strftime('%Y%m%d') + '0000', tz='Europe/Budapest')
+
+	# Format the start and end dates to match the API requirements (yyyymmddhhmm)
+	period_start = start_cet.strftime('%Y%m%d%H%M')
+	period_end = end_cet.strftime('%Y%m%d%H%M')
+
+	url = "https://web-api.tp.entsoe.eu/api"
+
+	params = {
+		"securityToken": api_key_entsoe,  # Replace with your actual API key
+		"documentType": "A75",  # Document type for actual generation per type
+		"processType": "A16",   # A16 represents Realized generation
+		"in_Domain": "10YRO-TEL------P",  # EIC code for Romania
+		"periodStart": period_start,
+		"periodEnd": period_end,
+		"PsrType": "B11"  # B11 corresponds to Hydro River
+	}
+
+	headers = {
+		"Content-Type": "application/xml",
+		"Accept": "application/xml",
+	}
+
+	try:
+		# Make the API request
+		response = requests.get(url, params=params, headers=headers)
+		response.raise_for_status()
+
+		# Parse the XML response
+		root = ET.fromstring(response.content)
+
+		# Extract namespace dynamically
+		ns_match = root.tag[root.tag.find("{"):root.tag.find("}")+1]
+		namespaces = {'ns': ns_match.strip("{}")} if ns_match else {}
+
+		# Initialize lists to store parsed data
+		timestamps_utc = []
+		quantities = []
+
+		# Iterate over TimeSeries to extract the points
+		for timeseries in root.findall('ns:TimeSeries', namespaces):
+			for period in timeseries.findall('ns:Period', namespaces):
+				start = period.find('ns:timeInterval/ns:start', namespaces)
+				resolution = period.find('ns:resolution', namespaces)
+
+				if start is None or resolution is None:
+					continue
+
+				# Extract the start time and resolution
+				start_time_utc = datetime.strptime(start.text, '%Y-%m-%dT%H:%MZ')  # Start time is in UTC
+
+				# Iterate over all Point elements within each Period
+				for point in period.findall('ns:Point', namespaces):
+					position_tag = point.find('ns:position', namespaces)
+					quantity_tag = point.find('ns:quantity', namespaces)
+
+					if position_tag is None or quantity_tag is None:
+						continue
+
+					try:
+						position = int(position_tag.text)
+						quantity = float(quantity_tag.text)
+					except ValueError:
+						continue
+
+					# Calculate timestamp for the point based on position in UTC
+					point_time_utc = start_time_utc + timedelta(minutes=15 * (position - 1))
+					timestamps_utc.append(point_time_utc)
+					quantities.append(quantity)
+
+		# Create DataFrame from the parsed data
+		df_actual_production = pd.DataFrame({
+			'Timestamp_UTC': timestamps_utc,
+			'Actual Production (MW)': quantities
+		})
+
+		# Convert UTC to CET
+		df_actual_production['Timestamp_UTC'] = pd.to_datetime(df_actual_production['Timestamp_UTC'])
+		df_actual_production['Timestamp_CET'] = df_actual_production['Timestamp_UTC'].dt.tz_localize('UTC').dt.tz_convert('Europe/Berlin')
+		df_actual_production.drop(columns=['Timestamp_UTC'], inplace=True)
+		df_actual_production.rename(columns={'Timestamp_CET': 'Timestamp'}, inplace=True)
+
+		# Filter by user-provided date range
+		start_cet = pd.Timestamp(start_date.strftime('%Y-%m-%dT00:00:00'), tz='Europe/Berlin')
+		end_cet = pd.Timestamp(end_date.strftime('%Y-%m-%dT23:45:00'), tz='Europe/Berlin')
+
+		# Create a complete index for 15-minute intervals
+		full_index_cet = pd.date_range(start=start_cet, end=end_cet, freq='15T', tz='Europe/Berlin')
+
+		# Merge actual data with the full index to ensure all intervals are covered
+		df_full = pd.DataFrame({'Timestamp': full_index_cet}).set_index('Timestamp')
+		df_actual_production = df_full.merge(
+			df_actual_production.set_index('Timestamp'),
+			how='left',
+			left_index=True,
+			right_index=True
+		)
+		df_actual_production.fillna(0, inplace=True)  # Replace missing values with 0
+		df_actual_production.reset_index(inplace=True)
+
+		# Write the DataFrame to Excel
+		df_actual_production_excel = df_actual_production.copy()
+		df_actual_production_excel['Timestamp'] = df_actual_production_excel['Timestamp'].dt.tz_localize(None)
+		df_actual_production_excel.to_excel("./data_fetching/Entsoe/Actual_Production_Hydro_River.xlsx", index=False)
+
+		return df_actual_production
+
+	except requests.exceptions.RequestException as e:
+		print(f"An error occurred: {e}")
+		return pd.DataFrame()
+
+
+def align_and_combine_hydro_data(df_water_reservoir, df_river):
+	# Ensure notified and actual dataframes are sorted and set the index to Timestamp
+	df_water_reservoir = df_water_reservoir.sort_values(by='Timestamp').set_index('Timestamp')
+	df_river = df_river.sort_values(by='Timestamp').set_index('Timestamp')
+
+	# Load volue forecast data and rename the columns appropriately
+	# df_volue_forecast = df_volue_forecast.rename(columns={df_volue_forecast.columns[0]: 'Volue Forecast (MW)'})
+	
+	# # Convert Volue forecast index to datetime and set the timezone to CET (Europe/Berlin)
+	# df_volue_forecast.index = pd.to_datetime(df_volue_forecast.index, utc=True).tz_convert('Europe/Berlin')
+	
+	# # Resample the volue forecast to 15-minute intervals using linear interpolation
+	# df_volue_forecast_resampled = df_volue_forecast.resample('15T').interpolate(method='linear')
+	
+	# # Reset the index of the resampled forecast and rename the index to Timestamp
+	# df_volue_forecast_resampled = df_volue_forecast_resampled.reset_index().rename(columns={'index': 'Timestamp'})
+
+	# Align the resampled volue forecast DataFrame to the combined notified and actual hydro production data
+	df_combined = pd.concat([df_water_reservoir, df_river], axis=1).reset_index()
+	# df_combined['Volue Forecast (MW)'] = df_volue_forecast_resampled.set_index('Timestamp')['Volue Forecast (MW)'].reindex(df_combined['Timestamp']).values
+
+	# Sort the final DataFrame by Timestamp and fill any NaN values with zeros
+	df_combined.sort_values(by='Timestamp', inplace=True)
+	df_combined.fillna(0, inplace=True)
+
+	# Rename columns for clarity
+	df_combined.columns = ['Timestamp', 'Hydro Reservoir Actual (MW)', 'Hydro River Actual (MW)']
+	df_combined["Hydro Actual (MW)"] = df_combined["Hydro Reservoir Actual (MW)"] + df_combined["Hydro River Actual (MW)"]
+	# Writing the Hydro Production to Excel
+	df_combined_excel = df_combined.copy()
+	# Remove timezone information from the 'Timestamp' column
+	df_combined_excel['Timestamp'] = df_combined_excel['Timestamp'].dt.tz_localize(None)
+	# Add a "Quarter" column based on the Timestamp column
+	df_combined_excel['Quarter'] = (df_combined_excel.index % 96) + 1
+	# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+	df_combined_excel['Lookup'] = df_combined_excel["Timestamp"].dt.strftime('%d.%m.%Y') + df_combined_excel["Quarter"].astype(str)
+	# Save to Excel
+	df_combined_excel.to_excel("./data_fetching/Entsoe/Hydro_Production_Historical.xlsx", index=False)
+	
+	return df_combined
+
+# ===========================Actual and Forecasted Consumption================================================================
+
+def fetch_consumption_forecast(start_date, end_date):
+	"""
+	Fetch forecasted consumption data for the specified date range and save it to an Excel file.
+	"""
+	# Convert start_date and end_date to CET timestamps
+	start_cet = pd.Timestamp(start_date.strftime('%Y%m%d') + '0000', tz='Europe/Budapest') + timedelta(hours=-1)
+	end_cet = pd.Timestamp((end_date + timedelta(days=1)).strftime('%Y%m%d') + '0000', tz='Europe/Budapest')
+
+	# Format the start and end dates to match the API requirements (yyyymmddhhmm)
+	period_start = start_cet.strftime('%Y%m%d%H%M')
+	period_end = end_cet.strftime('%Y%m%d%H%M')
+
+	# API request parameters
+	url = "https://web-api.tp.entsoe.eu/api"
+	params = {
+		"securityToken": api_key_entsoe,  # Replace with your actual API key
+		"documentType": "A65",           # Forecasted consumption document type
+		"processType": "A01",            # Process type for notified consumption
+		"outBiddingZone_Domain": "10YRO-TEL------P",  # Romania's area EIC code
+		"periodStart": period_start,
+		"periodEnd": period_end
+	}
+	headers = {
+		"Content-Type": "application/xml",
+		"Accept": "application/xml",
+	}
+
+	try:
+		# Make the API request
+		response = requests.get(url, params=params, headers=headers)
+		response.raise_for_status()  # Raise error for bad response
+
+		# Parse XML response
+		root = ET.fromstring(response.content)
+		namespaces = {'ns': root.tag[root.tag.find("{"):root.tag.find("}")+1].strip("{}")}
+
+		timestamps_utc = []
+		quantities = []
+
+		# Extract values from XML
+		for timeseries in root.findall('ns:TimeSeries', namespaces):
+			for period in timeseries.findall('ns:Period', namespaces):
+				start_time = period.find('ns:timeInterval/ns:start', namespaces)
+
+				if start_time is None:
+					continue
+
+				start_time_utc = datetime.strptime(start_time.text, '%Y-%m-%dT%H:%MZ')
+
+				for point in period.findall('ns:Point', namespaces):
+					position_tag = point.find('ns:position', namespaces)
+					quantity_tag = point.find('ns:quantity', namespaces)
+
+					if position_tag is None or quantity_tag is None:
+						continue
+
+					try:
+						position = int(position_tag.text)
+						quantity = float(quantity_tag.text)
+					except ValueError:
+						continue
+
+					point_time_utc = start_time_utc + timedelta(minutes=15 * (position - 1))
+					timestamps_utc.append(point_time_utc)
+					quantities.append(quantity)
+
+		# Create DataFrame
+		df_forecast = pd.DataFrame({
+			'Timestamp_UTC': timestamps_utc,
+			'Forecasted Consumption (MW)': quantities
+		})
+
+		# Convert UTC to CET
+		df_forecast['Timestamp_UTC'] = pd.to_datetime(df_forecast['Timestamp_UTC'])
+		df_forecast['Timestamp_CET'] = df_forecast['Timestamp_UTC'].dt.tz_localize('UTC').dt.tz_convert('Europe/Berlin')
+		df_forecast.drop(columns=['Timestamp_UTC'], inplace=True)
+		df_forecast.rename(columns={'Timestamp_CET': 'Timestamp'}, inplace=True)
+
+		# Filter by user-provided date range
+		start_cet = pd.Timestamp(start_date.strftime('%Y-%m-%dT00:00:00'), tz='Europe/Berlin')
+		end_cet = pd.Timestamp(end_date.strftime('%Y-%m-%dT23:45:00'), tz='Europe/Berlin')
+
+		# Create a complete index for 15-minute intervals
+		full_index_cet = pd.date_range(start=start_cet, end=end_cet, freq='15T', tz='Europe/Berlin')
+		df_full = pd.DataFrame({'Timestamp': full_index_cet}).set_index('Timestamp')
+
+		# Merge the full index with actual data to ensure all intervals are included
+		df_forecast = df_full.merge(df_forecast.set_index('Timestamp'), how='left', left_index=True, right_index=True)
+		df_forecast.fillna(0, inplace=True)  # Fill missing values with 0
+		df_forecast.reset_index(inplace=True)
+
+		# Save the DataFrame to an Excel file
+		df_forecast_excel = df_forecast.copy()
+		df_forecast_excel['Timestamp'] = df_forecast_excel['Timestamp'].dt.tz_localize(None)  # Remove timezone for Excel
+		# Add a "Quarter" column based on the Timestamp column
+		df_forecast_excel['Quarter'] = (df_forecast_excel.index % 96) + 1
+		# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+		df_forecast_excel['Lookup'] = df_forecast_excel["Timestamp"].dt.strftime('%d.%m.%Y') + df_forecast_excel["Quarter"].astype(str)
+		df_forecast_excel.to_excel("./data_fetching/Entsoe/Consumption_Forecast_Historical.xlsx", index=False)
+
+		return df_forecast
+
+	except requests.exceptions.RequestException as e:
+		print(f"An error occurred: {e}")
+		return pd.DataFrame()
+
+def fetch_actual_consumption(start_date, end_date):
+	# Setting up the start and end dates (today and tomorrow)
+	today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+	start_cet = pd.Timestamp(start_date.strftime('%Y%m%d') + '0000', tz='Europe/Budapest') + timedelta(hours=-1)
+	end_cet = pd.Timestamp((end_date + timedelta(days=1)).strftime('%Y%m%d') + '0000', tz='Europe/Budapest')
+
+	# Format the start and end dates to match the API requirements (yyyymmddhhmm)
+	period_start = start_cet.strftime('%Y%m%d%H%M')
+	period_end = end_cet.strftime('%Y%m%d%H%M')
+
+	url = "https://web-api.tp.entsoe.eu/api"
+
+	params = {
+		"securityToken": api_key_entsoe,
+		"documentType": "A65",  # Document type for actual load
+		"processType": "A16",   # A16 represents Realized consumption
+		"outBiddingZone_Domain": "10YRO-TEL------P",  # EIC code for Romania
+		"periodStart": period_start,
+		"periodEnd": period_end,
+	}
+
+	headers = {
+		"Content-Type": "application/xml",
+		"Accept": "application/xml",
+	}
+
+	try:
+		response = requests.get(url, params=params, headers=headers)
+		response.raise_for_status()
+		
+		# Parse XML response
+		root = ET.fromstring(response.content)
+		namespaces = {'ns': root.tag[root.tag.find("{"):root.tag.find("}")+1].strip("{}")}
+
+		timestamps_utc = []
+		quantities = []
+
+		# Extract values from XML
+		for timeseries in root.findall('ns:TimeSeries', namespaces):
+			for period in timeseries.findall('ns:Period', namespaces):
+				start_time = period.find('ns:timeInterval/ns:start', namespaces)
+				resolution = period.find('ns:resolution', namespaces)
+
+				if start_time is None or resolution is None:
+					continue
+
+				start_time_utc = datetime.strptime(start_time.text, '%Y-%m-%dT%H:%MZ')
+
+				for point in period.findall('ns:Point', namespaces):
+					position_tag = point.find('ns:position', namespaces)
+					quantity_tag = point.find('ns:quantity', namespaces)
+
+					if position_tag is None or quantity_tag is None:
+						continue
+
+					try:
+						position = int(position_tag.text)
+						quantity = float(quantity_tag.text)
+					except ValueError as e:
+						print(f"Error converting position or quantity: {e}, skipping.")
+						continue
+
+					point_time_utc = start_time_utc + timedelta(minutes=15 * (position - 1))
+					timestamps_utc.append(point_time_utc)
+					quantities.append(quantity)
+
+		# Create DataFrame
+		df_actual = pd.DataFrame({
+			'Timestamp_UTC': timestamps_utc,
+			'Actual Consumption (MW)': quantities
+		})
+
+		df_actual['Timestamp_UTC'] = pd.to_datetime(df_actual['Timestamp_UTC'])
+		df_actual['Timestamp_CET'] = df_actual['Timestamp_UTC'].dt.tz_localize('UTC').dt.tz_convert('Europe/Berlin')
+		df_actual.drop(columns=['Timestamp_UTC'], inplace=True)
+		df_actual.rename(columns={'Timestamp_CET': 'Timestamp'}, inplace=True)
+
+		# Filter by user-provided date range
+		start_cet = pd.Timestamp(start_date.strftime('%Y-%m-%dT00:00:00'), tz='Europe/Berlin')
+		end_cet = pd.Timestamp(end_date.strftime('%Y-%m-%dT23:45:00'), tz='Europe/Berlin')
+
+		# Create a complete index for 15-minute intervals
+		full_index_cet = pd.date_range(start=start_cet, end=end_cet, freq='15T', tz='Europe/Berlin')
+		df_full = pd.DataFrame({'Timestamp': full_index_cet}).set_index('Timestamp')
+
+		# Merge the full index with actual data to ensure all intervals are included
+		df_actual = df_full.merge(df_actual.set_index('Timestamp'), how='left', left_index=True, right_index=True)
+		df_actual.fillna(0, inplace=True)  # Fill missing values with 0
+		df_actual.reset_index(inplace=True)
+
+		# Writing the Consumption Actual to Excel
+		df_actual_excel = df_actual.copy()
+		# Remove timezone information from the 'Timestamp' column
+		df_actual_excel['Timestamp'] = df_actual_excel['Timestamp'].dt.tz_localize(None)
+		# Add a "Quarter" column based on the Timestamp column
+		df_actual_excel['Quarter'] = (df_actual_excel.index % 96) + 1
+		# Format the 'Data' column as a string in 'dd.mm.yyyy' format for concatenation
+		df_actual_excel['Lookup'] = df_actual_excel["Timestamp"].dt.strftime('%d.%m.%Y') + df_actual_excel["Quarter"].astype(str)
+		# Save to Excel
+		df_actual_excel.to_excel("./data_fetching/Entsoe/Consumption_Actual_Historical.xlsx", index=False)
+
+		return df_actual
+
+	except requests.exceptions.RequestException as e:
+		print(f"An error occurred: {e}")
+		return pd.DataFrame()
+
+def combine_consumption_data(df_forecast, df_actual):
+	# Step 1: Sort and align the wind notified and actual production DataFrames
+	df_forecast = df_forecast.sort_values(by='Timestamp').set_index('Timestamp')
+	df_actual = df_actual.sort_values(by='Timestamp').set_index('Timestamp')
+	
+	# Step 2: Concatenate the notified and actual data based on Timestamp
+	df_combined = pd.concat([df_forecast, df_actual], axis=1)
+
+	# Step 3: Reset index to make Timestamp a column again
+	df_combined.reset_index(inplace=True)
+	
+	# Step 4: Rename the columns for better readability
+	df_combined.columns = ['Timestamp', 'Consumption Forecast (MW)', 'Actual Consumption (MW)']
+
+	# Step 6: Fill any missing values if required (e.g., with 0 or 'NaN')
+	# df_combined.fillna(method='ffill', inplace=True)  # Forward fill any missing values if necessary
+
+	return df_combined
+
+
+# ===========================Activation Energy=======================================================================================
+
+def fetch_process_balancing_activation_energy(start_date, end_date):
+    """
+    Fetch and process balancing activation energy data from ENTSO-E API for a given date range.
+    """
+    # Convert start_date and end_date to CET timestamps
+    start_cet = pd.Timestamp(start_date.strftime('%Y%m%d') + '0000', tz='Europe/Budapest') + timedelta(hours=-1)
+    end_cet = pd.Timestamp((end_date + timedelta(days=1)).strftime('%Y%m%d') + '0000', tz='Europe/Budapest')
+
+    # Format the start and end dates to match the API requirements (yyyymmddhhmm)
+    period_start = start_cet.strftime('%Y%m%d%H%M')
+    period_end = end_cet.strftime('%Y%m%d%H%M')
+
+    url = "https://web-api.tp.entsoe.eu/api"
+
+    params = {
+        "securityToken": api_key_entsoe,  # Replace with your actual API key
+        "documentType": "A83",  # Document type for activated balancing quantities
+        "controlArea_Domain": "10YRO-TEL------P",  # EIC code for Romania
+        "periodStart": period_start,
+        "periodEnd": period_end,
+        "businessType": "A97",  # A96 corresponds to Automatic Frequency Restoration Reserve (aFRR)
+    }
+
+    headers = {
+        "Content-Type": "application/xml",
+        "Accept": "application/xml",
+    }
+
+    try:
+        # Make the API request
+        response = requests.get(url, params=params, headers=headers)
+        response.raise_for_status()
+        st.text(response.content)
+        # Parse the XML response
+        root = ET.fromstring(response.content)
+
+        # Extract namespace dynamically
+        ns_match = root.tag[root.tag.find("{"):root.tag.find("}")+1]
+        namespaces = {'ns': ns_match.strip("{}")} if ns_match else {}
+
+        # Initialize lists to store parsed data
+        timestamps_utc = []
+        quantities = []
+        directions = []  # Flow direction (A01 for Excedent, A02 for Deficit)
+
+        # Iterate over TimeSeries to extract the points
+        for timeseries in root.findall('ns:TimeSeries', namespaces):
+            flow_direction = timeseries.find('ns:flowDirection.direction', namespaces)
+            if flow_direction is None:
+                continue
+            direction = flow_direction.text
+
+            for period in timeseries.findall('ns:Period', namespaces):
+                start = period.find('ns:timeInterval/ns:start', namespaces)
+                resolution = period.find('ns:resolution', namespaces)
+
+                if start is None or resolution is None:
+                    continue
+
+                # Extract the start time and resolution
+                start_time_utc = datetime.strptime(start.text, '%Y-%m-%dT%H:%MZ')  # Start time is in UTC
+
+                for point in period.findall('ns:Point', namespaces):
+                    position_tag = point.find('ns:position', namespaces)
+                    quantity_tag = point.find('ns:quantity', namespaces)
+
+                    if position_tag is None or quantity_tag is None:
+                        continue
+
+                    try:
+                        position = int(position_tag.text)
+                        quantity = float(quantity_tag.text)
+                    except ValueError:
+                        continue
+
+                    # Calculate timestamp for the point based on position in UTC
+                    point_time_utc = start_time_utc + timedelta(minutes=15 * (position - 1))
+                    timestamps_utc.append(point_time_utc)
+                    quantities.append(quantity)
+                    directions.append(direction)
+
+        # Create DataFrame from the parsed data
+        df_balancing = pd.DataFrame({
+            'Timestamp_UTC': timestamps_utc,
+            'Quantity (MWh)': quantities,
+            'Direction': directions,
+        })
+
+        # Convert UTC to CET
+        df_balancing['Timestamp_UTC'] = pd.to_datetime(df_balancing['Timestamp_UTC'])
+        df_balancing['Timestamp_CET'] = df_balancing['Timestamp_UTC'].dt.tz_localize('UTC').dt.tz_convert('Europe/Berlin')
+        df_balancing.drop(columns=['Timestamp_UTC'], inplace=True)
+        df_balancing.rename(columns={'Timestamp_CET': 'Timestamp'}, inplace=True)
+
+        # Separate data into Excedent and Deficit
+        df_balancing['Excedent (MWh)'] = df_balancing.apply(
+            lambda row: row['Quantity (MWh)'] if row['Direction'] == 'A01' else 0, axis=1
+        )
+        df_balancing['Deficit (MWh)'] = df_balancing.apply(
+            lambda row: row['Quantity (MWh)'] if row['Direction'] == 'A02' else 0, axis=1
+        )
+        df_balancing.drop(columns=['Quantity (MWh)', 'Direction'], inplace=True)
+
+        # Filter by user-provided date range
+        start_cet = pd.Timestamp(start_date.strftime('%Y-%m-%dT00:00:00'), tz='Europe/Berlin')
+        end_cet = pd.Timestamp(end_date.strftime('%Y-%m-%dT23:45:00'), tz='Europe/Berlin')
+
+        # Create a complete index for 15-minute intervals
+        full_index_cet = pd.date_range(start=start_cet, end=end_cet, freq='15T', tz='Europe/Berlin')
+
+        # Merge balancing data with the full index to ensure all intervals are covered
+        df_full = pd.DataFrame({'Timestamp': full_index_cet}).set_index('Timestamp')
+        df_balancing = df_full.merge(
+            df_balancing.set_index('Timestamp'),
+            how='left',
+            left_index=True,
+            right_index=True
+        )
+        df_balancing.fillna(0, inplace=True)  # Replace missing values with 0
+        df_balancing.reset_index(inplace=True)
+
+        # Write the DataFrame to Excel
+        df_balancing_excel = df_balancing.copy()
+        df_balancing_excel['Timestamp'] = df_balancing_excel['Timestamp'].dt.tz_localize(None)
+        df_balancing_excel.to_excel("./data_fetching/Entsoe/Balancing_Activation_Energy.xlsx", index=False)
+
+        return df_balancing
+
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+        return pd.DataFrame()
+
+
+
+
 # 1 Imbalance Prices
 def imbalance_prices(start, end):
 	# Define the start and end timestamps for the query
@@ -1055,13 +2577,13 @@ def predicting_wind_production_15min():
 	worksheet.write(0,2,"Prediction")
 
 	for value in rounded_values:
-	    worksheet.write(row, col + 2, value, decimal_format)
-	    row += 1
+		worksheet.write(row, col + 2, value, decimal_format)
+		row += 1
 	row = 1
 	for Data, Interval in zip(dataset.Data, dataset.Interval):
-	    worksheet.write(row, col + 0, Data, date_format)
-	    worksheet.write(row, col + 1, Interval)
-	    row += 1
+		worksheet.write(row, col + 0, Data, date_format)
+		worksheet.write(row, col + 1, Interval)
+		row += 1
 
 	workbook.close()
 	file_path = "./Market Fundamentals/Wind_Production_Forecast/Wind_Forecast_Production_15min.xlsx"
@@ -1509,7 +3031,58 @@ def render_fundamentals_page():
 				 </a> 
 				 """
 			st.markdown(button_html, unsafe_allow_html=True)
+
+	# Streamlit UI for date input
+	st.header("Fetch Fundamentals from ENTSO-E")
+
+	# Default values for the date range
+	today = date.today()
+	default_start_date = today
+	default_end_date = today
+
+	# Date range input widgets
+	start_date = st.date_input("Start Date", value=default_start_date)
+	end_date = st.date_input("End Date", value=default_end_date)
+
+	# Validate the date range
+	if start_date > end_date:
+		st.error("Error: Start Date cannot be after End Date.")
+	else:
+		st.success(f"Selected date range: {start_date} to {end_date}")
+
+	if st.button("Fetch Data"):
+		# Fetching the Imbalance Volumes and Prices
+		fetching_imbalance_volumes(start_date, end_date)
+		fetch_imbalance_prices(start_date, end_date)
+		df_volumes = process_imbalance_volumes(start_date, end_date)
+		df_prices = process_imbalance_prices(start_date, end_date)
+		df_imbalance = create_combined_imbalance_dataframe(df_volumes, df_prices)
+
+		# Fetching the Wind Historical Production
+		df_wind_notified = fetch_process_wind_notified(start_date, end_date)
+		df_wind_actual = fetch_process_wind_actual_production(start_date, end_date)
+		df_wind_data = combine_wind_production_data(df_wind_notified, df_wind_actual)
 		
+		# Fetching the Solar Historical Prodution
+		df_solar_notified = fetch_process_solar_notified(start_date, end_date)
+		df_solar_actual = fetch_process_solar_actual_production(start_date, end_date)
+		df_solar_data = combine_solar_production_data(df_solar_notified, df_solar_actual)
+
+		# Hhydro Historical data
+		df_reservoir = fetch_process_hydro_water_reservoir_actual_production(start_date, end_date)
+		df_river = fetch_process_hydro_river_actual_production(start_date, end_date)
+		df_hydro = align_and_combine_hydro_data(df_reservoir, df_river)
+
+		# Fetching the Consumption data
+		df_consumption_forecast = fetch_consumption_forecast(start_date, end_date)
+		df_consumption_actual = fetch_actual_consumption(start_date, end_date)
+
+		# Fetching the aFRR activation
+		# st.dataframe(fetch_process_balancing_activation_energy(start_date, end_date))
+
+
+
+
 
 
 
