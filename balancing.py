@@ -24,8 +24,9 @@ from pytz import timezone
 
 # Importing from other pages
 from ml import fetching_Imperial_data, fetching_Astro_data, predicting_exporting_Astro, predicting_exporting_Imperial, fetching_Imperial_data_15min, fetching_Astro_data_15min, predicting_exporting_Astro_15min, predicting_exporting_Imperial_15min, fetching_RES_data, fetching_RES_data_15min, predicting_exporting_RES, predicting_exporting_RES_15min, fetching_Luxus_data, predicting_exporting_Luxus
+from ml import fetching_Kek_Hal_data, predicting_exporting_Kek_Hal
 from ml import uploading_onedrive_file, upload_file_with_retries, check_file_sync
-from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial, render_indisponibility_db_RES_Energy, render_indisponibility_db_Luxus
+from database import render_indisponibility_db_Solina, render_indisponibility_db_Astro, render_indisponibility_db_Imperial, render_indisponibility_db_RES_Energy, render_indisponibility_db_Luxus, render_indisponibility_db_Kek_Hal
 from data_fetching.entsoe_newapi_data import fetch_process_wind_notified, fetch_process_wind_actual_production, fetch_process_solar_notified, fetch_process_solar_actual_production
 from data_fetching.entsoe_newapi_data import fetch_consumption_forecast, fetch_actual_consumption, render_test_entsoe_newapi_functions
 from data_fetching.entsoe_newapi_data import fetch_process_hydro_water_reservoir_actual_production, fetch_process_hydro_river_actual_production, fetch_volue_hydro_data, align_and_combine_hydro_data
@@ -702,6 +703,26 @@ def render_balancing_market_intraday_page():
 		fetching_Luxus_data()
 		df = predicting_exporting_Luxus(interval_from, interval_to, limitation_percentage)
 		file_path = './Luxus/Results_Production_xgb_Luxus.xlsx'
+		# uploading_onedrive_file(file_path, access_token)
+		access_token = upload_file_with_retries(file_path)
+		check_file_sync(file_path, access_token)
+
+		# Forecasting Kek_Hal
+		# Updating the indisponibility, if any
+		result_Kek_Hal = render_indisponibility_db_Kek_Hal()
+		if result_Luxus[0] is not None:
+			interval_from, interval_to, limitation_percentage = result_Luxus
+		else:
+			# Handle the case where no data is found
+			# st.text("No indisponibility found for tomorrow")
+			# Fallback logic: Add your fallback actions here
+			# st.write("Running fallback logic because no indisponibility data is found.")
+			interval_from = 1
+			interval_to = 24
+			limitation_percentage = 0
+		fetching_Kek_Hal_data()
+		df = predicting_exporting_Kek_Hal(interval_from, interval_to, limitation_percentage)
+		file_path = './Kek_Hal/Results_Production_Kek_Hal_xgb.xlsx'
 		# uploading_onedrive_file(file_path, access_token)
 		access_token = upload_file_with_retries(file_path)
 		check_file_sync(file_path, access_token)
