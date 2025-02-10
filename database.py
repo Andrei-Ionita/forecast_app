@@ -236,4 +236,7 @@ def render_indisponibility_db_Luxus():
     return render_indisponibility_db("indisponibility_luxus", "Luxus")
 
 def render_indisponibility_db_Kek_Hal():
-    return render_indisponibility_db("indisponibility_luxus", "Kek_Hal")
+    return render_indisponibility_db("indisponibility_kek_hal", "Kek_Hal")
+
+def render_indisponibility_db_Giulia():
+    return render_indisponibility_db("indisponibility_giulia", "Giulia")
