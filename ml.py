@@ -1632,10 +1632,16 @@ def fetching_Kek_Hal_data():
 	columns_to_shift = data.columns.difference(['period_end'])
 
 	# Shift the data columns by 2 intervals
-	data_shifted = data[columns_to_shift].shift(2)
+	data_shifted = data[columns_to_shift].shift(1)
 
 	# Combine the fixed 'period_end' with the shifted data columns
 	data_adjusted = pd.concat([data[['period_end']], data_shifted], axis=1)
+
+	# Optionally, handle the NaN values in the first two rows after shifting
+	data_adjusted.fillna(0, inplace=True)  # Or use another method as appropriate
+
+	# Save the adjusted DataFrame
+	data_adjusted.to_csv("./Kek_Hal/Solcast/Harghita_raw.csv", index=False)
 
 def fetching_Giulia_data():
 	lat = 45.606886
